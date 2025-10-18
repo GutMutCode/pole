@@ -229,5 +229,15 @@ class Interpreter:
 
 
 def interpret(program: Program, function_name: str, *args: Any) -> Any:
+    """
+    Execute a function from the program.
+
+    Args can be passed in two ways:
+    - interpret(program, 'factorial', 5)  # Direct args
+    - interpret(program, 'factorial', *[5])  # Unpacked list
+
+    Note: Do NOT pass interpret(program, 'factorial', [5]) as this will
+    pass a list as a single argument.
+    """
     interpreter = Interpreter(program)
     return interpreter.call_function(function_name, *args)
