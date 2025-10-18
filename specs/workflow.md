@@ -200,7 +200,7 @@ examples/01-factorial.pole
 ### 출력 형식:
 ```
 // Generated from: examples/01-factorial.pole
-// Timestamp: 2025-01-01 12:00:00
+// Timestamp: 2025-10-19 12:00:00
 // LLM: claude-3.5-sonnet
 // Verification: PASSED
 
