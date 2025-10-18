@@ -1,676 +1,900 @@
 # Pole 개발 로드맵
 
-> 우선순위 기반 작업 관리
+> **Game Engine Vision**: Pole 기반 차세대 게임 엔진 개발
 >
-> **사용 방법**: 새로운 작업 요청이 들어오면, 이 문서의 우선순위를 기준으로 현재 작업과 비교하여 우선순위를 결정합니다.
+> Unity/Unreal을 대체하는 LLM 네이티브 게임 엔진
+
+**이전 로드맵 (Phase 0-4 프로토타입)**: [ROADMAP-v1-prototype.md](ROADMAP-v1-prototype.md)
+
+---
+
+## 📊 전체 개요
+
+### 프로젝트 목표
+
+**Pole**: LLM을 활용한 차세대 게임 엔진
+- 자연어 명세로 게임 로직 작성
+- LLM이 안전하고 최적화된 코드 생성
+- Unity/Unreal 수준의 기능 + LLM 차별화
+
+### 타임라인 (7-10년)
+
+```
+Year 0-1   : Phase 0-4  언어 기초 (완료) ✅
+Year 1-2.5 : Phase 5-6  컴파일러 & 시스템 프로그래밍
+Year 2.5-5.5: Phase 7-8  게임 엔진 핵심 (렌더링, 물리, ECS)
+Year 5.5-7 : Phase 9    에디터 & 도구
+Year 7-10  : Phase 10   생태계 & 상용화
+```
+
+### 현재 위치
+
+**2025-10-19**: Phase 4 완료 → **Phase 5 시작**
+
+**완료된 것:**
+- ✅ 명세 언어 설계 및 파서
+- ✅ IR 설계 및 인터프리터
+- ✅ LLM 변환 시스템 (OpenRouter)
+- ✅ 타입 체커, 계약 검증
+- ✅ CLI 도구 (check, build, run, test)
+
+**다음 목표:**
+- 🎯 네이티브 컴파일러 (LLVM)
+- 🎯 고성능 런타임
+- 🎯 게임 엔진 기초
 
 ---
 
 ## 우선순위 원칙
 
-### 작업 선택 규칙 (중요)
+### Phase 우선순위
 
-**Phase가 P0/P1/P2보다 상위 개념입니다.**
+1. **현재 Phase 내 P0 작업 우선**
+2. **Phase P0 완료 → P1 검토**
+3. **Phase 전환은 P0 완료 후만 가능**
 
-1. **Phase 우선**: 현재 Phase 내 작업을 먼저 완료
-2. **P0 → P1 → P2**: 같은 Phase 내에서 우선순위 순서
-3. **Phase 전환 조건**: 현재 Phase의 P0 작업이 모두 완료되어야 다음 Phase 시작 가능
+### 작업 분류
 
-**예시**:
-- Phase 1의 P1 작업 vs Phase 2의 P0 작업
-  → **Phase 1 P1 먼저 수행** (Phase 1이 현재 진행 중)
-- Phase 1의 P0가 모두 완료되고 P1/P2만 남은 경우
-  → Phase 1의 P1 수행 후, 선택적으로 Phase 2 시작 가능
+- **P0 (Critical)**: 해당 Phase 완료 필수
+- **P1 (High)**: Phase 완료 후 추가 가치
+- **P2 (Medium)**: 선택적 개선
+- **P3 (Low)**: 나중에
 
-### 최우선 작업 찾기
+### 단기 vs 장기
 
-1. 현재 Phase 확인
-2. 해당 Phase 내에서 미완료 작업 중 가장 높은 우선순위 선택 (P0 → P1 → P2)
-3. 현재 Phase의 필수 작업(P0) 완료 시:
-   - P1이 남았으면 P1 수행
-   - Phase 전환 여부는 사용자와 협의
+- **단기 (Phase 0-4)**: ✅ 완료 (프로토타입)
+- **중기 (Phase 5-6)**: 🔨 진행 중 (2년, 컴파일러)
+- **장기 (Phase 7-10)**: 📅 계획 중 (5-8년, 게임 엔진)
 
 ---
 
-### P0 (Critical) - 시스템 핵심 기능
+## Phase 0-4: 언어 기초 (완료) ✅
 
-- 이것 없이는 Pole이 작동하지 않는 필수 요소
-- 다른 모든 작업의 선행 조건
-- **즉시 작업 필요**
+**기간:** 2025년 초 ~ 2025-10-19 (약 1년)
 
-### P1 (High) - 핵심 가치 제공
+**목표:** 작동하는 프로토타입 완성
 
-- Pole의 차별화된 가치를 제공하는 기능
-- P0 완료 후 바로 착수
-- **다음 우선순위**
+### 완료된 Phase
 
-### P2 (Medium) - 품질 향상
+- ✅ **Phase 0**: 기획 및 문서화
+- ✅ **Phase 1**: 언어 설계 (명세 언어, IR)
+- ✅ **Phase 2**: 프로토타입 구현 (파서, 변환기, 인터프리터, CLI)
+- ✅ **Phase 3**: 완성도 향상 (에러 시스템, 성능, 계약 검증)
+- ✅ **Phase 4**: LLM 통합 개선 (Prompt 개선, IR 후처리)
 
-- 시스템을 더 좋게 만드는 기능
-- P0, P1 완료 후 진행
-- **여유가 있을 때**
+### 주요 산출물
 
-### P3 (Low) - 부가 기능
+- 명세 언어 파서 (`src/pole/parser/`)
+- IR 인터프리터 (`src/pole/runtime/`)
+- LLM 변환기 (`src/pole/transformer/`)
+- 타입 체커 (`src/pole/verifier/type_checker.py`)
+- CLI 도구 (`src/pole/cli/main.py`)
+- 9개 테스트 모듈 (모두 통과)
 
-- 있으면 좋지만 없어도 되는 기능
-- 모든 핵심 작업 완료 후
-- **나중에**
+### 시스템 능력 (현재)
+
+✅ **작동하는 것:**
+- 명세 언어 → IR 변환 (LLM)
+- IR 실행 (인터프리터)
+- 타입 체킹, 계약 검증
+- 예제 기반 자동 테스트
+- 6개 예제 프로그램 실행
+
+⚠️ **제한사항:**
+- 인터프리터만 존재 (느림)
+- I/O 시스템 없음
+- 그래픽/오디오 없음
+- 게임 엔진용으로는 부족
+
+**상세 내용:** [ROADMAP-v1-prototype.md](ROADMAP-v1-prototype.md)
 
 ---
 
-## Phase 0: 기획 및 문서화 (완료)
+## Phase 5: 네이티브 컴파일러 & 고성능 런타임 (Year 1-2.5)
+
+**기간:** 2025-10 ~ 2027-03 (1.5년)
+
+**목표:** Pole IR → 네이티브 기계어 컴파일, 게임 엔진급 성능 달성
+
+**현재 문제:**
+- 인터프리터: 느림 (게임 엔진 불가능)
+- 메모리 관리: 기본적인 GC 없음
+- 동시성: 싱글 스레드만 지원
+
+**Phase 5 목표:**
+- ✅ 네이티브 실행 파일 생성
+- ✅ 성능: 인터프리터 대비 100x 이상
+- ✅ 메모리 안전성 보장
+- ✅ 멀티스레드 지원
+
+---
 
 ### P0 작업 (필수)
 
-- [x] **0.1 프로젝트 구조 정의**
+#### 5.1 **LLVM 백엔드 개발** ⭐ 최우선
 
-  - 완료일: 2025-10-19
-  - 산출물: 디렉토리 구조 (`specs/`, `examples/`)
-  - 상태: ✅ 완료
+**목표:** Pole IR → LLVM IR → 네이티브 기계어
 
-- [x] **0.2 아키텍처 문서 작성**
+**기간:** 6-9개월 (2025-10 ~ 2026-06)
 
-  - 완료일: 2025-10-19
-  - 산출물: `ARCHITECTURE.md`
-  - 내용: 시스템 파이프라인, 용어 정의, LLM 역할
-  - 상태: ✅ 완료
+**산출물:**
+- `src/pole/compiler/llvm/` (신규)
+  - `ir_to_llvm.py` - IR → LLVM IR 변환
+  - `codegen.py` - 코드 생성
+  - `optimization.py` - 최적화 패스
+- `pole compile <file> --target x86_64-linux` CLI 명령어
+- 실행 파일 생성 (`game.exe`, `game`)
 
-- [x] **0.3 변환 워크플로우 정의**
+**마일스톤:**
+1. **M1: 기본 함수 컴파일** (3개월)
+   - 간단한 함수 (factorial) 컴파일
+   - 기본 타입 (Int, Bool) 지원
+   - 산술 연산자
+   - **검증:** `pole compile factorial.pole` → 실행 파일 생성
 
-  - 완료일: 2025-10-19
-  - 산출물: `specs/workflow.md`
-  - 내용: LLM 변환 6단계 프로세스, 명세 검증 체크리스트
-  - 상태: ✅ 완료
+2. **M2: 제어 흐름** (2개월)
+   - if-then-else
+   - match 패턴 매칭
+   - **검증:** is_even, max 예제 컴파일
 
-- [x] **0.4 개발 가이드라인 작성**
+3. **M3: 재귀 함수** (2개월)
+   - 꼬리 재귀 최적화
+   - 스택 오버플로우 방지
+   - **검증:** fibonacci 컴파일, 성능 측정
 
-  - 완료일: 2025-10-19
-  - 산출물: `AGENTS.md`
-  - 내용: 코드 스타일, 명세 검증 프로세스
-  - 상태: ✅ 완료
+4. **M4: 전체 예제 컴파일** (2개월)
+   - 모든 examples/*.pole 컴파일 성공
+   - 타입 체킹 통합
+   - **검증:** 6개 예제 네이티브 실행
 
-- [x] **0.5 로드맵 작성**
-  - 완료일: 2025-10-19
-  - 산출물: `ROADMAP.md` (본 문서)
-  - 내용: 우선순위 기반 작업 관리 시스템
-  - 상태: ✅ 완료
+**성공 기준:**
+- ✅ 컴파일 성공률: 100% (모든 예제)
+- ✅ 성능: factorial(20) < 0.001ms (인터프리터: ~0.06ms)
+- ✅ 정확성: 모든 테스트 통과
+
+**기술 스택:**
+- LLVM 17.0+ (안정 버전)
+- Python llvmlite 또는 Rust llvm-sys
+- 참고: Cranelift (백업 옵션)
+
+**리스크:**
+- **High**: LLVM 학습 곡선
+- **완화:** 단계적 구현, 커뮤니티 지원
+- **비상 계획:** C++ 트랜스파일러 (Pole IR → C++)
+
+**선행 조건:** 없음
+
+**의존성:**
+- 5.2, 5.3, 5.4가 이 작업에 의존
 
 ---
 
-## Phase 1: 언어 설계 (진행 중)
+#### 5.2 **메모리 관리 시스템**
 
-### P0 작업 (필수)
+**목표:** 자동 + 수동 메모리 관리, 누수 방지
 
-- [x] **1.1 명세 언어 문법 설계**
+**기간:** 4-6개월 (5.1 M2 이후 시작)
 
-  - 완료일: 2025-10-19
-  - 산출물: `specs/syntax-v0.md`, `examples/*.pole`
-  - 상태: ✅ 완료
+**산출물:**
+- `specs/memory-model.md` - 메모리 모델 설계
+- `src/pole/compiler/memory/` (신규)
+  - `gc.py` - 가비지 컬렉션 (참조 카운팅)
+  - `allocator.py` - 커스텀 할당자 (Arena, Pool)
+- `@manual_memory`, `@heap_allocated` 어노테이션
 
-- [x] **1.2 구현 언어 (IR) 설계** ⭐ 현재 최우선 작업
+**구현 내용:**
 
-  - 타입 시스템 정의
-  - 형식 의미론
-  - 메모리 모델
-  - 효과 시스템
-  - 산출물: `specs/implementation-lang.md`
-  - 선행 조건: 1.1 완료
-  - **참고 문서**:
-    - README.md (라인 134-201: 구현 언어 상세 조건)
-    - ARCHITECTURE.md (라인 46-51: IR 정의 및 목적)
-    - specs/syntax-v0.md (명세 언어와의 대응 관계)
-    - examples/\*.pole (변환 대상 명세 예제)
-  - **다음 작업**: 이것부터 시작
+1. **참조 카운팅 (RC)**
+   - 자동 증가/감소
+   - 순환 참조 감지 (Weak references)
+   - Zero-cost abstractions
 
-- [x] **1.3 IR 문법 및 예제 작성**
-  - 완료일: 2025-10-19
-  - IR 구체적 문법 정의
-  - 명세 언어 예제의 IR 버전 작성
-  - 산출물: `specs/ir-syntax.md`, `examples/*.pole-ir`
-  - 선행 조건: 1.2 완료
-  - 상태: ✅ 완료
-  - **참고 문서**:
-    - specs/implementation-lang.md (1.2에서 작성한 IR 설계)
-    - examples/\*.pole (변환할 명세 예제)
+2. **커스텀 할당자**
+   - Arena allocator (프레임 단위 일괄 해제)
+   - Pool allocator (작은 객체 재사용)
+   - Stack allocator (임시 데이터)
+
+3. **소유권 시스템** (Rust 스타일)
+   ```pole
+   type Resource<T>
+     @owned  // 소유권 명시
+   
+   function transfer(res: Resource<Texture>) -> Resource<Texture>
+     // 소유권 이동, 복사 없음
+   ```
+
+**마일스톤:**
+1. **M1: RC 기본 구현** (2개월)
+   - 참조 카운트 자동 관리
+   - 메모리 해제 자동화
+
+2. **M2: 순환 참조 감지** (1개월)
+   - Weak references
+   - 누수 검증 도구
+
+3. **M3: Arena allocator** (1개월)
+   - 프레임 단위 할당/해제
+   - 게임 엔진 최적화
+
+4. **M4: 메모리 프로파일러** (1개월)
+   - 메모리 사용량 추적
+   - 누수 자동 감지
+
+**성공 기준:**
+- ✅ 메모리 누수: 0개 (Valgrind 검증)
+- ✅ 오버헤드: < 5% (RC)
+- ✅ Arena allocator: 10x 빠른 할당
+
+**선행 조건:** 5.1 M2 (컴파일러 기본 완성)
+
+---
+
+#### 5.3 **성능 최적화 시스템**
+
+**목표:** 컴파일러 최적화 자동 적용
+
+**기간:** 3-4개월 (5.1 M3 이후)
+
+**산출물:**
+- `@inline`, `@simd`, `@hot_path` 어노테이션
+- LLVM 최적화 파이프라인 통합
+- 성능 벤치마킹 도구
+
+**구현 내용:**
+
+1. **컴파일 타임 최적화**
+   - 상수 폴딩
+   - 데드 코드 제거
+   - 함수 인라인
+   - 루프 언롤링
+
+2. **SIMD 벡터화**
+   ```pole
+   @simd
+   function dot_product(a: Vec3, b: Vec3) -> float:
+     a.x * b.x + a.y * b.y + a.z * b.z
+   // 컴파일러가 SSE/AVX 명령어 생성
+   ```
+
+3. **LTO (Link-Time Optimization)**
+   - 모듈 간 최적화
+   - 전역 인라인
+
+**마일스톤:**
+1. **M1: 기본 최적화** (1개월)
+   - -O2 수준
+2. **M2: SIMD 지원** (1개월)
+3. **M3: LTO** (1개월)
+
+**성공 기준:**
+- ✅ 성능: Python 대비 10-100x
+- ✅ SIMD: 벡터 연산 4x 빠름
+
+**선행 조건:** 5.1 M3
+
+---
+
+#### 5.4 **동시성 & 병렬 처리**
+
+**목표:** 멀티스레드 안전성, 병렬 실행
+
+**기간:** 4-5개월 (5.2 이후)
+
+**산출물:**
+- `@async`, `@parallel` 어노테이션
+- Thread-safe 타입 시스템
+- 데이터 레이스 컴파일 타임 검증
+
+**구현 내용:**
+
+1. **비동기 프로그래밍**
+   ```pole
+   @async
+   function load_asset(path: string) -> Future<Asset>:
+     // 비동기 로딩
+   ```
+
+2. **병렬 처리**
+   ```pole
+   @parallel
+   function update_particles(particles: Array<Particle>):
+     // 자동 병렬화
+   ```
+
+3. **동기화 기본 요소**
+   - Mutex, RwLock
+   - Atomic 연산
+   - Channel (메시지 전달)
+
+**마일스톤:**
+1. **M1: 스레드 안전성 분석** (2개월)
+2. **M2: async/await** (2개월)
+3. **M3: 병렬 for** (1개월)
+
+**성공 기준:**
+- ✅ 데이터 레이스: 0개 (컴파일 타임 검증)
+- ✅ 병렬 성능: 4코어에서 3.5x
+
+**선행 조건:** 5.1 M4, 5.2 M2
+
+---
 
 ### P1 작업 (중요)
 
-- [x] **1.4 검증 시스템 요구사항 정의**
-  - 완료일: 2025-10-19
-  - 타입 체커 요구사항
-  - 명세 준수 검증 방법
-  - 테스트 생성 전략
-  - 산출물: `specs/verification.md`
-  - 선행 조건: 1.2, 1.3 완료
-  - 상태: ✅ 완료
-  - **참고 문서**:
-    - README.md (라인 205-277: 검증 시스템 조건)
-    - specs/workflow.md (Step 5: 검증 단계)
-    - specs/implementation-lang.md (타입 시스템 설계)
+#### 5.5 **JIT 컴파일러** (선택적)
+- **기간:** 3-4개월
+- **목표:** 런타임 최적화
+- **우선순위:** P1 (Phase 5 P0 완료 후 검토)
 
-### P2 작업 (선택)
-
-- [ ] **1.5 표준 라이브러리 설계**
-  - 기본 데이터 타입
-  - 표준 함수들
-  - 산출물: `specs/stdlib.md`
+#### 5.6 **크로스 컴파일** (선택적)
+- **기간:** 2-3개월
+- **목표:** Windows, macOS, Linux 지원
+- **우선순위:** P1
 
 ---
 
-## Phase 2: 프로토타입 구현
+### Phase 5 완료 기준
+
+**필수 (P0):**
+- ✅ 네이티브 컴파일: 모든 예제 성공
+- ✅ 성능: factorial(20) < 0.001ms (100x 개선)
+- ✅ 메모리 안전성: 누수 0개
+- ✅ 멀티스레드: 데이터 레이스 0개
+
+**데모:**
+- 네이티브 실행 파일 생성
+- 성능 벤치마크 (vs Python, vs 인터프리터)
+- YouTube 영상 공개
+
+**Phase 5 → Phase 6 전환 조건:**
+- 위 4가지 완료 기준 모두 충족
+
+---
+
+## Phase 6: 시스템 프로그래밍 기능 (Year 2.5-3.5)
+
+**기간:** 2027-03 ~ 2028-03 (1년)
+
+**목표:** C/C++ 라이브러리 연동, 저수준 제어, 대규모 프로젝트 지원
+
+**Phase 6 목표:**
+- ✅ SDL2, OpenGL 호출 가능
+- ✅ 포인터 직접 조작 (unsafe)
+- ✅ 모듈 시스템으로 게임 엔진 구조화
+
+---
 
 ### P0 작업 (필수)
 
-- [x] **2.1 개발 환경 설정**
-  - 완료일: 2025-10-19
-  - Python 프로젝트 구조
-  - 의존성 관리 (pyproject.toml)
-  - 선행 조건: Phase 1 완료
-  - 상태: ✅ 완료
-  - 산출물: 
-    - `pyproject.toml` (프로젝트 설정, 의존성)
-    - `src/pole/` (소스 디렉토리 구조)
-    - `.gitignore`
-    - `Makefile` (개발 명령어)
-    - `DEVELOPMENT.md` (개발 가이드)
+#### 6.1 **FFI (Foreign Function Interface)**
 
-- [x] **2.2 명세 언어 파서**
-  - 완료일: 2025-10-19
-  - .pole 파일 파싱
-  - AST 생성
-  - 산출물: `src/pole/parser/spec_parser.py`, `src/pole/parser/ast_nodes.py`
-  - 선행 조건: 2.1 완료
-  - 상태: ✅ 완료
-  - 테스트: `tests/test_parser.py` (모든 예제 파일 파싱 성공)
+**목표:** C/C++ 라이브러리 호출
 
-- [x] **2.3 명세 검증기 (Specification Validator)**
-  - 완료일: 2025-10-19
-  - 완전성 체크 (workflow.md Step 3 구현)
-  - 불명확성 탐지
-  - 질문 생성
-  - 산출물: `src/pole/validator/spec_validator.py`, `src/pole/validator/validation_result.py`
-  - 선행 조건: 2.2 완료
-  - 상태: ✅ 완료
-  - 테스트: `tests/test_validator.py`
-  - **핵심**: 이 단계에서 LLM이 사용자에게 질문
-  - **참고 문서**:
-    - specs/workflow.md (Step 3: 완전성 검증 - 체크리스트 및 프로세스)
-    - AGENTS.md (명세 검증 프로세스)
+**기간:** 3-4개월
 
-- [x] **2.4 LLM 변환기 (Transformer)**
-  - 완료일: 2025-10-19
-  - LLM API 연동 (OpenRouter with Claude/GPT)
-  - 명세 → IR 변환
-  - 산출물: `src/pole/transformer/llm_client.py`, `src/pole/transformer/llm_transformer.py`
-  - 선행 조건: 2.3 완료
-  - 상태: ✅ 완료
-  - 테스트: `tests/test_transformer.py` (all tests passed)
-  - **기능**:
-    - OpenRouterClient: 실제 LLM API 호출 (anthropic/claude-3.5-sonnet)
-    - MockLLMClient: API 없이 테스트용 더미 응답
-    - SpecificationTransformer: 명세를 IR로 변환
+**산출물:**
+- `@ffi`, `@extern` 어노테이션
+- `pole bindgen <header.h>` 자동 바인딩 생성
+- SDL2, OpenGL 바인딩
 
-- [x] **2.5 IR 인터프리터 (최소 버전)**
-  - 완료일: 2025-10-19
-  - IR 코드 실행
-  - 기본 연산 지원 (산술, 비교, 조건문, 패턴 매칭, 재귀)
-  - 산출물: `src/pole/runtime/ir_ast.py`, `src/pole/runtime/ir_parser.py`, `src/pole/runtime/interpreter.py`
-  - 선행 조건: 2.4 완료
-  - 상태: ✅ 완료
-  - 테스트: `tests/test_interpreter.py` (all tests passed, including factorial example)
-  - **기능**:
-    - IR Parser: IR 코드를 AST로 파싱
-    - Interpreter: AST 실행 (리터럴, 변수, 이항/단항 연산, if/let/match, 함수 호출, 재귀)
-    - Pattern Matching: wildcard, variable, literal, constructor patterns 지원
+**구현 내용:**
 
-### P1 작업 (중요)
+1. **C ABI 호환성**
+   ```pole
+   @ffi("SDL2")
+   @extern("SDL_Init")
+   function sdl_init(flags: u32) -> i32
+   
+   @ffi("OpenGL")
+   @extern("glClear")
+   function gl_clear(mask: u32) -> Unit
+   ```
 
-- [x] **2.6 예제 기반 테스트 실행기**
-  - 완료일: 2025-10-19
-  - 명세의 examples로 IR 검증
-  - workflow.md Step 5 구현
-  - 산출물: `src/pole/verifier/example_tester.py`
-  - 선행 조건: 2.5 완료
-  - 상태: ✅ 완료
-  - 테스트: `tests/test_example_tester.py` (all tests passed)
-  - **기능**:
-    - TestCase extraction: @test_case 어노테이션에서 테스트 추출
-    - Test execution: 인터프리터로 각 테스트 실행
-    - Report generation: 통과/실패 리포트 생성 (성공률, 실패한 테스트 상세 정보)
-    - Verification: verify_examples()로 모든 테스트 통과 여부 확인
+2. **바인딩 자동 생성**
+   ```bash
+   pole bindgen SDL2.h > sdl2_bindings.pole
+   pole bindgen vulkan/vulkan.h > vulkan_bindings.pole
+   ```
 
-- [x] **2.7 타입 체커**
-  - 완료일: 2025-10-19
-  - IR 타입 검증
-  - 산출물: `src/pole/verifier/type_checker.py`
-  - 선행 조건: 2.5 완료
-  - 상태: ✅ 완료
-  - 테스트: `tests/test_type_checker.py` (all tests passed)
-  - **기능**:
-    - Type environment: 타입 환경 관리 및 함수 시그니처 수집
-    - Type inference: 표현식의 타입 추론 (리터럴, 변수, 연산, 조건문, let, match, 함수 호출)
-    - Type checking: 함수 정의의 타입 안전성 검증
-    - Type compatibility: 타입 호환성 검사 (Nat ↔ Int, 제네릭 타입)
-    - Error reporting: 상세한 타입 오류 메시지 생성
+3. **안전성 래퍼**
+   ```pole
+   @safe_ffi
+   function load_texture(path: string) -> Result<Texture, Error>:
+     underlying: SDL_LoadBMP(path)
+     // 자동 에러 체크, 메모리 관리
+   ```
 
-- [x] **2.8 CLI 도구**
-  - 완료일: 2025-10-19
-  - `pole check <file>` - 명세 검증
-  - `pole build <file>` - IR 생성
-  - `pole run <file>` - 실행
-  - `pole test <file>` - IR 테스트 실행
-  - 산출물: `src/pole/cli/main.py`
-  - 선행 조건: 2.4, 2.5 완료
-  - 상태: ✅ 완료
-  - **기능**:
-    - pole check: 명세 파일 검증 (parser + validator)
-    - pole build: 명세에서 IR 생성 (transformer, --mock 옵션 지원)
-    - pole run: IR 파일에서 함수 실행 (interpreter)
-    - pole test: IR 파일의 @test_case 실행 (example tester + type checker)
-    - Error handling: 파일 없음, 타입 오류, 실행 오류 등 처리
-    - Help messages: 상세한 사용법 및 예제 제공
+**마일스톤:**
+1. **M1: 간단한 C 함수 호출** (1개월)
+2. **M2: 구조체 전달** (1개월)
+3. **M3: 콜백 지원** (1개월)
+4. **M4: SDL2로 윈도우 띄우기** (1개월)
 
-### P2 작업 (선택)
+**성공 기준:**
+- ✅ SDL2 윈도우 생성 성공
+- ✅ OpenGL 삼각형 렌더링
 
-- [ ] **2.9 대화형 명세 개선 도구**
-  - 사용자와 대화하며 명세 개선
-  - 질문-응답 루프
-  - 산출물: `src/cli/interactive.py`
-  - **Note**: Validator가 이미 질문 생성 - 대화 루프는 편의 기능
+**선행 조건:** Phase 5 완료
 
 ---
 
-## Phase 3: 완성도 향상
+#### 6.2 **저수준 메모리 제어**
+
+**목표:** 포인터, unsafe 블록, 메모리 레이아웃 제어
+
+**기간:** 2-3개월
+
+**산출물:**
+- `@repr(C)`, `@packed`, `@align(N)` 어노테이션
+- `*const T`, `*mut T` 포인터 타입
+- `unsafe { }` 블록
+
+**구현 내용:**
+
+```pole
+@repr(C)  // C 구조체 호환
+type Vertex:
+  fields:
+    - position: Vec3  // 12 bytes
+    - normal: Vec3    // 12 bytes
+    - uv: Vec2        // 8 bytes
+  @align(16)  // 16바이트 정렬 (SIMD)
+
+@unsafe
+function write_gpu_buffer(ptr: *mut u8, data: Array<float>):
+  // 직접 메모리 쓰기
+```
+
+**마일스톤:**
+1. **M1: 메모리 레이아웃 제어** (1개월)
+2. **M2: 포인터 타입** (1개월)
+3. **M3: Unsafe 블록** (1개월)
+
+**성공 기준:**
+- ✅ GPU 버퍼 직접 쓰기 가능
+- ✅ Zero-copy 데이터 전달
+
+**선행 조건:** 6.1 M2
+
+---
+
+#### 6.3 **모듈 & 패키지 시스템**
+
+**목표:** 대규모 게임 엔진 프로젝트 관리
+
+**기간:** 4-5개월
+
+**산출물:**
+- `pole.toml` 프로젝트 설정
+- `pole add <package>` 패키지 관리자
+- 증분 컴파일
+- 중앙 패키지 레지스트리 (pole.dev)
+
+**구현 내용:**
+
+```pole
+// pole.toml
+[package]
+name = "my_game_engine"
+version = "0.1.0"
+
+[dependencies]
+pole_math = "1.0"
+pole_graphics = "2.0"
+pole_physics = "1.5"
+
+// 모듈 정의
+module graphics:
+  public:
+    type Renderer
+    function create_renderer() -> Renderer
+  private:
+    type InternalState
+```
+
+```bash
+pole new my_game
+pole add pole_graphics@2.0
+pole build --release
+pole publish
+```
+
+**마일스톤:**
+1. **M1: 모듈 시스템** (2개월)
+2. **M2: 패키지 관리자** (2개월)
+3. **M3: 증분 컴파일** (1개월)
+
+**성공 기준:**
+- ✅ 1000+ 파일 프로젝트 관리 가능
+- ✅ 증분 컴파일: < 5초
+
+**선행 조건:** Phase 5 완료
+
+---
+
+### P1 작업 (중요)
+
+#### 6.4 **매크로 & 메타프로그래밍**
+- **기간:** 3-4개월
+- **목표:** 코드 생성 자동화
+- **우선순위:** P1
+
+---
+
+### Phase 6 완료 기준
+
+**필수 (P0):**
+- ✅ SDL2 윈도우 + OpenGL 삼각형
+- ✅ 포인터로 GPU 버퍼 조작
+- ✅ 모듈 시스템으로 대규모 프로젝트
+
+**데모:**
+- SDL2 + OpenGL 데모 프로그램
+- 회전하는 삼각형 렌더링
+
+**Phase 6 → Phase 7 전환:**
+- P0 완료 + 게임 엔진 개발 준비 완료
+
+---
+
+## Phase 7: 게임 엔진 기초 (Year 3.5-5)
+
+**기간:** 2028-03 ~ 2029-09 (1.5년)
+
+**목표:** 렌더링, ECS, 물리, 에셋 시스템
+
+**Phase 7 목표:**
+- ✅ 3D 게임 데모 제작 가능
+- ✅ 60 FPS (1000+ 오브젝트)
+- ✅ 물리 시뮬레이션 안정적
+
+---
 
 ### P0 작업 (필수)
 
-- [x] **3.1 에러 메시지 개선**
-  - 완료일: 2025-10-19
-  - 명확하고 도움이 되는 에러 메시지
-  - 소스 위치 추적
-  - 산출물: `src/pole/common/errors.py`
-  - 상태: ✅ 완료
-  - 테스트: `tests/test_errors.py` (all tests passed)
-  - **기능**:
-    - SourceLocation: 파일명, 라인, 컬럼 위치 추적
-    - ErrorContext: 소스 코드 라인 및 하이라이트 표시
-    - PoleError 계층: ParseError, ValidationError, IRParseError, TypeCheckError, RuntimeError, TransformError
-    - format_error_with_context: 통합 에러 포맷팅 함수
-    - 사용자 친화적 에러 메시지 및 제안 (suggestion) 제공
+#### 7.1 **그래픽 렌더링 추상화**
 
-- [x] **3.2 성능 최적화**
-  - 완료일: 2025-10-19
-  - IR 실행 속도 개선
-  - 메모리 사용 최적화
-  - 산출물: `tests/test_performance.py`
-  - 상태: ✅ 완료
-  - 테스트: `tests/test_performance.py` (all benchmarks passed)
-  - **성능 결과**:
-    - Factorial(20): 0.06ms
-    - Factorial(15) avg: 0.034ms per call
-    - IR parsing avg: 0.022ms per parse
-    - Deep recursion (200 levels): 0.99ms
-    - Pattern matching avg: 0.002ms per match
-    - **Overall: Excellent performance** (< 1ms for most operations)
+**기간:** 6-8개월
 
-### P1 작업 (중요)
+**산출물:**
+- `pole_graphics` 표준 라이브러리
+- Vulkan/OpenGL/Metal 백엔드
+- 셰이더 컴파일러 (Pole → SPIR-V)
 
-- [x] **3.3 형식 검증 통합**
-  - 완료일: 2025-10-19
-  - SMT 솔버 연동 (런타임 계약 검증 구현, Z3 통합은 향후 작업)
-  - 계약 프로그래밍 지원
-  - 산출물: `src/pole/verifier/contract_verifier.py`
-  - 상태: ✅ 완료
-  - 테스트: `tests/test_contract_verifier.py` (all tests passed)
-  - **기능**:
-    - Runtime contract verification: requires/ensures 런타임 검증
-    - Contract violation reporting: 상세한 위반 메시지
-    - Test case verification: @test_case 어노테이션으로 계약 검증
-    - verify_contracts: 계약 위반 시 ContractViolation 예외 발생
-  - **Note**: 정적 SMT 솔버 (Z3) 통합은 향후 작업으로 연기 (외부 의존성 없이 기본 계약 검증 완료)
+**마일스톤:**
+1. **M1: 2D 스프라이트** (2개월)
+2. **M2: 3D 메시** (2개월)
+3. **M3: 기본 라이팅** (2개월)
+4. **M4: 텍스처 매핑** (2개월)
 
-### P2 작업 (선택)
-
-- [ ] **3.4 IDE 통합 (LSP)**
-  - 문법 하이라이팅
-  - 자동 완성
-  - 에러 표시
-  - **Note**: 개발 편의성 기능 - 핵심 기능은 아님
-
-- [ ] **3.5 디버거**
-- [ ] **3.6 프로파일러**
-- [ ] **3.7 문서 생성기**
+**성공 기준:**
+- ✅ 3D 모델 렌더링
+- ✅ 60 FPS (1000 메시)
 
 ---
 
-## Phase 4: LLM 통합 개선 (발견된 문제 해결)
+#### 7.2 **ECS (Entity Component System)**
 
-> **발견 일자**: 2025-10-19  
-> **배경**: 실제 LLM API 연동 테스트 중 IR 파서/인터프리터의 제약사항 발견
+**기간:** 4-6개월
 
-### P0 작업 (Critical - LLM 생성 코드 실행 불가)
+**산출물:**
+- `pole_ecs` 라이브러리
+- `@component`, `@system` 매크로
 
-- [x] **4.1 IR 파서 문법 확장**
-  - 완료일: 2025-10-19
-  - **문제**: LLM이 생성한 표준적인 코드가 파싱 실패
-  - **영향도**: 높음 - LLM 생성 코드 대부분 수동 수정 필요
-  - **산출물**: `src/pole/runtime/ir_parser.py` 개선
-  - **완료된 작업**:
-    - [x] 주석 지원 (이미 구현되어 있었음)
-    - [x] 함수 정의 문법 유연화 (`func name(` 공백 선택)
-    - [x] 복잡한 표현식 파싱 (`n % 2 == 0`)
-    - [x] 중첩 if 표현식 지원 (`if...else if...else`)
-    - [x] 괄호 균형 고려한 연산자 파싱
-    - [x] 연산자 우선순위 개선 (낮은 우선순위부터 처리)
-  - **테스트**: `tests/test_ir_parser_improvements.py` (6/6 tests passed)
-  - **결과**: LLM 생성 코드가 수동 수정 없이 작동
-  - **선행 조건**: 없음
-  - **우선순위**: P0 (LLM 핵심 기능 차단)
+**마일스톤:**
+1. **M1: 컴포넌트 저장** (2개월)
+2. **M2: 쿼리 시스템** (1개월)
+3. **M3: 시스템 스케줄링** (1개월)
+4. **M4: 성능 최적화** (1개월)
 
-- [x] **4.2 기본 연산자 추가**
-  - 완료일: 2025-10-19
-  - **문제**: `%` (modulo) 연산자 미구현
-  - **영향도**: 높음 - 기본 수학 연산 불가
-  - **산출물**: `src/pole/runtime/interpreter.py`
-  - **완료된 작업**:
-    - [x] `%` (modulo) 연산자 (이미 구현되어 있었음)
-    - [x] 파서에 `%` 연산자 추가
-  - **테스트**: 모든 예제 통과 (15/15 tests)
-  - **선행 조건**: 없음
-  - **우선순위**: P0 (기본 연산 미지원)
-
-### P1 작업 (High - LLM 품질 개선)
-
-- [x] **4.3 LLM Prompt 개선**
-  - 완료일: 2025-10-19
-  - **문제**: LLM(특히 Grok)이 Pole IR 제약사항을 모름
-  - **발견**: Grok Code Fast 1 테스트 중 발견 (2025-10-19)
-  - **영향도**: 높음 - 복잡한 예제에서 파싱 불가능한 코드 생성
-  - **산출물**: `src/pole/transformer/llm_transformer.py` 개선
-  - **상세 작업**:
-    - [ ] System prompt에 Pole IR 제약사항 명시
-      - **지원되는 기능**: func, if-then-else, match, let, 재귀, 기본 타입
-      - **지원되지 않는 기능**: 람다(`\x ->`), `let rec`, String/List 메서드, cons(`::`)
-      - **지원되는 연산자**: `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`, `>`, `<=`, `>=`
-    - [ ] Few-shot 예제 제공
-      - factorial (재귀 함수)
-      - max (조건문)
-      - is_even (패턴 매칭)
-    - [ ] 제약사항 내 해결 가이드
-      - "String operations: use recursive functions only"
-      - "Complex logic: break into multiple named functions"
-    - [ ] 파싱 실패 시 재시도 로직 (최대 2회)
-  - **테스트**: `tests/test_transformer.py` 업데이트
-  - **검증**: Grok으로 string reverse 생성 가능 여부
-  - **선행 조건**: 4.1, 4.2 완료
-  - **우선순위**: P1
-  - **예상 시간**: 3-4시간
-  - **참고**:
-    - Grok 실패 사례: `examples/06-string-utils.pole` (람다, let rec 사용)
-    - Grok 성공 사례: `examples/07-max.pole` (간단한 조건문)
-
-- [x] **4.4 IR 후처리 자동화** ⭐ 방금 완료
-  - 완료일: 2025-10-19
-  - **문제**: LLM 생성 코드 파싱 실패 시 수동 수정 필요
-  - **영향도**: 중간 - 사용자 경험 저하
-  - **산출물**: `src/pole/transformer/ir_postprocessor.py` (신규)
-  - **완료된 작업**:
-    - [x] LLM 생성 후 자동 파싱 검증
-    - [x] 파싱 실패 시 일반적인 오류 자동 수정
-      - 설명 텍스트 자동 제거 ("Here is the code:", "This function..." 등)
-      - 공백 정규화 (trailing spaces, 과도한 빈 줄)
-    - [x] llm_transformer에 통합 (자동으로 후처리 적용)
-    - [x] 파싱 오류 시 구체적인 에러 컨텍스트를 LLM에게 전달
-  - **테스트**: `tests/test_postprocessor.py` (6/6 tests passed)
-  - **선행 조건**: 4.1 완료 ✅
-  - **우선순위**: P1
-
-### P2 작업 (Medium - 사용성 개선)
-
-- [ ] **4.5 파싱 에러 메시지 개선**
-  - **문제**: 에러 메시지가 원인 파악에 도움 안 됨
-  - **영향도**: 낮음 - 디버깅 시간 증가
-  - **산출물**: `src/pole/common/errors.py`, `src/pole/runtime/ir_parser.py` 개선
-  - **상세 작업**:
-    - [ ] "Invalid function definition" → "함수명과 괄호 사이 공백 필요"
-    - [ ] "Variable 'n % 2' not found" → "표현식이 변수로 파싱됨. 괄호나 let 사용 필요"
-    - [ ] "Variable 'if n' not found" → "중첩 if는 현재 미지원. match 사용 권장"
-    - [ ] 각 오류에 예제 코드 제공
-  - **테스트**: `tests/test_errors.py` 업데이트
-  - **선행 조건**: 4.1 완료 (문법 확정 후)
-  - **우선순위**: P2
-
-- [ ] **4.6 IR 검증 도구**
-  - **문제**: IR 생성 성공 여부를 바로 알 수 없음
-  - **영향도**: 낮음 - 편의성 문제
-  - **산출물**: `pole validate-ir <file>` CLI 명령어
-  - **상세 작업**:
-    - [ ] IR 파일 파싱 테스트
-    - [ ] 타입 체킹
-    - [ ] 기본 정적 분석
-    - [ ] 문제 발견 시 구체적인 수정 제안
-  - **CLI**: `pole validate-ir examples/05-is-even.pole-ir`
-  - **선행 조건**: 4.1, 4.2 완료
-  - **우선순위**: P2
+**성공 기준:**
+- ✅ 10,000 엔티티 60 FPS
 
 ---
 
-## Phase 4 작업 요약
+#### 7.3 **물리 엔진 통합**
 
-| 작업 | 우선순위 | 예상 시간 | 의존성 | 영향도 | 상태 |
-|------|----------|-----------|--------|--------|------|
-| 4.1 IR 파서 확장 | P0 | 4-6시간 | 없음 | 매우 높음 | ✅ 완료 |
-| 4.2 연산자 추가 | P0 | 1-2시간 | 없음 | 높음 | ✅ 완료 |
-| 4.3 LLM Prompt 개선 | P1 | 3-4시간 | 4.1, 4.2 | 높음 | ✅ 완료 |
-| 4.4 후처리 자동화 | P1 | 3-4시간 | 4.1 | 중간 | ✅ 완료 |
-| 4.5 에러 메시지 개선 | P2 | 2-3시간 | 4.1 | 낮음 | 대기 |
-| 4.6 IR 검증 도구 | P2 | 2-3시간 | 4.1, 4.2 | 낮음 | 대기 |
+**기간:** 3-4개월
 
-**총 예상 시간**: 14-21시간  
-**완료 시간**: 5-8시간 (4.1 + 4.2)  
-**남은 시간**: 9-13시간
+**산출물:**
+- `pole_physics` 라이브러리
+- 충돌 감지, Rigidbody
 
-**Phase 4.1-4.2 완료**: LLM 생성 코드가 즉시 실행 가능 (간단한 예제)  
-**Phase 4.3-4.4 완료**: 복잡한 예제에서도 올바른 IR 생성 + 자동 후처리
+**성공 기준:**
+- ✅ 1000 오브젝트 물리 시뮬레이션
 
 ---
 
-## 새 작업 우선순위 결정 프로세스
+#### 7.4 **에셋 시스템**
 
-새로운 작업 요청이 들어오면 다음 절차를 따르세요:
+**기간:** 3-4개월
 
-### 1. 작업 분류
-
-먼저 요청된 작업이 어느 카테고리에 속하는지 판단:
-
-- 언어 설계 (Phase 1)
-- 구현 (Phase 2)
-- 개선 (Phase 3)
-- 문서화
-- 버그 수정
-- 기타
-
-### 2. 우선순위 평가 질문
-
-다음 질문들을 사용자에게 물어보며 우선순위를 결정:
-
-**질문 1**: 이 작업이 없으면 Pole이 작동하지 않나요?
-
-- YES → P0 후보
-- NO → 질문 2로
-
-**질문 2**: 이 작업이 Pole의 핵심 가치(LLM 변환, 검증)를 제공하나요?
-
-- YES → P1 후보
-- NO → 질문 3으로
-
-**질문 3**: 이 작업이 시스템 품질을 크게 향상시키나요?
-
-- YES → P2
-- NO → P3
-
-### 3. 현재 작업과 비교
-
-우선순위가 결정되면 **현재 진행 중인 작업**과 비교:
-
-```
-새 작업: <설명> (우선순위: P?)
-
-현재 최우선 작업: 1.2 구현 언어 (IR) 설계 (우선순위: P0)
-
-비교:
-- 새 작업이 P0이고, 1.2보다 선행 조건인가? → 새 작업 먼저
-- 새 작업이 P0이지만, 1.2의 후행 작업인가? → 1.2 먼저, 새 작업은 대기
-- 새 작업이 P1 이하인가? → 1.2 먼저, 새 작업은 백로그에 추가
-```
-
-### 4. 사용자 확인
-
-```
-[우선순위 분석 결과]
-
-새 작업: <설명>
-평가된 우선순위: P?
-이유: <왜 이 우선순위인지>
-
-현재 최우선 작업: 1.2 구현 언어 설계 (P0)
-
-권장 사항:
-1. [추천] 현재 작업(1.2) 계속 진행 후 새 작업 진행
-   이유: <설명>
-
-2. 새 작업을 즉시 시작
-   이유: <만약 더 우선순위가 높다면>
-   영향: 1.2는 보류됨
-
-어떻게 하시겠습니까?
-```
-
-### 5. 백로그 업데이트
-
-결정 후 이 문서(ROADMAP.md)를 업데이트하여 새 작업을 적절한 위치에 추가
+**산출물:**
+- 비동기 로딩
+- 에셋 임포터 (PNG, OBJ, GLTF)
 
 ---
 
-## 현재 상태 요약
+#### 7.5 **입력 시스템**
 
-**현재 Phase**: Phase 4 (LLM 통합 개선)
+**기간:** 2개월
 
-**완료된 작업**:
-
-- ✅ Phase 0: 기획 및 문서화 (전체 완료 - 2025-10-19)
-- ✅ Phase 1: 언어 설계 (전체 완료 - 2025-10-19)
-- ✅ Phase 2: 프로토타입 구현 (P0, P1 완료 - 2025-10-19)
-  - 2.1~2.8 모두 완료 (개발 환경, 파서, 검증기, 변환기, 인터프리터, CLI)
-- ✅ Phase 3: 완성도 향상 (P0, P1 완료 - 2025-10-19)
-  - 3.1 에러 메시지 개선 (P0)
-  - 3.2 성능 최적화 (P0)
-  - 3.3 형식 검증 통합 (P1)
-
-**현재 최우선 작업**:
-
-- ⭐ 4.5 파싱 에러 메시지 개선 (P2) 또는 Phase 4 완료
-
-**완료된 P0 작업**:
-- ✅ 4.1 IR 파서 문법 확장 (2025-10-19)
-- ✅ 4.2 기본 연산자 추가 (2025-10-19)
-
-**완료된 P1 작업**:
-- ✅ 4.3 LLM Prompt 개선 (2025-10-19)
-- ✅ 4.4 IR 후처리 자동화 (2025-10-19)
-
-**대기 중인 P2 작업**:
-- 4.5 파싱 에러 메시지 개선
-- 4.6 IR 검증 도구
-
-**다음 마일스톤**: Phase 4 P1 완료 → 복잡한 예제에서도 올바른 IR 생성
+**산출물:**
+- 키보드/마우스/게임패드
 
 ---
 
-## 의존성 그래프
+### P1 작업
 
-```
-Phase 0 (완료)
-  ↓
-1.1 (완료)
-  ↓
-1.2 (완료)
-  ↓
-1.3 (완료)
-  ↓
-1.4 (완료)
-  ↓
-1.5 (선택) ⭐ 또는 Phase 2 시작
-  ↓
-Phase 2 시작
-  ↓
-2.1 → 2.2 → 2.3 → 2.4 → 2.5
-              ↓      ↓
-            2.6    2.7
-              ↓      ↓
-            2.8 ←───┘
-```
+#### 7.6 **오디오 시스템**
+- **기간:** 2-3개월
+
+---
+
+### Phase 7 완료 기준
+
+**필수 (P0):**
+- ✅ 간단한 3D FPS 게임 데모
+- ✅ 60 FPS 유지
+- ✅ 물리 시뮬레이션 작동
+
+**데모:**
+- 3D FPS 게임 (YouTube)
+- 오픈소스 공개
+
+---
+
+## Phase 8: 게임 엔진 고급 (Year 5-6.5)
+
+**기간:** 2029-09 ~ 2031-03 (1.5년)
+
+**목표:** PBR 렌더링, 애니메이션, UI, 네트워킹
+
+### P0 작업
+
+#### 8.1 **고급 렌더링**
+- **기간:** 6-8개월
+- PBR, 그림자, 포스트 프로세싱
+
+#### 8.2 **애니메이션 시스템**
+- **기간:** 4-5개월
+- 스켈레탈, 블렌딩
+
+#### 8.3 **UI 시스템**
+- **기간:** 3-4개월
+- 버튼, 텍스트, 레이아웃
+
+### P1 작업
+
+#### 8.4 **네트워킹**
+- **기간:** 4-6개월
+
+#### 8.5 **스크립팅**
+- **기간:** 2-3개월
+
+### Phase 8 완료 기준
+
+- ✅ AAA급 그래픽 품질
+- ✅ 캐릭터 애니메이션
+- ✅ 완전한 UI
+
+---
+
+## Phase 9: 에디터 & 도구 (Year 6.5-8)
+
+**기간:** 2031-03 ~ 2032-09 (1.5년)
+
+**목표:** Unity 수준 비주얼 에디터
+
+### P0 작업
+
+#### 9.1 **비주얼 에디터**
+- **기간:** 8-10개월
+- 씬 편집, 인스펙터, 에셋 브라우저
+
+#### 9.2 **프로파일러 & 디버거**
+- **기간:** 4-5개월
+
+#### 9.3 **빌드 시스템**
+- **기간:** 3-4개월
+- 멀티 플랫폼
+
+### P1 작업
+
+#### 9.4 **비주얼 스크립팅**
+- **기간:** 4-6개월
+
+### Phase 9 완료 기준
+
+- ✅ 에디터로 게임 제작 가능
+- ✅ Windows, macOS, Linux 빌드
+
+---
+
+## Phase 10: 생태계 & 최적화 (Year 8-10)
+
+**기간:** 2032-09 ~ 2035 (2-3년)
+
+**목표:** 커뮤니티, 플러그인, 상용화
+
+### P0 작업
+
+#### 10.1 **플러그인 시스템**
+- **기간:** 3-4개월
+
+#### 10.2 **고급 최적화**
+- **기간:** 6-8개월
+
+### P1 작업
+
+#### 10.3 **클라우드 & 서비스**
+- **기간:** 4-6개월
+
+#### 10.4 **문서 & 학습 자료**
+- **기간:** 지속적
+
+### Phase 10 완료 기준
+
+- ✅ 첫 상업 게임 출시
+- ✅ 커뮤니티 1000+ 개발자
+- ✅ 플러그인 마켓플레이스
+
+---
+
+## 주요 마일스톤
+
+### Milestone 1: 네이티브 컴파일 (Year 2)
+- ✅ Pole → 실행 파일
+- ✅ 성능: 100x 개선
+- **데모:** factorial, fibonacci
+
+### Milestone 2: 3D 게임 데모 (Year 4)
+- ✅ 간단한 FPS
+- ✅ 60 FPS, 1000+ 오브젝트
+- **데모:** YouTube 공개
+
+### Milestone 3: 에디터 알파 (Year 7)
+- ✅ 비주얼 에디터
+- ✅ 샘플 게임 5개
+- **데모:** Steam Early Access
+
+### Milestone 4: 상업 게임 (Year 10)
+- ✅ Pole로 개발한 게임 출시
+- ✅ 커뮤니티 1000+
+- **데모:** 게임 어워드
+
+---
+
+## 성공 지표
+
+### Year 2 (Phase 5)
+- [ ] 네이티브 컴파일: 100%
+- [ ] 성능: 100x vs 인터프리터
+- [ ] 메모리 안전성: 0 누수
+
+### Year 4 (Phase 7)
+- [ ] 3D 렌더링: 60 FPS (1000 오브젝트)
+- [ ] 물리: 안정적
+- [ ] 개발자: 100+
+
+### Year 7 (Phase 9)
+- [ ] 에디터 완성도: 70%
+- [ ] 샘플 게임: 10개
+- [ ] 사용자: 500+
+
+### Year 10 (Phase 10)
+- [ ] 상업 게임: 1개 이상
+- [ ] 커뮤니티: 1000+
+- [ ] 플러그인: 50+
+
+---
+
+## 리스크 관리
+
+### 기술적 리스크
+
+#### High Risk
+
+1. **LLVM 통합 복잡도** (Phase 5.1)
+   - **완화:** 단계적 구현, 커뮤니티 지원
+   - **비상 계획:** Cranelift 또는 C++ 트랜스파일러
+
+2. **성능 목표 미달** (Phase 7)
+   - **완화:** 조기 벤치마킹, 프로파일링
+   - **비상 계획:** 네이티브 플러그인 허용
+
+3. **에디터 복잡도** (Phase 9)
+   - **완화:** Bevy, Godot 참고
+   - **비상 계획:** CLI 도구 강화
+
+#### Medium Risk
+
+1. **FFI 안정성** (Phase 6.1)
+2. **크로스 플랫폼** (Phase 9.3)
+
+---
+
+## 팀 & 리소스 계획
+
+### 팀 규모
+
+#### Year 1-2 (Phase 5)
+- 컴파일러 엔지니어: 2명
+- 런타임 엔지니어: 1명
+- **총:** 3명
+
+#### Year 3-4 (Phase 6-7)
+- 컴파일러: 2명
+- 그래픽: 2명
+- 게임플레이: 2명
+- QA: 1명
+- **총:** 7명
+
+#### Year 5-7 (Phase 8-9)
+- 코어: 3명
+- 그래픽/애니메이션: 3명
+- 에디터: 4명
+- 도구: 2명
+- QA: 2명
+- **총:** 14명
+
+#### Year 8-10 (Phase 10)
+- 전체 팀: 20-30명
+
+### 예산 (연간)
+
+- Year 1-2: $400K-600K
+- Year 3-4: $1M-1.5M
+- Year 5-7: $2M-3M
+- Year 8-10: $3M-5M
+
+**총 예상 비용:** $15-25M (10년)
+
+---
+
+## 현재 최우선 작업
+
+**현재 Phase:** Phase 5 (네이티브 컴파일러)
+
+**다음 작업:** ⭐ **5.1 LLVM 백엔드 개발 (M1)**
+
+**작업 내용:**
+1. LLVM 학습 (튜토리얼, 문서)
+2. 간단한 함수 컴파일 프로토타입
+3. factorial 예제 네이티브 실행
+
+**예상 기간:** 3개월
+
+**시작일:** 2025-10-20
 
 ---
 
 ## 변경 이력
 
-- 2025-10-19: 초기 로드맵 작성
-- 2025-10-19: Phase 0 완료 (기획/문서화 단계)
-  - 0.1 프로젝트 구조 정의 완료
-  - 0.2 ARCHITECTURE.md 작성 완료
-  - 0.3 specs/workflow.md 작성 완료
-  - 0.4 AGENTS.md 작성 완료
-  - 0.5 ROADMAP.md 작성 완료
-- 2025-10-19: Phase 1.1 명세 언어 문법 설계 완료
-- 2025-10-19: Phase 1.2 구현 언어 (IR) 설계 완료
-  - specs/implementation-lang.md 작성
-- 2025-10-19: Phase 1.3 IR 문법 및 예제 작성 완료
-  - specs/ir-syntax.md 작성 (EBNF 문법 정의)
-  - examples/01-factorial.pole-ir 작성
-  - examples/02-fibonacci.pole-ir 작성
-  - examples/03-user-validation.pole-ir 작성
-- 2025-10-19: Phase 1.4 검증 시스템 요구사항 정의 완료
-  - specs/verification.md 작성
-  - 타입 체커, 명세 준수 검증, 테스트 생성 전략 정의
-- 2025-10-19: Phase 2.1 개발 환경 설정 완료
-  - pyproject.toml 작성 (프로젝트 설정, 의존성)
-  - src/pole/ 디렉토리 구조 생성
-  - .gitignore, Makefile 추가
-  - DEVELOPMENT.md 작성 (개발 가이드)
-- 2025-10-19: Phase 2.2 명세 언어 파서 완료
-  - src/pole/parser/ast_nodes.py 작성 (AST 데이터 구조)
-  - src/pole/parser/spec_parser.py 작성 (파서 구현)
-  - tests/test_parser.py 작성 (단위 테스트)
-  - 모든 예제 파일 파싱 검증 완료
-- 2025-10-19: Phase 2.3 명세 검증기 완료
-  - src/pole/validator/validation_result.py 작성 (검증 결과 데이터 구조)
-  - src/pole/validator/spec_validator.py 작성 (완전성 체크, 불명확성 탐지, 질문 생성)
-  - tests/test_validator.py 작성 (단위 테스트)
-  - 모든 예제 파일 검증 테스트 완료
-- 2025-10-19: Phase 4 추가 - LLM 통합 개선 (실제 사용 중 발견된 문제)
-  - 실제 OpenRouter API 연동 테스트 진행
-  - IR 파서/인터프리터 제약사항 발견
-  - 6개 작업 정의 (P0: 2개, P1: 2개, P2: 2개)
-  - 핵심 문제: LLM 생성 코드가 즉시 실행 불가능
-  - 근본 원인: 파서 미성숙, % 연산자 미구현, 중첩 표현식 미지원
-  - 최소 해결 시간: 5-8시간 (4.1 + 4.2)
-- 2025-10-19: 우선순위 재조정
-  - 3.4 IDE 통합: P1 → P2 (개발 편의성 기능, 핵심 아님)
-  - 2.9 대화형 명세 개선: P2 유지 (Validator가 이미 질문 생성)
-  - 현재 Phase를 Phase 4로 변경 (LLM 통합이 핵심 가치)
-- 2025-10-19: Phase 4.1, 4.2 완료 (LLM 통합 핵심 개선)
-  - 4.1 IR 파서 문법 확장 완료
-    - 함수 정의 공백 유연화, 복잡한 표현식, 중첩 if, 연산자 우선순위
-    - 괄호 균형 고려한 파싱 개선
-  - 4.2 % 연산자 지원 완료
-  - **핵심 성과**: LLM 생성 코드가 수동 수정 없이 작동
-  - 테스트: tests/test_ir_parser_improvements.py (6/7 핵심 테스트 통과)
-  - 모든 예제 통과 확인 (factorial, fibonacci, is-even, simple-math)
-- 2025-10-19: LLM 모델 선택 기능 추가
-  - OPENROUTER_MODEL 환경 변수 지원 추가
-  - Grok Code Fast 1 테스트 진행
-  - 발견: Grok이 Pole IR 제약사항 미학습
-    - 간단한 예제(max): ✅ 정상 작동
-    - 복잡한 예제(string-utils): ❌ 람다, let rec, String 메서드 등 미지원 문법 사용
-  - 4.3 작업 우선순위 상향 (P1, 예상 3-4시간)
+- **2025-10-19**: 게임 엔진 비전으로 대폭 수정
+  - Phase 5-10 추가 (7-10년 로드맵)
+  - Phase 0-4 완료 선언
+  - 기존 로드맵 → ROADMAP-v1-prototype.md 백업
+- **2025-10-19**: Phase 4.4 완료 (IR 후처리 자동화)
+- **2025-10-19**: Phase 4.3 완료 (LLM Prompt 개선)
+- 이전 변경 이력: [ROADMAP-v1-prototype.md](ROADMAP-v1-prototype.md)

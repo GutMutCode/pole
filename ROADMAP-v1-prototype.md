@@ -1,0 +1,676 @@
+# Pole 개발 로드맵
+
+> 우선순위 기반 작업 관리
+>
+> **사용 방법**: 새로운 작업 요청이 들어오면, 이 문서의 우선순위를 기준으로 현재 작업과 비교하여 우선순위를 결정합니다.
+
+---
+
+## 우선순위 원칙
+
+### 작업 선택 규칙 (중요)
+
+**Phase가 P0/P1/P2보다 상위 개념입니다.**
+
+1. **Phase 우선**: 현재 Phase 내 작업을 먼저 완료
+2. **P0 → P1 → P2**: 같은 Phase 내에서 우선순위 순서
+3. **Phase 전환 조건**: 현재 Phase의 P0 작업이 모두 완료되어야 다음 Phase 시작 가능
+
+**예시**:
+- Phase 1의 P1 작업 vs Phase 2의 P0 작업
+  → **Phase 1 P1 먼저 수행** (Phase 1이 현재 진행 중)
+- Phase 1의 P0가 모두 완료되고 P1/P2만 남은 경우
+  → Phase 1의 P1 수행 후, 선택적으로 Phase 2 시작 가능
+
+### 최우선 작업 찾기
+
+1. 현재 Phase 확인
+2. 해당 Phase 내에서 미완료 작업 중 가장 높은 우선순위 선택 (P0 → P1 → P2)
+3. 현재 Phase의 필수 작업(P0) 완료 시:
+   - P1이 남았으면 P1 수행
+   - Phase 전환 여부는 사용자와 협의
+
+---
+
+### P0 (Critical) - 시스템 핵심 기능
+
+- 이것 없이는 Pole이 작동하지 않는 필수 요소
+- 다른 모든 작업의 선행 조건
+- **즉시 작업 필요**
+
+### P1 (High) - 핵심 가치 제공
+
+- Pole의 차별화된 가치를 제공하는 기능
+- P0 완료 후 바로 착수
+- **다음 우선순위**
+
+### P2 (Medium) - 품질 향상
+
+- 시스템을 더 좋게 만드는 기능
+- P0, P1 완료 후 진행
+- **여유가 있을 때**
+
+### P3 (Low) - 부가 기능
+
+- 있으면 좋지만 없어도 되는 기능
+- 모든 핵심 작업 완료 후
+- **나중에**
+
+---
+
+## Phase 0: 기획 및 문서화 (완료)
+
+### P0 작업 (필수)
+
+- [x] **0.1 프로젝트 구조 정의**
+
+  - 완료일: 2025-10-19
+  - 산출물: 디렉토리 구조 (`specs/`, `examples/`)
+  - 상태: ✅ 완료
+
+- [x] **0.2 아키텍처 문서 작성**
+
+  - 완료일: 2025-10-19
+  - 산출물: `ARCHITECTURE.md`
+  - 내용: 시스템 파이프라인, 용어 정의, LLM 역할
+  - 상태: ✅ 완료
+
+- [x] **0.3 변환 워크플로우 정의**
+
+  - 완료일: 2025-10-19
+  - 산출물: `specs/workflow.md`
+  - 내용: LLM 변환 6단계 프로세스, 명세 검증 체크리스트
+  - 상태: ✅ 완료
+
+- [x] **0.4 개발 가이드라인 작성**
+
+  - 완료일: 2025-10-19
+  - 산출물: `AGENTS.md`
+  - 내용: 코드 스타일, 명세 검증 프로세스
+  - 상태: ✅ 완료
+
+- [x] **0.5 로드맵 작성**
+  - 완료일: 2025-10-19
+  - 산출물: `ROADMAP.md` (본 문서)
+  - 내용: 우선순위 기반 작업 관리 시스템
+  - 상태: ✅ 완료
+
+---
+
+## Phase 1: 언어 설계 (진행 중)
+
+### P0 작업 (필수)
+
+- [x] **1.1 명세 언어 문법 설계**
+
+  - 완료일: 2025-10-19
+  - 산출물: `specs/syntax-v0.md`, `examples/*.pole`
+  - 상태: ✅ 완료
+
+- [x] **1.2 구현 언어 (IR) 설계** ⭐ 현재 최우선 작업
+
+  - 타입 시스템 정의
+  - 형식 의미론
+  - 메모리 모델
+  - 효과 시스템
+  - 산출물: `specs/implementation-lang.md`
+  - 선행 조건: 1.1 완료
+  - **참고 문서**:
+    - README.md (라인 134-201: 구현 언어 상세 조건)
+    - ARCHITECTURE.md (라인 46-51: IR 정의 및 목적)
+    - specs/syntax-v0.md (명세 언어와의 대응 관계)
+    - examples/\*.pole (변환 대상 명세 예제)
+  - **다음 작업**: 이것부터 시작
+
+- [x] **1.3 IR 문법 및 예제 작성**
+  - 완료일: 2025-10-19
+  - IR 구체적 문법 정의
+  - 명세 언어 예제의 IR 버전 작성
+  - 산출물: `specs/ir-syntax.md`, `examples/*.pole-ir`
+  - 선행 조건: 1.2 완료
+  - 상태: ✅ 완료
+  - **참고 문서**:
+    - specs/implementation-lang.md (1.2에서 작성한 IR 설계)
+    - examples/\*.pole (변환할 명세 예제)
+
+### P1 작업 (중요)
+
+- [x] **1.4 검증 시스템 요구사항 정의**
+  - 완료일: 2025-10-19
+  - 타입 체커 요구사항
+  - 명세 준수 검증 방법
+  - 테스트 생성 전략
+  - 산출물: `specs/verification.md`
+  - 선행 조건: 1.2, 1.3 완료
+  - 상태: ✅ 완료
+  - **참고 문서**:
+    - README.md (라인 205-277: 검증 시스템 조건)
+    - specs/workflow.md (Step 5: 검증 단계)
+    - specs/implementation-lang.md (타입 시스템 설계)
+
+### P2 작업 (선택)
+
+- [ ] **1.5 표준 라이브러리 설계**
+  - 기본 데이터 타입
+  - 표준 함수들
+  - 산출물: `specs/stdlib.md`
+
+---
+
+## Phase 2: 프로토타입 구현
+
+### P0 작업 (필수)
+
+- [x] **2.1 개발 환경 설정**
+  - 완료일: 2025-10-19
+  - Python 프로젝트 구조
+  - 의존성 관리 (pyproject.toml)
+  - 선행 조건: Phase 1 완료
+  - 상태: ✅ 완료
+  - 산출물: 
+    - `pyproject.toml` (프로젝트 설정, 의존성)
+    - `src/pole/` (소스 디렉토리 구조)
+    - `.gitignore`
+    - `Makefile` (개발 명령어)
+    - `DEVELOPMENT.md` (개발 가이드)
+
+- [x] **2.2 명세 언어 파서**
+  - 완료일: 2025-10-19
+  - .pole 파일 파싱
+  - AST 생성
+  - 산출물: `src/pole/parser/spec_parser.py`, `src/pole/parser/ast_nodes.py`
+  - 선행 조건: 2.1 완료
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_parser.py` (모든 예제 파일 파싱 성공)
+
+- [x] **2.3 명세 검증기 (Specification Validator)**
+  - 완료일: 2025-10-19
+  - 완전성 체크 (workflow.md Step 3 구현)
+  - 불명확성 탐지
+  - 질문 생성
+  - 산출물: `src/pole/validator/spec_validator.py`, `src/pole/validator/validation_result.py`
+  - 선행 조건: 2.2 완료
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_validator.py`
+  - **핵심**: 이 단계에서 LLM이 사용자에게 질문
+  - **참고 문서**:
+    - specs/workflow.md (Step 3: 완전성 검증 - 체크리스트 및 프로세스)
+    - AGENTS.md (명세 검증 프로세스)
+
+- [x] **2.4 LLM 변환기 (Transformer)**
+  - 완료일: 2025-10-19
+  - LLM API 연동 (OpenRouter with Claude/GPT)
+  - 명세 → IR 변환
+  - 산출물: `src/pole/transformer/llm_client.py`, `src/pole/transformer/llm_transformer.py`
+  - 선행 조건: 2.3 완료
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_transformer.py` (all tests passed)
+  - **기능**:
+    - OpenRouterClient: 실제 LLM API 호출 (anthropic/claude-3.5-sonnet)
+    - MockLLMClient: API 없이 테스트용 더미 응답
+    - SpecificationTransformer: 명세를 IR로 변환
+
+- [x] **2.5 IR 인터프리터 (최소 버전)**
+  - 완료일: 2025-10-19
+  - IR 코드 실행
+  - 기본 연산 지원 (산술, 비교, 조건문, 패턴 매칭, 재귀)
+  - 산출물: `src/pole/runtime/ir_ast.py`, `src/pole/runtime/ir_parser.py`, `src/pole/runtime/interpreter.py`
+  - 선행 조건: 2.4 완료
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_interpreter.py` (all tests passed, including factorial example)
+  - **기능**:
+    - IR Parser: IR 코드를 AST로 파싱
+    - Interpreter: AST 실행 (리터럴, 변수, 이항/단항 연산, if/let/match, 함수 호출, 재귀)
+    - Pattern Matching: wildcard, variable, literal, constructor patterns 지원
+
+### P1 작업 (중요)
+
+- [x] **2.6 예제 기반 테스트 실행기**
+  - 완료일: 2025-10-19
+  - 명세의 examples로 IR 검증
+  - workflow.md Step 5 구현
+  - 산출물: `src/pole/verifier/example_tester.py`
+  - 선행 조건: 2.5 완료
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_example_tester.py` (all tests passed)
+  - **기능**:
+    - TestCase extraction: @test_case 어노테이션에서 테스트 추출
+    - Test execution: 인터프리터로 각 테스트 실행
+    - Report generation: 통과/실패 리포트 생성 (성공률, 실패한 테스트 상세 정보)
+    - Verification: verify_examples()로 모든 테스트 통과 여부 확인
+
+- [x] **2.7 타입 체커**
+  - 완료일: 2025-10-19
+  - IR 타입 검증
+  - 산출물: `src/pole/verifier/type_checker.py`
+  - 선행 조건: 2.5 완료
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_type_checker.py` (all tests passed)
+  - **기능**:
+    - Type environment: 타입 환경 관리 및 함수 시그니처 수집
+    - Type inference: 표현식의 타입 추론 (리터럴, 변수, 연산, 조건문, let, match, 함수 호출)
+    - Type checking: 함수 정의의 타입 안전성 검증
+    - Type compatibility: 타입 호환성 검사 (Nat ↔ Int, 제네릭 타입)
+    - Error reporting: 상세한 타입 오류 메시지 생성
+
+- [x] **2.8 CLI 도구**
+  - 완료일: 2025-10-19
+  - `pole check <file>` - 명세 검증
+  - `pole build <file>` - IR 생성
+  - `pole run <file>` - 실행
+  - `pole test <file>` - IR 테스트 실행
+  - 산출물: `src/pole/cli/main.py`
+  - 선행 조건: 2.4, 2.5 완료
+  - 상태: ✅ 완료
+  - **기능**:
+    - pole check: 명세 파일 검증 (parser + validator)
+    - pole build: 명세에서 IR 생성 (transformer, --mock 옵션 지원)
+    - pole run: IR 파일에서 함수 실행 (interpreter)
+    - pole test: IR 파일의 @test_case 실행 (example tester + type checker)
+    - Error handling: 파일 없음, 타입 오류, 실행 오류 등 처리
+    - Help messages: 상세한 사용법 및 예제 제공
+
+### P2 작업 (선택)
+
+- [ ] **2.9 대화형 명세 개선 도구**
+  - 사용자와 대화하며 명세 개선
+  - 질문-응답 루프
+  - 산출물: `src/cli/interactive.py`
+  - **Note**: Validator가 이미 질문 생성 - 대화 루프는 편의 기능
+
+---
+
+## Phase 3: 완성도 향상
+
+### P0 작업 (필수)
+
+- [x] **3.1 에러 메시지 개선**
+  - 완료일: 2025-10-19
+  - 명확하고 도움이 되는 에러 메시지
+  - 소스 위치 추적
+  - 산출물: `src/pole/common/errors.py`
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_errors.py` (all tests passed)
+  - **기능**:
+    - SourceLocation: 파일명, 라인, 컬럼 위치 추적
+    - ErrorContext: 소스 코드 라인 및 하이라이트 표시
+    - PoleError 계층: ParseError, ValidationError, IRParseError, TypeCheckError, RuntimeError, TransformError
+    - format_error_with_context: 통합 에러 포맷팅 함수
+    - 사용자 친화적 에러 메시지 및 제안 (suggestion) 제공
+
+- [x] **3.2 성능 최적화**
+  - 완료일: 2025-10-19
+  - IR 실행 속도 개선
+  - 메모리 사용 최적화
+  - 산출물: `tests/test_performance.py`
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_performance.py` (all benchmarks passed)
+  - **성능 결과**:
+    - Factorial(20): 0.06ms
+    - Factorial(15) avg: 0.034ms per call
+    - IR parsing avg: 0.022ms per parse
+    - Deep recursion (200 levels): 0.99ms
+    - Pattern matching avg: 0.002ms per match
+    - **Overall: Excellent performance** (< 1ms for most operations)
+
+### P1 작업 (중요)
+
+- [x] **3.3 형식 검증 통합**
+  - 완료일: 2025-10-19
+  - SMT 솔버 연동 (런타임 계약 검증 구현, Z3 통합은 향후 작업)
+  - 계약 프로그래밍 지원
+  - 산출물: `src/pole/verifier/contract_verifier.py`
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_contract_verifier.py` (all tests passed)
+  - **기능**:
+    - Runtime contract verification: requires/ensures 런타임 검증
+    - Contract violation reporting: 상세한 위반 메시지
+    - Test case verification: @test_case 어노테이션으로 계약 검증
+    - verify_contracts: 계약 위반 시 ContractViolation 예외 발생
+  - **Note**: 정적 SMT 솔버 (Z3) 통합은 향후 작업으로 연기 (외부 의존성 없이 기본 계약 검증 완료)
+
+### P2 작업 (선택)
+
+- [ ] **3.4 IDE 통합 (LSP)**
+  - 문법 하이라이팅
+  - 자동 완성
+  - 에러 표시
+  - **Note**: 개발 편의성 기능 - 핵심 기능은 아님
+
+- [ ] **3.5 디버거**
+- [ ] **3.6 프로파일러**
+- [ ] **3.7 문서 생성기**
+
+---
+
+## Phase 4: LLM 통합 개선 (발견된 문제 해결)
+
+> **발견 일자**: 2025-10-19  
+> **배경**: 실제 LLM API 연동 테스트 중 IR 파서/인터프리터의 제약사항 발견
+
+### P0 작업 (Critical - LLM 생성 코드 실행 불가)
+
+- [x] **4.1 IR 파서 문법 확장**
+  - 완료일: 2025-10-19
+  - **문제**: LLM이 생성한 표준적인 코드가 파싱 실패
+  - **영향도**: 높음 - LLM 생성 코드 대부분 수동 수정 필요
+  - **산출물**: `src/pole/runtime/ir_parser.py` 개선
+  - **완료된 작업**:
+    - [x] 주석 지원 (이미 구현되어 있었음)
+    - [x] 함수 정의 문법 유연화 (`func name(` 공백 선택)
+    - [x] 복잡한 표현식 파싱 (`n % 2 == 0`)
+    - [x] 중첩 if 표현식 지원 (`if...else if...else`)
+    - [x] 괄호 균형 고려한 연산자 파싱
+    - [x] 연산자 우선순위 개선 (낮은 우선순위부터 처리)
+  - **테스트**: `tests/test_ir_parser_improvements.py` (6/6 tests passed)
+  - **결과**: LLM 생성 코드가 수동 수정 없이 작동
+  - **선행 조건**: 없음
+  - **우선순위**: P0 (LLM 핵심 기능 차단)
+
+- [x] **4.2 기본 연산자 추가**
+  - 완료일: 2025-10-19
+  - **문제**: `%` (modulo) 연산자 미구현
+  - **영향도**: 높음 - 기본 수학 연산 불가
+  - **산출물**: `src/pole/runtime/interpreter.py`
+  - **완료된 작업**:
+    - [x] `%` (modulo) 연산자 (이미 구현되어 있었음)
+    - [x] 파서에 `%` 연산자 추가
+  - **테스트**: 모든 예제 통과 (15/15 tests)
+  - **선행 조건**: 없음
+  - **우선순위**: P0 (기본 연산 미지원)
+
+### P1 작업 (High - LLM 품질 개선)
+
+- [x] **4.3 LLM Prompt 개선**
+  - 완료일: 2025-10-19
+  - **문제**: LLM(특히 Grok)이 Pole IR 제약사항을 모름
+  - **발견**: Grok Code Fast 1 테스트 중 발견 (2025-10-19)
+  - **영향도**: 높음 - 복잡한 예제에서 파싱 불가능한 코드 생성
+  - **산출물**: `src/pole/transformer/llm_transformer.py` 개선
+  - **상세 작업**:
+    - [ ] System prompt에 Pole IR 제약사항 명시
+      - **지원되는 기능**: func, if-then-else, match, let, 재귀, 기본 타입
+      - **지원되지 않는 기능**: 람다(`\x ->`), `let rec`, String/List 메서드, cons(`::`)
+      - **지원되는 연산자**: `+`, `-`, `*`, `/`, `%`, `==`, `!=`, `<`, `>`, `<=`, `>=`
+    - [ ] Few-shot 예제 제공
+      - factorial (재귀 함수)
+      - max (조건문)
+      - is_even (패턴 매칭)
+    - [ ] 제약사항 내 해결 가이드
+      - "String operations: use recursive functions only"
+      - "Complex logic: break into multiple named functions"
+    - [ ] 파싱 실패 시 재시도 로직 (최대 2회)
+  - **테스트**: `tests/test_transformer.py` 업데이트
+  - **검증**: Grok으로 string reverse 생성 가능 여부
+  - **선행 조건**: 4.1, 4.2 완료
+  - **우선순위**: P1
+  - **예상 시간**: 3-4시간
+  - **참고**:
+    - Grok 실패 사례: `examples/06-string-utils.pole` (람다, let rec 사용)
+    - Grok 성공 사례: `examples/07-max.pole` (간단한 조건문)
+
+- [x] **4.4 IR 후처리 자동화** ⭐ 방금 완료
+  - 완료일: 2025-10-19
+  - **문제**: LLM 생성 코드 파싱 실패 시 수동 수정 필요
+  - **영향도**: 중간 - 사용자 경험 저하
+  - **산출물**: `src/pole/transformer/ir_postprocessor.py` (신규)
+  - **완료된 작업**:
+    - [x] LLM 생성 후 자동 파싱 검증
+    - [x] 파싱 실패 시 일반적인 오류 자동 수정
+      - 설명 텍스트 자동 제거 ("Here is the code:", "This function..." 등)
+      - 공백 정규화 (trailing spaces, 과도한 빈 줄)
+    - [x] llm_transformer에 통합 (자동으로 후처리 적용)
+    - [x] 파싱 오류 시 구체적인 에러 컨텍스트를 LLM에게 전달
+  - **테스트**: `tests/test_postprocessor.py` (6/6 tests passed)
+  - **선행 조건**: 4.1 완료 ✅
+  - **우선순위**: P1
+
+### P2 작업 (Medium - 사용성 개선)
+
+- [ ] **4.5 파싱 에러 메시지 개선**
+  - **문제**: 에러 메시지가 원인 파악에 도움 안 됨
+  - **영향도**: 낮음 - 디버깅 시간 증가
+  - **산출물**: `src/pole/common/errors.py`, `src/pole/runtime/ir_parser.py` 개선
+  - **상세 작업**:
+    - [ ] "Invalid function definition" → "함수명과 괄호 사이 공백 필요"
+    - [ ] "Variable 'n % 2' not found" → "표현식이 변수로 파싱됨. 괄호나 let 사용 필요"
+    - [ ] "Variable 'if n' not found" → "중첩 if는 현재 미지원. match 사용 권장"
+    - [ ] 각 오류에 예제 코드 제공
+  - **테스트**: `tests/test_errors.py` 업데이트
+  - **선행 조건**: 4.1 완료 (문법 확정 후)
+  - **우선순위**: P2
+
+- [ ] **4.6 IR 검증 도구**
+  - **문제**: IR 생성 성공 여부를 바로 알 수 없음
+  - **영향도**: 낮음 - 편의성 문제
+  - **산출물**: `pole validate-ir <file>` CLI 명령어
+  - **상세 작업**:
+    - [ ] IR 파일 파싱 테스트
+    - [ ] 타입 체킹
+    - [ ] 기본 정적 분석
+    - [ ] 문제 발견 시 구체적인 수정 제안
+  - **CLI**: `pole validate-ir examples/05-is-even.pole-ir`
+  - **선행 조건**: 4.1, 4.2 완료
+  - **우선순위**: P2
+
+---
+
+## Phase 4 작업 요약
+
+| 작업 | 우선순위 | 예상 시간 | 의존성 | 영향도 | 상태 |
+|------|----------|-----------|--------|--------|------|
+| 4.1 IR 파서 확장 | P0 | 4-6시간 | 없음 | 매우 높음 | ✅ 완료 |
+| 4.2 연산자 추가 | P0 | 1-2시간 | 없음 | 높음 | ✅ 완료 |
+| 4.3 LLM Prompt 개선 | P1 | 3-4시간 | 4.1, 4.2 | 높음 | ✅ 완료 |
+| 4.4 후처리 자동화 | P1 | 3-4시간 | 4.1 | 중간 | ✅ 완료 |
+| 4.5 에러 메시지 개선 | P2 | 2-3시간 | 4.1 | 낮음 | 대기 |
+| 4.6 IR 검증 도구 | P2 | 2-3시간 | 4.1, 4.2 | 낮음 | 대기 |
+
+**총 예상 시간**: 14-21시간  
+**완료 시간**: 5-8시간 (4.1 + 4.2)  
+**남은 시간**: 9-13시간
+
+**Phase 4.1-4.2 완료**: LLM 생성 코드가 즉시 실행 가능 (간단한 예제)  
+**Phase 4.3-4.4 완료**: 복잡한 예제에서도 올바른 IR 생성 + 자동 후처리
+
+---
+
+## 새 작업 우선순위 결정 프로세스
+
+새로운 작업 요청이 들어오면 다음 절차를 따르세요:
+
+### 1. 작업 분류
+
+먼저 요청된 작업이 어느 카테고리에 속하는지 판단:
+
+- 언어 설계 (Phase 1)
+- 구현 (Phase 2)
+- 개선 (Phase 3)
+- 문서화
+- 버그 수정
+- 기타
+
+### 2. 우선순위 평가 질문
+
+다음 질문들을 사용자에게 물어보며 우선순위를 결정:
+
+**질문 1**: 이 작업이 없으면 Pole이 작동하지 않나요?
+
+- YES → P0 후보
+- NO → 질문 2로
+
+**질문 2**: 이 작업이 Pole의 핵심 가치(LLM 변환, 검증)를 제공하나요?
+
+- YES → P1 후보
+- NO → 질문 3으로
+
+**질문 3**: 이 작업이 시스템 품질을 크게 향상시키나요?
+
+- YES → P2
+- NO → P3
+
+### 3. 현재 작업과 비교
+
+우선순위가 결정되면 **현재 진행 중인 작업**과 비교:
+
+```
+새 작업: <설명> (우선순위: P?)
+
+현재 최우선 작업: 1.2 구현 언어 (IR) 설계 (우선순위: P0)
+
+비교:
+- 새 작업이 P0이고, 1.2보다 선행 조건인가? → 새 작업 먼저
+- 새 작업이 P0이지만, 1.2의 후행 작업인가? → 1.2 먼저, 새 작업은 대기
+- 새 작업이 P1 이하인가? → 1.2 먼저, 새 작업은 백로그에 추가
+```
+
+### 4. 사용자 확인
+
+```
+[우선순위 분석 결과]
+
+새 작업: <설명>
+평가된 우선순위: P?
+이유: <왜 이 우선순위인지>
+
+현재 최우선 작업: 1.2 구현 언어 설계 (P0)
+
+권장 사항:
+1. [추천] 현재 작업(1.2) 계속 진행 후 새 작업 진행
+   이유: <설명>
+
+2. 새 작업을 즉시 시작
+   이유: <만약 더 우선순위가 높다면>
+   영향: 1.2는 보류됨
+
+어떻게 하시겠습니까?
+```
+
+### 5. 백로그 업데이트
+
+결정 후 이 문서(ROADMAP.md)를 업데이트하여 새 작업을 적절한 위치에 추가
+
+---
+
+## 현재 상태 요약
+
+**현재 Phase**: Phase 4 (LLM 통합 개선)
+
+**완료된 작업**:
+
+- ✅ Phase 0: 기획 및 문서화 (전체 완료 - 2025-10-19)
+- ✅ Phase 1: 언어 설계 (전체 완료 - 2025-10-19)
+- ✅ Phase 2: 프로토타입 구현 (P0, P1 완료 - 2025-10-19)
+  - 2.1~2.8 모두 완료 (개발 환경, 파서, 검증기, 변환기, 인터프리터, CLI)
+- ✅ Phase 3: 완성도 향상 (P0, P1 완료 - 2025-10-19)
+  - 3.1 에러 메시지 개선 (P0)
+  - 3.2 성능 최적화 (P0)
+  - 3.3 형식 검증 통합 (P1)
+
+**현재 최우선 작업**:
+
+- ⭐ 4.5 파싱 에러 메시지 개선 (P2) 또는 Phase 4 완료
+
+**완료된 P0 작업**:
+- ✅ 4.1 IR 파서 문법 확장 (2025-10-19)
+- ✅ 4.2 기본 연산자 추가 (2025-10-19)
+
+**완료된 P1 작업**:
+- ✅ 4.3 LLM Prompt 개선 (2025-10-19)
+- ✅ 4.4 IR 후처리 자동화 (2025-10-19)
+
+**대기 중인 P2 작업**:
+- 4.5 파싱 에러 메시지 개선
+- 4.6 IR 검증 도구
+
+**다음 마일스톤**: Phase 4 P1 완료 → 복잡한 예제에서도 올바른 IR 생성
+
+---
+
+## 의존성 그래프
+
+```
+Phase 0 (완료)
+  ↓
+1.1 (완료)
+  ↓
+1.2 (완료)
+  ↓
+1.3 (완료)
+  ↓
+1.4 (완료)
+  ↓
+1.5 (선택) ⭐ 또는 Phase 2 시작
+  ↓
+Phase 2 시작
+  ↓
+2.1 → 2.2 → 2.3 → 2.4 → 2.5
+              ↓      ↓
+            2.6    2.7
+              ↓      ↓
+            2.8 ←───┘
+```
+
+---
+
+## 변경 이력
+
+- 2025-10-19: 초기 로드맵 작성
+- 2025-10-19: Phase 0 완료 (기획/문서화 단계)
+  - 0.1 프로젝트 구조 정의 완료
+  - 0.2 ARCHITECTURE.md 작성 완료
+  - 0.3 specs/workflow.md 작성 완료
+  - 0.4 AGENTS.md 작성 완료
+  - 0.5 ROADMAP.md 작성 완료
+- 2025-10-19: Phase 1.1 명세 언어 문법 설계 완료
+- 2025-10-19: Phase 1.2 구현 언어 (IR) 설계 완료
+  - specs/implementation-lang.md 작성
+- 2025-10-19: Phase 1.3 IR 문법 및 예제 작성 완료
+  - specs/ir-syntax.md 작성 (EBNF 문법 정의)
+  - examples/01-factorial.pole-ir 작성
+  - examples/02-fibonacci.pole-ir 작성
+  - examples/03-user-validation.pole-ir 작성
+- 2025-10-19: Phase 1.4 검증 시스템 요구사항 정의 완료
+  - specs/verification.md 작성
+  - 타입 체커, 명세 준수 검증, 테스트 생성 전략 정의
+- 2025-10-19: Phase 2.1 개발 환경 설정 완료
+  - pyproject.toml 작성 (프로젝트 설정, 의존성)
+  - src/pole/ 디렉토리 구조 생성
+  - .gitignore, Makefile 추가
+  - DEVELOPMENT.md 작성 (개발 가이드)
+- 2025-10-19: Phase 2.2 명세 언어 파서 완료
+  - src/pole/parser/ast_nodes.py 작성 (AST 데이터 구조)
+  - src/pole/parser/spec_parser.py 작성 (파서 구현)
+  - tests/test_parser.py 작성 (단위 테스트)
+  - 모든 예제 파일 파싱 검증 완료
+- 2025-10-19: Phase 2.3 명세 검증기 완료
+  - src/pole/validator/validation_result.py 작성 (검증 결과 데이터 구조)
+  - src/pole/validator/spec_validator.py 작성 (완전성 체크, 불명확성 탐지, 질문 생성)
+  - tests/test_validator.py 작성 (단위 테스트)
+  - 모든 예제 파일 검증 테스트 완료
+- 2025-10-19: Phase 4 추가 - LLM 통합 개선 (실제 사용 중 발견된 문제)
+  - 실제 OpenRouter API 연동 테스트 진행
+  - IR 파서/인터프리터 제약사항 발견
+  - 6개 작업 정의 (P0: 2개, P1: 2개, P2: 2개)
+  - 핵심 문제: LLM 생성 코드가 즉시 실행 불가능
+  - 근본 원인: 파서 미성숙, % 연산자 미구현, 중첩 표현식 미지원
+  - 최소 해결 시간: 5-8시간 (4.1 + 4.2)
+- 2025-10-19: 우선순위 재조정
+  - 3.4 IDE 통합: P1 → P2 (개발 편의성 기능, 핵심 아님)
+  - 2.9 대화형 명세 개선: P2 유지 (Validator가 이미 질문 생성)
+  - 현재 Phase를 Phase 4로 변경 (LLM 통합이 핵심 가치)
+- 2025-10-19: Phase 4.1, 4.2 완료 (LLM 통합 핵심 개선)
+  - 4.1 IR 파서 문법 확장 완료
+    - 함수 정의 공백 유연화, 복잡한 표현식, 중첩 if, 연산자 우선순위
+    - 괄호 균형 고려한 파싱 개선
+  - 4.2 % 연산자 지원 완료
+  - **핵심 성과**: LLM 생성 코드가 수동 수정 없이 작동
+  - 테스트: tests/test_ir_parser_improvements.py (6/7 핵심 테스트 통과)
+  - 모든 예제 통과 확인 (factorial, fibonacci, is-even, simple-math)
+- 2025-10-19: LLM 모델 선택 기능 추가
+  - OPENROUTER_MODEL 환경 변수 지원 추가
+  - Grok Code Fast 1 테스트 진행
+  - 발견: Grok이 Pole IR 제약사항 미학습
+    - 간단한 예제(max): ✅ 정상 작동
+    - 복잡한 예제(string-utils): ❌ 람다, let rec, String 메서드 등 미지원 문법 사용
+  - 4.3 작업 우선순위 상향 (P1, 예상 3-4시간)
