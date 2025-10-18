@@ -508,14 +508,56 @@ class IRParser:
 
     def _parse_let_expr(self, line: str) -> LetExpr:
         match = re.match(r"let (\w+) = (.+?) in (.+)", line)
-        if not match:
-            raise ValueError(f"Invalid let expression: {line}")
+        if match:
+            var_name = match.group(1).strip()
+            value = self._parse_simple_expr(match.group(2).strip())
+            body = self._parse_simple_expr(match.group(3).strip())
+            return LetExpr(var_name=var_name, value=value, body=body)
 
-        var_name = match.group(1).strip()
-        value = self._parse_simple_expr(match.group(2).strip())
-        body = self._parse_simple_expr(match.group(3).strip())
+        match = re.match(r"let (\w+) = (.+?) in$", line)
+        if match:
+            var_name = match.group(1).strip()
+            value = self._parse_simple_expr(match.group(2).strip())
+            body = self._parse_expr()
+            return LetExpr(var_name=var_name, value=value, body=body)
 
-        return LetExpr(var_name=var_name, value=value, body=body)
+        match = re.match(r"let (\w+) = (.+)", line)
+        if match:
+            var_name = match.group(1).strip()
+            value_start = match.group(2).strip()
+
+            value_lines = [value_start]
+            bracket_count = value_start.count("[") - value_start.count("]")
+            paren_count = value_start.count("(") - value_start.count(")")
+
+            while self.pos < len(self.lines):
+                current_line = self.lines[self.pos].strip()
+
+                temp_bracket = bracket_count + current_line.count("[") - current_line.count("]")
+                temp_paren = paren_count + current_line.count("(") - current_line.count(")")
+
+                if temp_bracket == 0 and temp_paren == 0:
+                    if "] in" in current_line or current_line.startswith("in "):
+                        value_lines.append(current_line.split(" in")[0].strip())
+                        self.pos += 1
+
+                        in_idx = current_line.find(" in")
+                        if in_idx >= 0:
+                            body_str = current_line[in_idx + 3 :].strip()
+                        else:
+                            body_str = ""
+
+                        value_str = " ".join(value_lines)
+                        value = self._parse_simple_expr(value_str)
+                        body = self._parse_simple_expr(body_str) if body_str else self._parse_expr()
+                        return LetExpr(var_name=var_name, value=value, body=body)
+
+                value_lines.append(current_line)
+                bracket_count = temp_bracket
+                paren_count = temp_paren
+                self.pos += 1
+
+        raise ValueError(f"Invalid let expression: {line}")
 
 
 def parse_ir(source: str) -> Program:
