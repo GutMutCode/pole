@@ -1,0 +1,47 @@
+// Example 4: Simple math operations
+
+function abs:
+  purpose: calculate absolute value of an integer
+  
+  input: n (integer, can be negative)
+  output: absolute value (non-negative)
+  
+  constraints:
+    - result is always non-negative
+    - abs(-n) == abs(n)
+  
+  examples:
+    - abs(5) → 5
+    - abs(-3) → 3
+    - abs(0) → 0
+    - abs(-10) → 10
+
+function max:
+  purpose: find maximum of two numbers
+  
+  input:
+    - a: integer
+    - b: integer
+  
+  output: larger of the two numbers
+  
+  examples:
+    - max(5, 3) → 5
+    - max(1, 10) → 10
+    - max(7, 7) → 7
+    - max(-5, -3) → -3
+
+function sum_to_n:
+  purpose: calculate sum of integers from 1 to n
+  
+  input: n (positive integer)
+  output: 1 + 2 + ... + n
+  
+  constraints:
+    - n >= 1
+  
+  examples:
+    - sum_to_n(1) → 1
+    - sum_to_n(5) → 15
+    - sum_to_n(10) → 55
+    - sum_to_n(3) → 6

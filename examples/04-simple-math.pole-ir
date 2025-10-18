@@ -1,0 +1,35 @@
+@source("examples/04-simple-math.pole", line=3)
+@generated_from("명세: calculate absolute value of an integer")
+@reasoning("if n >= 0 return n, else return -n")
+@test_case(input=5, expected=5)
+@test_case(input=-3, expected=3)
+@test_case(input=0, expected=0)
+@test_case(input=-10, expected=10)
+func abs (n: Int) -> Nat
+  requires true
+  ensures result >= 0
+:
+  if n >= 0 then n else 0 - n
+
+@source("examples/04-simple-math.pole", line=20)
+@generated_from("명세: find maximum of two numbers")
+@reasoning("compare two numbers and return larger one")
+func max (a: Int, b: Int) -> Int
+  requires true
+:
+  if a > b then a else b
+
+@source("examples/04-simple-math.pole", line=35)
+@generated_from("명세: calculate sum of integers from 1 to n")
+@reasoning("recursive sum: sum(1) = 1, sum(n) = n + sum(n-1)")
+@test_case(input=1, expected=1)
+@test_case(input=5, expected=15)
+@test_case(input=10, expected=55)
+@test_case(input=3, expected=6)
+func sum_to_n (n: Nat) -> Nat
+  requires n >= 1
+  ensures result >= n
+:
+  match n with
+  | 1 -> 1
+  | n -> n + sum_to_n (n - 1)
