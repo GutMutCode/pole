@@ -222,13 +222,13 @@ class IRParser:
         line = self.lines[self.pos].strip()
         self.pos += 1
 
-        match = re.match(r"func (\w+) \((.*?)\) -> (.+)", line)
+        match = re.match(r"func (\w+) \((.*?)\) -> (.+?)(?:\s*:)?$", line)
         if not match:
             raise ValueError(f"Invalid function definition: {line}")
 
         name = match.group(1)
         params_str = match.group(2)
-        return_type_str = match.group(3)
+        return_type_str = match.group(3).strip()
 
         params = []
         if params_str.strip():
@@ -285,7 +285,20 @@ class IRParser:
         elif line.startswith("let "):
             return self._parse_let_expr(line)
         else:
-            return self._parse_simple_expr(line)
+            expr = self._parse_simple_expr(line)
+
+            parts = line.split()
+            if len(parts) >= 2 and not any(
+                op in line for op in ["+", "-", "*", "/", "==", "!=", "<", ">", "<=", ">=", "=>"]
+            ):
+                if not line.startswith("(") and "(" not in parts[0]:
+                    func_name = parts[0]
+                    arg_str = " ".join(parts[1:])
+                    return Application(
+                        func=Variable(name=func_name), arg=self._parse_simple_expr(arg_str)
+                    )
+
+            return expr
 
     def _parse_simple_expr(self, expr_str: str) -> Expr:
         expr_str = expr_str.strip()

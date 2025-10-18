@@ -239,11 +239,19 @@
     - Report generation: 통과/실패 리포트 생성 (성공률, 실패한 테스트 상세 정보)
     - Verification: verify_examples()로 모든 테스트 통과 여부 확인
 
-- [ ] **2.7 타입 체커**
-
+- [x] **2.7 타입 체커**
+  - 완료일: 2025-10-19
   - IR 타입 검증
-  - 산출물: `src/verifier/type_checker.py`
+  - 산출물: `src/pole/verifier/type_checker.py`
   - 선행 조건: 2.5 완료
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_type_checker.py` (all tests passed)
+  - **기능**:
+    - Type environment: 타입 환경 관리 및 함수 시그니처 수집
+    - Type inference: 표현식의 타입 추론 (리터럴, 변수, 연산, 조건문, let, match, 함수 호출)
+    - Type checking: 함수 정의의 타입 안전성 검증
+    - Type compatibility: 타입 호환성 검사 (Nat ↔ Int, 제네릭 타입)
+    - Error reporting: 상세한 타입 오류 메시지 생성
 
 - [ ] **2.8 CLI 도구**
   - `pole check <file>` - 명세 검증
