@@ -273,6 +273,7 @@ class TypeChecker:
 
         elif isinstance(expr, FieldAccess):
             record_type = self._infer_type(expr.record)
+            record_type = self._resolve_type(record_type)
 
             if isinstance(record_type, RecordType):
                 if expr.field_name in record_type.fields:
@@ -345,6 +346,18 @@ class TypeChecker:
 
         else:
             return False
+
+    def _resolve_type(self, t: Type) -> Type:
+        """Resolve custom type names to their definitions"""
+        if isinstance(t, BasicType) and t.name in self.custom_types:
+            type_def = self.custom_types[t.name]
+            if isinstance(type_def.definition, RecordType):
+                return type_def.definition
+            elif isinstance(type_def.definition, Type):
+                return self._resolve_type(type_def.definition)
+            else:
+                return t
+        return t
 
     def _type_to_string(self, t: Type) -> str:
         if isinstance(t, BasicType):

@@ -133,6 +133,31 @@ class IRParser:
         line = self.lines[self.pos].strip()
         self.pos += 1
 
+        match = re.match(r"type (\w+) = \{$", line)
+        if match:
+            name = match.group(1)
+            fields = {}
+
+            while self.pos < len(self.lines):
+                line = self.lines[self.pos].strip()
+                if line == "}":
+                    self.pos += 1
+                    break
+                if not line or line.startswith("//"):
+                    self.pos += 1
+                    continue
+
+                field_match = re.match(r"(\w+):\s*(.+?),?$", line)
+                if field_match:
+                    field_name = field_match.group(1)
+                    field_type_str = field_match.group(2).rstrip(",")
+                    fields[field_name] = self._parse_type(field_type_str.strip())
+
+                self.pos += 1
+
+            definition = RecordType(fields=fields)
+            return TypeDef(name=name, definition=definition, annotations=annotations)
+
         match = re.match(r"type (\w+) = (.+)", line)
         if match:
             name = match.group(1)
@@ -141,7 +166,7 @@ class IRParser:
             if type_def_str.startswith("{"):
                 definition = self._parse_record_type_inline(type_def_str)
             else:
-                definition = []
+                definition = self._parse_type(type_def_str)
 
             return TypeDef(name=name, definition=definition, annotations=annotations)
 
