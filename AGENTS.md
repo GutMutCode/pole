@@ -81,6 +81,18 @@ When the user asks about **current priority or next task**, always:
 
 ## Before Starting Any Task (Critical Checklist)
 
+**TRIGGER PATTERNS** - Activate this checklist when:
+- User says: "작업 시작해줘", "진행해줘", "해줘", "시작해"
+- User says: "다음 작업 해줘", "4.3 작업 해줘", "계속해줘"
+- After reporting current task and user confirms to proceed
+- ANY request to BEGIN implementation work
+
+**DO NOT skip this checklist even if:**
+- You already checked ROADMAP.md
+- The task seems simple
+- You feel confident about requirements
+- User seems impatient
+
 When starting a new task, you **MUST** follow this research process:
 
 ### 1. Identify the Task
