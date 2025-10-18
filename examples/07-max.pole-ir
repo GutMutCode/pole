@@ -1,0 +1,6 @@
+@source("examples/07-max.pole")
+func max(a: Int, b: Int) -> Int
+  requires true
+  ensures result >= a && result >= b && (result == a || result == b)
+:
+  if a >= b then a else b

@@ -1,0 +1,12 @@
+// Example 7: Maximum of two numbers
+
+function max:
+  purpose: return the larger of two numbers
+  input: a (integer), b (integer)
+  output: maximum value (integer)
+  
+  examples:
+    - (5, 3) → 5
+    - (2, 8) → 8
+    - (4, 4) → 4
+    - (-1, -5) → -1

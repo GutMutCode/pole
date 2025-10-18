@@ -7,14 +7,14 @@ class LLMClient(Protocol):
 
 
 class OpenRouterClient:
-    def __init__(self, api_key: str | None = None, model: str = "anthropic/claude-3.5-sonnet"):
+    def __init__(self, api_key: str | None = None, model: str | None = None):
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
         if not self.api_key:
             raise ValueError(
                 "OpenRouter API key not found. "
                 "Set OPENROUTER_API_KEY environment variable or pass api_key parameter."
             )
-        self.model = model
+        self.model = model or os.getenv("OPENROUTER_MODEL", "anthropic/claude-3.5-sonnet")
         self._client: Any = None
 
     def _get_client(self) -> Any:
