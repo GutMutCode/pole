@@ -174,12 +174,14 @@
     - `Makefile` (개발 명령어)
     - `DEVELOPMENT.md` (개발 가이드)
 
-- [ ] **2.2 명세 언어 파서**
-
+- [x] **2.2 명세 언어 파서**
+  - 완료일: 2025-10-19
   - .pole 파일 파싱
   - AST 생성
-  - 산출물: `src/parser/spec_parser.py`
+  - 산출물: `src/pole/parser/spec_parser.py`, `src/pole/parser/ast_nodes.py`
   - 선행 조건: 2.1 완료
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_parser.py` (모든 예제 파일 파싱 성공)
 
 - [ ] **2.3 명세 검증기 (Specification Validator)**
 
@@ -365,14 +367,13 @@
   - 1.3 IR 문법 및 예제 작성 (P0)
   - 1.4 검증 시스템 요구사항 정의 (P1)
 - ✅ 2.1 개발 환경 설정 (2025-10-19)
+- ✅ 2.2 명세 언어 파서 (2025-10-19)
 
 **현재 최우선 작업**:
 
-- ⭐ 2.2 명세 언어 파서 (P0)
+- ⭐ 2.3 명세 검증기 (P0)
 
 **대기 중인 P0 작업**:
-
-- 2.2 명세 언어 파서
 - 2.3 명세 검증기
 - 2.4 LLM 변환기
 - 2.5 IR 인터프리터
@@ -432,3 +433,8 @@ Phase 2 시작
   - src/pole/ 디렉토리 구조 생성
   - .gitignore, Makefile 추가
   - DEVELOPMENT.md 작성 (개발 가이드)
+- 2025-10-19: Phase 2.2 명세 언어 파서 완료
+  - src/pole/parser/ast_nodes.py 작성 (AST 데이터 구조)
+  - src/pole/parser/spec_parser.py 작성 (파서 구현)
+  - tests/test_parser.py 작성 (단위 테스트)
+  - 모든 예제 파일 파싱 검증 완료
