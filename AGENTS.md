@@ -44,7 +44,40 @@ Pole is an LLM-optimized programming language system with two distinct layers:
 3. Ask user to confirm priority if unclear
 4. Update roadmap with new tasks
 
+**Priority hierarchy**: Phase > P0/P1/P2 (Phase가 상위 개념)
+- 현재 Phase 내 작업을 먼저 완료
+- 같은 Phase 내에서 P0 → P1 → P2 순서
+
 **Never assume priority** - always verify against the roadmap and ask the user.
+
+### Task Status Verification
+
+When the user asks about **current priority or next task**, always:
+1. Read ROADMAP.md to identify highest priority task
+2. **Verify completion** by checking deliverables in codebase
+3. Report task, status, and next action
+
+**Trigger patterns** (examples):
+- "지금 가장 중요한 작업이 뭐야?"
+- "다음에 뭐 해야해?"
+- "현재 작업 상태는?"
+- "뭐부터 시작하지?"
+- "지금 해야할 작업이 뭘까?"
+- Similar questions about current/next priority
+
+**Key principle**: If the question is about **what to work on now**, always verify the codebase first.
+
+**Report format**:
+```
+현재 최우선 작업: [Task ID] [Task Name] (P[0-3])
+
+상태 확인:
+- 산출물 파일 존재: [예/아니오]
+- 완료도: [미시작/진행중/완료]
+- 필요 작업: [구체적 항목들]
+
+다음 단계: [즉시 수행할 작업]
+```
 
 ## Before Starting Any Task (Critical Checklist)
 
@@ -162,3 +195,140 @@ Use this checklist when receiving a specification:
 - **Document decisions** made in absence of clarity
 
 See [specs/workflow.md](specs/workflow.md) for the complete LLM transformation workflow.
+
+---
+
+## Self-Improvement Protocol
+
+When you encounter confusion, misunderstanding, or make a mistake during conversation:
+
+### 1. Identify the Root Cause
+
+Analyze what went wrong:
+- **Documentation unclear**: Was existing documentation ambiguous or incomplete?
+- **Rule missing**: Was there no guidance for this situation?
+- **Information misplaced**: Was information in the wrong file or section?
+- **Assumption made**: Did you assume something not explicitly stated?
+
+### 2. Propose Documentation Fix
+
+Immediately after identifying the issue, propose a specific fix:
+
+```
+[Documentation Improvement Needed]
+
+Issue: [What confusion or error occurred]
+Root cause: [Why it happened - missing rule, unclear docs, etc.]
+Proposed fix: 
+  - File: [Which file to update - AGENTS.md, ROADMAP.md, etc.]
+  - Location: [Which section]
+  - Change: [Specific text to add/modify]
+  - Rationale: [Why this will prevent future errors]
+
+이 변경을 적용할까요?
+```
+
+### 3. Ask User for Approval
+
+Never apply documentation changes without user consent. Present the proposal and wait for approval.
+
+### 4. Apply the Fix
+
+If user approves, immediately update the relevant documentation file(s).
+
+### Trigger Patterns
+
+Activate this protocol when:
+- User corrects your understanding
+- User asks "다음부터는 어떻게 해야할까?" or similar
+- User asks "이런 오해가 발생하지 않으려면..."
+- User asks "이를 자동화하려면..."
+- User points out confusion or asks for clarification of your behavior
+- You realize you made an incorrect assumption
+
+### Examples
+
+<example>
+User: "Phase가 P0/P1보다 상위 개념 아니야?"
+Assistant: [Realizes misunderstanding]
+
+[Documentation Improvement Needed]
+
+Issue: Confused priority hierarchy - thought P0 takes precedence over Phase
+Root cause: ROADMAP.md didn't explicitly state Phase > P0/P1/P2 hierarchy
+Proposed fix:
+  - File: ROADMAP.md
+  - Location: "우선순위 원칙" section (top)
+  - Change: Add "작업 선택 규칙" subsection explaining Phase is higher priority than P0/P1/P2
+  - Rationale: Makes hierarchy explicit, prevents future confusion about cross-phase priorities
+
+이 변경을 적용할까요?
+</example>
+
+### Key Principles
+
+- **Proactive**: Don't wait for user to ask "how to prevent this" - propose fixes immediately when you realize an error
+- **Specific**: Provide exact file, section, and text changes
+- **Explain**: Always explain why the fix will prevent future errors
+- **Respect user**: Never update docs without approval
+- **Learn**: Each fix makes the system better for future interactions
+
+---
+
+## Task Completion Protocol
+
+When a task is fully completed (all todos marked complete, deliverables created):
+
+### 1. Verify Completion
+
+Check that:
+- [ ] All deliverables created and verified
+- [ ] ROADMAP.md updated with completion status
+- [ ] All todos marked complete
+- [ ] Documentation is consistent
+
+### 2. Offer to Commit Changes
+
+Ask the user:
+```
+작업이 완료되었습니다. Git 커밋을 생성할까요?
+
+변경된 파일:
+- [list of changed files]
+
+제안 커밋 메시지:
+"[proposed commit message]"
+```
+
+### 3. Create Commit (if approved)
+
+When user approves:
+1. Run `git status` and `git diff` to verify changes
+2. Stage relevant files with `git add`
+3. Create commit with meaningful message
+4. **Never push** without explicit user permission
+
+### 4. Commit Message Format
+
+Follow the project's commit style:
+- Check recent commits with `git log`
+- Use clear, concise messages
+- Focus on "what" and "why"
+- Reference task numbers if applicable
+
+Example:
+```
+Complete task 1.4: Add verification system requirements
+
+- Add specs/verification.md with type checker, compliance verification, and test generation strategy
+- Update ROADMAP.md to mark 1.4 as complete
+```
+
+### When NOT to Offer Commit
+
+- User is in middle of reviewing changes
+- Task partially complete
+- User explicitly said they'll commit manually
+- Changes are experimental/temporary
+
+---

@@ -1,0 +1,49 @@
+@source("examples/03-user-validation.pole", line=3)
+@generated_from("명세: validate if user information is valid")
+
+type User = {
+  name: String,
+  email: String,
+  age: Nat
+}
+
+type ValidationError =
+  | NameEmpty
+  | NameTooLong
+  | InvalidEmail
+  | InvalidAge
+
+@test_case(input={name="John Doe", email="john@example.com", age=25}, expected=Ok(()))
+@test_case(input={name="", email="john@example.com", age=25}, expected=Err([NameEmpty]))
+@test_case(input={name="John Doe", email="invalid-email", age=25}, expected=Err([InvalidEmail]))
+@test_case(input={name="John Doe", email="john@example.com", age=200}, expected=Err([InvalidAge]))
+func validate_user (user: User) -> Result<Unit, List<ValidationError>> :
+  let errors = List.concat [
+    validate_name user.name,
+    validate_email user.email,
+    validate_age user.age
+  ] in
+  match errors with
+  | [] -> Ok(())
+  | errs -> Err(errs)
+
+func validate_name (name: String) -> List<ValidationError> :
+  let len = String.length name in
+  if len < 1 then
+    [NameEmpty]
+  else if len > 50 then
+    [NameTooLong]
+  else
+    []
+
+func validate_email (email: String) -> List<ValidationError> :
+  if String.contains email "@" then
+    []
+  else
+    [InvalidEmail]
+
+func validate_age (age: Nat) -> List<ValidationError> :
+  if age > 150 then
+    [InvalidAge]
+  else
+    []

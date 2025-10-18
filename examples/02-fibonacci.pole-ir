@@ -1,0 +1,26 @@
+@source("examples/02-fibonacci.pole", line=3)
+@generated_from("명세: calculate n-th fibonacci number")
+@reasoning("메모이제이션을 사용하여 중복 계산 방지 (명세 조건: compute efficiently)")
+@test_case(input=1, expected=1)
+@test_case(input=2, expected=1)
+@test_case(input=3, expected=2)
+@test_case(input=10, expected=55)
+func fibonacci (n: Nat) -> Nat
+  requires n >= 1
+  ensures result >= 1
+  ensures (n == 1) => (result == 1)
+  ensures (n == 2) => (result == 1)
+:
+  fibonacci_memo n {}
+
+func fibonacci_memo (n: Nat, cache: Map<Nat, Nat>) -> Nat :
+  match Map.get cache n with
+  | Some(value) -> value
+  | None ->
+      let result = 
+        match n with
+        | 1 -> 1
+        | 2 -> 1
+        | n -> fibonacci_memo (n - 1) cache + fibonacci_memo (n - 2) cache
+      in
+      result

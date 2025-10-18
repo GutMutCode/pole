@@ -1,0 +1,14 @@
+@source("examples/01-factorial.pole", line=3)
+@generated_from("명세: calculate factorial of given integer")
+@test_case(input=0, expected=1)
+@test_case(input=1, expected=1)
+@test_case(input=5, expected=120)
+func factorial (n: Nat) -> Nat
+  requires n >= 0
+  ensures result >= 1
+  ensures (n == 0) => (result == 1)
+  ensures (n == 1) => (result == 1)
+:
+  match n with
+  | 0 -> 1
+  | n -> n * factorial (n - 1)
