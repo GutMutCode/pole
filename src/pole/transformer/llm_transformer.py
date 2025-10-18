@@ -3,7 +3,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from pole.parser.ast_nodes import FunctionDef, Specification, TypeDef  # type: ignore
+from pole.parser.ast_nodes import FunctionDef, Specification, TypeDef
+from pole.transformer.ir_postprocessor import IRPostprocessor  # type: ignore
 
 from .llm_client import LLMClient, MockLLMClient, OpenRouterClient
 
@@ -11,6 +12,7 @@ from .llm_client import LLMClient, MockLLMClient, OpenRouterClient
 class SpecificationTransformer:
     def __init__(self, llm_client: LLMClient | None = None):
         self.llm_client = llm_client or MockLLMClient()
+        self.postprocessor = IRPostprocessor()
 
     def transform(self, spec: Specification, source_file: str = "unknown.pole") -> str:
         ir_parts = []
@@ -40,11 +42,17 @@ class SpecificationTransformer:
             ir_code = self.llm_client.complete(prompt, system_prompt)
             ir_code = self._clean_ir_code(ir_code)
 
-            if self._validate_ir_code(ir_code):
-                return ir_code
+            result = self.postprocessor.process(ir_code)
+            if result.success:
+                return result.ir_code
+
+            ir_code = result.ir_code
 
             if attempt < max_retries:
-                prompt = self._build_retry_prompt(func, source_file, ir_code)
+                error_context = (
+                    f"\n\nParsing error: {result.parse_error}" if result.parse_error else ""
+                )
+                prompt = self._build_retry_prompt(func, source_file, ir_code, error_context)
 
         return ir_code
 
@@ -254,12 +262,16 @@ func classify(n: Int) -> String
         except Exception:
             return False
 
-    def _build_retry_prompt(self, func: FunctionDef, source_file: str, failed_code: str) -> str:
+    def _build_retry_prompt(
+        self, func: FunctionDef, source_file: str, failed_code: str, error_context: str = ""
+    ) -> str:
         """Build retry prompt with previous failure context"""
         original_prompt = self._build_function_prompt(func, source_file)
         return f"""{original_prompt}
 
-IMPORTANT: Your previous attempt failed to parse. Common mistakes:
+IMPORTANT: Your previous attempt failed to parse.{error_context}
+
+Common mistakes to avoid:
 - Using lambda syntax (backslash x arrow) - NOT SUPPORTED
 - Using let rec - NOT SUPPORTED  
 - Using String/List methods - NOT SUPPORTED
