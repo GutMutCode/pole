@@ -101,6 +101,8 @@ class Interpreter:
                 return left_val <= right_val
             elif expr.op == ">=":
                 return left_val >= right_val
+            elif expr.op == "%":
+                return left_val % right_val
             elif expr.op == "and":
                 return left_val and right_val
             elif expr.op == "or":

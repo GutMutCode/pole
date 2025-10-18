@@ -1,0 +1,18 @@
+@source("examples/05-is-even.pole", line=3)
+@generated_from("LLM: check if a number is even")
+@reasoning("Using recursive definition: 0 is even, 1 is odd, n is even if n-2 is even")
+@test_case(input=0, expected=true)
+@test_case(input=2, expected=true)
+@test_case(input=3, expected=false)
+func is_even_helper (n: Nat) -> Bool :
+  match n with
+  | 0 -> true
+  | 1 -> false
+  | n -> is_even_helper (n - 2)
+
+@test_case(input=-4, expected=true)
+@test_case(input=7, expected=false)
+func is_even (n: Int) -> Bool
+  requires true
+:
+  if n < 0 then is_even_helper (0 - n) else is_even_helper (n)

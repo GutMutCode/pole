@@ -222,7 +222,7 @@ class IRParser:
         line = self.lines[self.pos].strip()
         self.pos += 1
 
-        match = re.match(r"func (\w+) \((.*?)\) -> (.+?)(?:\s*:)?$", line)
+        match = re.match(r"func (\w+)\s*\((.*?)\) -> (.+?)(?:\s*:)?$", line)
         if not match:
             raise ValueError(f"Invalid function definition: {line}")
 
@@ -321,21 +321,36 @@ class IRParser:
         if expr_str == "()":
             return Literal(value=None, type_name="Unit")
 
-        if " * " in expr_str:
-            parts = expr_str.split(" * ", 1)
-            return BinaryOp(
-                op="*",
-                left=self._parse_simple_expr(parts[0].strip()),
-                right=self._parse_simple_expr(parts[1].strip()),
-            )
+        binary_ops = [
+            (" + ", "+"),
+            (" - ", "-"),
+            ("==", "=="),
+            ("!=", "!="),
+            ("<=", "<="),
+            (">=", ">="),
+            (" < ", "<"),
+            (" > ", ">"),
+            (" * ", "*"),
+            (" / ", "/"),
+            (" % ", "%"),
+        ]
 
-        if " + " in expr_str:
-            parts = expr_str.split(" + ", 1)
-            return BinaryOp(
-                op="+",
-                left=self._parse_simple_expr(parts[0].strip()),
-                right=self._parse_simple_expr(parts[1].strip()),
-            )
+        for op_str, op_name in binary_ops:
+            if op_str != " > " or " => " not in expr_str:
+                paren_depth = 0
+                for i in range(len(expr_str) - len(op_str) + 1):
+                    if expr_str[i] == "(":
+                        paren_depth += 1
+                    elif expr_str[i] == ")":
+                        paren_depth -= 1
+                    elif paren_depth == 0 and expr_str[i : i + len(op_str)] == op_str:
+                        left_part = expr_str[:i].strip()
+                        right_part = expr_str[i + len(op_str) :].strip()
+                        return BinaryOp(
+                            op=op_name,
+                            left=self._parse_simple_expr(left_part),
+                            right=self._parse_simple_expr(right_part),
+                        )
 
         if "(" in expr_str and expr_str.endswith(")"):
             paren_pos = expr_str.index("(")
@@ -352,54 +367,6 @@ class IRParser:
             elif func_name:
                 arg = self._parse_simple_expr(args_str)
                 return Application(func=Variable(name=func_name), arg=arg)
-
-        if " - " in expr_str:
-            parts = expr_str.rsplit(" - ", 1)
-            return BinaryOp(
-                op="-",
-                left=self._parse_simple_expr(parts[0].strip()),
-                right=self._parse_simple_expr(parts[1].strip()),
-            )
-
-        if " == " in expr_str:
-            parts = expr_str.split(" == ", 1)
-            return BinaryOp(
-                op="==",
-                left=self._parse_simple_expr(parts[0].strip()),
-                right=self._parse_simple_expr(parts[1].strip()),
-            )
-
-        if " > " in expr_str and " => " not in expr_str:
-            parts = expr_str.split(" > ", 1)
-            return BinaryOp(
-                op=">",
-                left=self._parse_simple_expr(parts[0].strip()),
-                right=self._parse_simple_expr(parts[1].strip()),
-            )
-
-        if " < " in expr_str:
-            parts = expr_str.split(" < ", 1)
-            return BinaryOp(
-                op="<",
-                left=self._parse_simple_expr(parts[0].strip()),
-                right=self._parse_simple_expr(parts[1].strip()),
-            )
-
-        if " >= " in expr_str:
-            parts = expr_str.split(" >= ", 1)
-            return BinaryOp(
-                op=">=",
-                left=self._parse_simple_expr(parts[0].strip()),
-                right=self._parse_simple_expr(parts[1].strip()),
-            )
-
-        if " <= " in expr_str:
-            parts = expr_str.split(" <= ", 1)
-            return BinaryOp(
-                op="<=",
-                left=self._parse_simple_expr(parts[0].strip()),
-                right=self._parse_simple_expr(parts[1].strip()),
-            )
 
         if " => " in expr_str:
             parts = expr_str.split(" => ", 1)
@@ -473,13 +440,21 @@ class IRParser:
 
     def _parse_if_expr(self, line: str) -> IfExpr:
         if "else" in line:
-            match = re.match(r"if (.+?) then (.+?) else (.+)", line, re.DOTALL)
+            else_pos = line.find(" else ")
+            if_part = line[:else_pos]
+            else_part = line[else_pos + 6 :].strip()
+
+            match = re.match(r"if (.+?) then (.+)", if_part)
             if not match:
                 raise ValueError(f"Invalid if expression: {line}")
 
             condition = self._parse_simple_expr(match.group(1).strip())
             then_branch = self._parse_simple_expr(match.group(2).strip())
-            else_branch = self._parse_simple_expr(match.group(3).strip())
+
+            if else_part.startswith("if "):
+                else_branch = self._parse_if_expr(else_part)
+            else:
+                else_branch = self._parse_simple_expr(else_part)
 
             return IfExpr(condition=condition, then_branch=then_branch, else_branch=else_branch)
         else:
