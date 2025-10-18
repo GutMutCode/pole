@@ -248,56 +248,100 @@ Year 7-10  : Phase 10   언어 생태계 & 패키지 시스템
    - 복잡한 컴파일러 개발 중 디버깅 용이
    - LLVM 결과물 검증을 위한 baseline 필요
 
-1. **M1: 기본 함수 컴파일 & 타입 시스템 확장** (3개월, 2026-01 ~ 2026-04)
+1. **M1: Rust IR Parser 완성 & 타입 시스템 확장** ⭐ **최우선** (2-3주, 2025-10-20 ~ 2025-11-10)
    
-   **타입 시스템 확장** (1-2주, M1 초기)
-   - Type definition parsing 구현
+   **목표:** Python IR Parser와 기능 동등성 확보, LLVM 백엔드를 위한 안정적 기반 마련
+   
+   **현재 상태:**
+   - ✅ Python IR Parser: 6/6 예제 파싱 성공 (Type definitions, Multi-line let 지원)
+   - ✅ Python Type Checker: Custom types 지원
+   - ⚠️ Rust IR Parser: 2/6 예제만 파싱 성공
+   
+   **1단계: Rust IR Parser 기능 추가** (1-1.5주)
+   - Type definition parsing 구현 (compiler/src/ir_parser.rs)
      - Record types: `type User = { name: String, age: Nat }`
-     - Variant types: `type Result<T,E> = Ok(T) | Err(E)`
+     - Variant types: `type Error = | NotFound | Invalid`
      - Type aliases: `type UserId = String`
-   - Type checker 확장 (custom types 지원)
-   - IR Parser (Rust) 개선
-     - Unicode/Korean annotation arguments
-     - Record/Variant type definitions
-     - 6/6 예제 완전 통과 목표
+   - Multi-line let expression 지원
+     - `let x = List.concat [...] in`
+     - Bracket/paren 균형 추적
+   - Unicode/Korean annotation arguments 지원
    
-   **LLVM 백엔드 구현** (2개월)
-     - 간단한 함수 (factorial) 컴파일
-     - 기본 타입 (Int, Bool, Nat) 지원
-     - Record type → LLVM struct 매핑
-     - 산술 연산자
-     - 메모리 레이아웃 계산
+   **2단계: 검증 및 테스트** (3-5일)
+   - 6/6 예제 파싱 성공 확인
+   - Python IR Parser 결과와 일치 검증
+   - 성능 벤치마크 재측정
    
-   **Contract Verifier Rust 전환** (선택사항, 1-2주)
-     - `compiler/src/contract_verifier.rs` 구현
-     - requires/ensures 검증
+   **3단계: Type Checker Rust 업데이트** (선택, 2-3일)
+   - Custom type resolution 추가
+   - Record field access 지원
+   
+   **산출물:**
+   - `compiler/src/ir_parser.rs` 업데이트 (Type definitions 지원)
+   - `compiler/src/ast.rs` 업데이트 (TypeDef AST 노드)
+   - 6/6 예제 파싱 성공
+   - Python-Rust 기능 동등성 달성
+   
+   **성공 기준:**
+   - ✅ Rust IR Parser: 6/6 예제 파싱 성공
+   - ✅ Type definitions 완전 지원 (Record, Variant, Alias)
+   - ✅ Multi-line expression 완전 지원
+   - ✅ 성능: Python 대비 5-10배 유지 또는 개선
+   
+   **M1 완료 조건:**
+   - Rust IR Parser가 Python IR Parser와 동등한 기능 제공
+   - 모든 예제 파싱 가능 (6/6)
+   - LLVM 백엔드 작업 시작 준비 완료
+
+2. **M2: LLVM 백엔드 - 기본 함수 컴파일** (2개월, 2025-11-10 ~ 2026-01-10)
+   
+   **목표:** Pole IR → LLVM IR → 네이티브 실행 파일
+   
+   **선행 조건:** M1 완료 (Rust IR Parser 6/6 예제 통과)
+   
+   **구현 내용:**
+   - LLVM 바인딩 선택 (llvm-sys vs inkwell)
+   - 간단한 함수 (factorial) 컴파일
+   - 기본 타입 (Int, Bool, Nat) 지원
+   - 산술 연산자 (+, -, *, /)
+   - 조건문 (if-then-else)
+   - 재귀 함수 호출
+   
+   **산출물:**
+   - `compiler/src/ir_to_llvm.rs` (신규)
+   - `compiler/src/codegen.rs` (신규)
+   - `pole compile` CLI 명령어
    
    **검증:** 
    - `pole compile factorial.pole` → 실행 파일 생성
-   - 6/6 예제 파싱 성공 (user-validation 포함)
+   - factorial(10) 실행 성공
    
-   **통합:** IR Parser, Type Checker (M0 완성) 활용
+   **성공 기준:**
+   - ✅ factorial 예제 네이티브 컴파일 성공
+   - ✅ 실행 결과 정확성 100%
+   - ✅ 성능: 인터프리터 대비 10x+
+
+3. **M3: LLVM 백엔드 - 고급 기능** (1.5개월, 2026-01-10 ~ 2026-02-25)
    
-   **M1 완료 시 달성:**
-   - ✅ Type definitions 완전 지원
-   - ✅ 모든 예제 파싱 가능 (6/6)
-   - ✅ 기본 함수 네이티브 컴파일
+   **구현 내용:**
+   - Record type → LLVM struct 매핑
+   - Pattern matching 컴파일
+   - Let expression 컴파일
+   - 메모리 레이아웃 계산
+   
+   **검증:**
+   - user-validation 예제 컴파일
+   - is_even, max 예제 컴파일
+   
+   **성공 기준:**
+   - ✅ 4/6 예제 컴파일 성공 (factorial, is_even, max, simple-math)
+   
+   **M3 완료 시 달성:**
+   - ✅ 기본 함수 네이티브 컴파일 완성
+   - ✅ Record types 지원
+   - ✅ Pattern matching 지원
 
-2. **M2: 제어 흐름** (2개월, 2026-04 ~ 2026-06)
-   - if-then-else 컴파일
-   - match 패턴 매칭 컴파일
-   - **검증:** is_even, max 예제 컴파일
-   - **성능:** Type Checker (Rust) 덕분에 빠른 검증
-
-3. **M3: 재귀 함수** (2개월, 2026-06 ~ 2026-08)
-   - 꼬리 재귀 최적화
-   - 스택 오버플로우 방지
-   - **검증:** fibonacci 컴파일, 성능 측정
-   - **Interpreter Rust 전환 검토** (선택사항)
-     - `compiler/src/interpreter.rs` 구현
-     - 100배+ 빠른 테스트 실행
-
-4. **M4: 전체 예제 컴파일** (2개월, 2026-08 ~ 2026-09)
+4. **M4: 전체 예제 컴파일** (1.5개월, 2026-02-25 ~ 2026-04-10)
    - 모든 examples/*.pole 컴파일 성공
    - 타입 체킹 통합 (이미 Rust로 완성)
    - **검증:** 6개 예제 네이티브 실행
@@ -1160,37 +1204,57 @@ pole publish
 
 **현재 Phase:** Phase 5 (네이티브 컴파일러)
 
-**다음 작업:** ⭐ **5.1 M0 - Rust 학습 & 핵심 인프라 전환**
+**현재 마일스톤:** ⭐ **5.1 M1 - Rust IR Parser 완성 & 타입 시스템 확장**
 
-**우선순위 작업 (병렬 진행):**
+**완료된 작업:**
+- ✅ M0: Rust 학습 & 핵심 인프라 전환 (2025-10-19)
+  - IR Parser (Rust) 기본 구현: 2/6 예제 통과
+  - Type Checker (Rust) 완성: 25.6배 성능 향상
+  - PyO3 바인딩 완성
+- ✅ M0.5: 시스템 안정화 (2025-10-19)
+  - Python IR Parser: 6/6 예제 통과
+  - Type definitions 지원 (Record, Variant, Alias)
+  - Multi-line let expression 지원
+  - End-to-end 테스트 완성
 
-**1. IR Parser → Rust 전환** (Week 7-10, 최우선)
-   - `src/pole/runtime/ir_parser.py` (498줄) 분석
-   - `compiler/src/ir_parser.rs` 구현 (nom 사용)
-   - PyO3 바인딩 구현
-   - 성능 벤치마크 (10배+ 목표)
+**다음 작업 (최우선):**
 
-**2. Type Checker → Rust 전환** (Week 11-14, 강력 추천)
-   - `src/pole/verifier/type_checker.py` (379줄) 분석
-   - `compiler/src/type_checker.rs` 구현
-   - Rust enum + pattern matching 활용
-   - 성능 벤치마크 (5배+ 목표)
+**M1: Rust IR Parser 완성** (2-3주, 2025-10-20 ~ 2025-11-10)
 
-**3. Rust 기초 학습** (Week 1-6, 선행)
-   - The Rust Book 완독
-   - Rust by Example 실습
-   - 소유권, 빌림, 생명주기 마스터
+**1단계: Type Definitions 구현** (1주, 최우선)
+   - `compiler/src/ast.rs`에 TypeDef AST 노드 추가
+   - `compiler/src/ir_parser.rs`에 type definition 파싱 추가
+     - Record types: `type User = { name: String, age: Nat }`
+     - Variant types: `type Error = | NotFound | Invalid`
+     - Type aliases: `type UserId = String`
+   - Multi-line record type 지원
 
-**예상 기간:** 3개월 (M0 전체)
+**2단계: Multi-line Expression 지원** (3-5일)
+   - Multi-line let expression 파싱
+   - Bracket/paren 균형 추적
+   - List.concat 등 다중 줄 함수 호출
 
-**시작일:** 2025-10-20
+**3단계: 검증** (2-3일)
+   - 6/6 예제 파싱 성공 확인
+   - Python IR Parser와 결과 일치 검증
+   - 성능 벤치마크
 
-**M0 완료 후:** M1 (LLVM 백엔드) 시작
+**목표:** Rust IR Parser가 Python IR Parser와 기능 동등성 확보
+
+**시작일:** 2025-10-20 (오늘)
+
+**M1 완료 후:** M2 (LLVM 백엔드 - 기본 함수 컴파일) 시작
 
 ---
 
 ## 변경 이력
 
+- **2025-10-19**: Phase 5 M1 마일스톤 재구성 (우선순위 수정)
+  - **변경 이유**: Rust IR Parser 기능 부족 발견 (2/6 예제만 통과)
+  - M1 분할: "Rust IR Parser 완성" (2-3주) + "LLVM 백엔드" (2개월) → M1, M2로 분리
+  - M2-M4 재조정: LLVM 백엔드를 단계별로 구현
+  - **최우선 작업**: Rust IR Parser에 Type Definitions 및 Multi-line Expression 추가
+  - **목표**: Python-Rust 기능 동등성 확보 후 LLVM 작업 시작
 - **2025-10-19**: Phase 5-10 로드맵 재구성 (용어 명확화)
   - **핵심 변경**: Pole = 프로그래밍 언어 (게임 엔진 아님)
   - Phase 7-8: "게임 엔진" → "게임 개발 표준 라이브러리"

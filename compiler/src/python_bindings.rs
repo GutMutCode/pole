@@ -15,11 +15,61 @@ fn program_to_py(py: Python, program: &Program) -> PyResult<PyObject> {
     let dict = PyDict::new(py);
     dict.set_item("type", "Program")?;
     
+    let type_defs = PyList::empty(py);
+    for type_def in &program.type_defs {
+        type_defs.append(type_def_to_py(py, type_def)?)?;
+    }
+    dict.set_item("type_defs", type_defs)?;
+    
     let functions = PyList::empty(py);
     for func in &program.func_defs {
         functions.append(function_def_to_py(py, func)?)?;
     }
     dict.set_item("functions", functions)?;
+    
+    Ok(dict.into())
+}
+
+fn type_def_to_py(py: Python, type_def: &TypeDef) -> PyResult<PyObject> {
+    let dict = PyDict::new(py);
+    dict.set_item("type", "TypeDef")?;
+    dict.set_item("name", &type_def.name)?;
+    
+    match &type_def.definition {
+        TypeDefKind::Alias(ty) => {
+            dict.set_item("kind", "Alias")?;
+            dict.set_item("aliased_type", type_to_py(py, ty)?)?;
+        }
+        TypeDefKind::Record(record) => {
+            dict.set_item("kind", "Record")?;
+            let fields = PyDict::new(py);
+            for (field_name, field_type) in &record.fields {
+                fields.set_item(field_name, type_to_py(py, field_type)?)?;
+            }
+            dict.set_item("fields", fields)?;
+        }
+        TypeDefKind::Variant(constructors) => {
+            dict.set_item("kind", "Variant")?;
+            let constructors_list = PyList::empty(py);
+            for (cons_name, cons_args) in constructors {
+                let cons_dict = PyDict::new(py);
+                cons_dict.set_item("name", cons_name)?;
+                let args_list = PyList::empty(py);
+                for arg_type in cons_args {
+                    args_list.append(type_to_py(py, arg_type)?)?;
+                }
+                cons_dict.set_item("args", args_list)?;
+                constructors_list.append(cons_dict)?;
+            }
+            dict.set_item("constructors", constructors_list)?;
+        }
+    }
+    
+    let annotations = PyList::empty(py);
+    for ann in &type_def.annotations {
+        annotations.append(annotation_to_py(py, ann)?)?;
+    }
+    dict.set_item("annotations", annotations)?;
     
     Ok(dict.into())
 }

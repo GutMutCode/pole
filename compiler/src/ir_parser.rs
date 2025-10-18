@@ -66,6 +66,8 @@ fn parse_basic_type(input: &str) -> ParseResult<Type> {
             tag("Bool"),
             tag("String"),
             tag("Unit"),
+            // Fallback: any identifier is a type name (for custom types)
+            recognize(identifier),
         )),
         |s: &str| Type::Basic(BasicType { name: s.to_string() }),
     )(input)
@@ -172,6 +174,138 @@ fn parse_annotation_args(input: &str) -> Vec<(String, String)> {
             }
         })
         .collect()
+}
+
+// ============================================================================
+// Type Definition Parsers
+// ============================================================================
+
+// Multiline record: type User = {\n  name: String,\n  ...}
+fn parse_multiline_record_type_def(annotations: Vec<Annotation>) -> impl FnMut(&str) -> ParseResult<TypeDef> {
+    move |input: &str| {
+        let (input, _) = tag("type")(input)?;
+        let (input, _) = space1(input)?;
+        let (input, name) = identifier(input)?;
+        let (input, _) = ws(char('='))(input)?;
+        let (input, _) = ws(char('{'))(input)?;
+        
+        let mut remaining = input;
+        let mut fields = vec![];
+        
+        loop {
+            // Skip whitespace and comments
+            let (new_input, _) = skip_ws_and_comments(remaining)?;
+            remaining = new_input;
+            
+            // Check for closing brace
+            if let Ok((new_input, _)) = char::<_, nom::error::Error<&str>>('}')(remaining) {
+                remaining = new_input;
+                break;
+            }
+            
+            // Parse field: name: Type,?
+            let (new_input, field_name) = identifier(remaining)?;
+            let (new_input, _) = ws(char(':'))(new_input)?;
+            let (new_input, field_type) = parse_type(new_input)?;
+            let (new_input, _) = opt(ws(char(',')))(new_input)?;
+            
+            fields.push((field_name, field_type));
+            remaining = new_input;
+        }
+        
+        Ok((remaining, TypeDef {
+            name,
+            definition: TypeDefKind::Record(RecordType { fields }),
+            annotations: annotations.clone(),
+        }))
+    }
+}
+
+// Variant: type Error =\n  | Constructor1\n  | Constructor2
+fn parse_variant_type_def(annotations: Vec<Annotation>) -> impl FnMut(&str) -> ParseResult<TypeDef> {
+    move |input: &str| {
+        let (input, _) = tag("type")(input)?;
+        let (input, _) = space1(input)?;
+        let (input, name) = identifier(input)?;
+        let (input, _) = ws(char('='))(input)?;
+        
+        let mut remaining = input;
+        let mut constructors = vec![];
+        
+        loop {
+            // Skip whitespace
+            let (new_input, _) = skip_ws_and_comments(remaining)?;
+            remaining = new_input;
+            
+            // Check if next line starts with |
+            if let Ok((new_input, _)) = char::<_, nom::error::Error<&str>>('|')(remaining) {
+                let (new_input, _) = space0(new_input)?;
+                let (new_input, cons_name) = identifier(new_input)?;
+                
+                // Check for constructor arguments
+                let (new_input, args) = opt(delimited(
+                    ws(char('(')),
+                    separated_list0(ws(char(',')), parse_type),
+                    ws(char(')')),
+                ))(new_input)?;
+                
+                constructors.push((cons_name, args.unwrap_or_default()));
+                remaining = new_input;
+            } else {
+                // No more constructors
+                break;
+            }
+        }
+        
+        if constructors.is_empty() {
+            return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
+        }
+        
+        Ok((remaining, TypeDef {
+            name,
+            definition: TypeDefKind::Variant(constructors),
+            annotations: annotations.clone(),
+        }))
+    }
+}
+
+// Inline: type UserId = String  or  type Point = { x: Int, y: Int }
+fn parse_inline_type_def(annotations: Vec<Annotation>) -> impl FnMut(&str) -> ParseResult<TypeDef> {
+    move |input: &str| {
+        let (input, _) = tag("type")(input)?;
+        let (input, _) = space1(input)?;
+        let (input, name) = identifier(input)?;
+        let (input, _) = ws(char('='))(input)?;
+        
+        // Check if it's an inline record
+        if let Ok((new_input, _)) = char::<_, nom::error::Error<&str>>('{')(input) {
+            // Parse inline record: { x: Int, y: Int }
+            let (new_input, fields) = separated_list0(
+                ws(char(',')),
+                separated_pair(
+                    identifier,
+                    ws(char(':')),
+                    parse_type,
+                ),
+            )(new_input)?;
+            let (new_input, _) = ws(char('}'))(new_input)?;
+            
+            Ok((new_input, TypeDef {
+                name,
+                definition: TypeDefKind::Record(RecordType { fields }),
+                annotations: annotations.clone(),
+            }))
+        } else {
+            // Type alias
+            let (input, aliased_type) = parse_type(input)?;
+            
+            Ok((input, TypeDef {
+                name,
+                definition: TypeDefKind::Alias(aliased_type),
+                annotations: annotations.clone(),
+            }))
+        }
+    }
 }
 
 // ============================================================================
@@ -503,17 +637,70 @@ fn parse_function_def(input: &str) -> ParseResult<FunctionDef> {
 // ============================================================================
 
 pub fn parse_ir(input: &str) -> Result<Program, String> {
-    let (input, _) = skip_ws_and_comments(input)
+    let (mut remaining, _) = skip_ws_and_comments(input)
         .map_err(|e| format!("Parse error: {:?}", e))?;
     
-    let (input, func_defs) = many0(terminated(
-        parse_function_def,
-        skip_ws_and_comments,
-    ))(input)
-        .map_err(|e| format!("Parse error: {:?}", e))?;
+    let mut type_defs = vec![];
+    let mut func_defs = vec![];
+    
+    // Parse type definitions and function definitions in order
+    loop {
+        let (new_input, _) = skip_ws_and_comments(remaining)
+            .map_err(|e| format!("Parse error: {:?}", e))?;
+        
+        if new_input.is_empty() {
+            break;
+        }
+        
+        // Parse annotations if present
+        let (new_input, annotations) = if new_input.starts_with("@") {
+            many0(terminated(
+                parse_annotation,
+                skip_ws_and_comments,
+            ))(new_input).map_err(|e| format!("Parse error: {:?}", e))?
+        } else {
+            (new_input, vec![])
+        };
+        
+        let (new_input, _) = skip_ws_and_comments(new_input)
+            .map_err(|e| format!("Parse error: {:?}", e))?;
+        
+        // Try to parse type definition
+        if new_input.starts_with("type ") {
+            // Try each type definition parser in order
+            let parse_result = parse_multiline_record_type_def(vec![])(new_input)
+                .or_else(|_| parse_variant_type_def(vec![])(new_input))
+                .or_else(|_| parse_inline_type_def(vec![])(new_input));
+            
+            if let Ok((new_input, mut type_def)) = parse_result {
+                type_def.annotations = annotations;
+                type_defs.push(type_def);
+                remaining = new_input;
+                continue;
+            }
+        }
+        
+        // Try to parse function definition
+        if new_input.starts_with("func ") {
+            if let Ok((new_input, mut func_def)) = parse_function_def(new_input) {
+                // Merge annotations
+                func_def.annotations = [annotations, func_def.annotations].concat();
+                func_defs.push(func_def);
+                remaining = new_input;
+                continue;
+            }
+        }
+        
+        // Skip unrecognized lines
+        if let Some(newline_pos) = new_input.find('\n') {
+            remaining = &new_input[newline_pos + 1..];
+        } else {
+            break;
+        }
+    }
     
     Ok(Program {
-        type_defs: vec![], // TODO: implement type def parsing
+        type_defs,
         func_defs,
     })
 }
@@ -607,3 +794,47 @@ func factorial (n: Nat) -> Nat
         assert_eq!(program.func_defs[0].ensures.len(), 1);
     }
 }
+
+    #[test]
+    fn test_parse_type_alias() {
+        let result = parse_inline_type_def(vec![])("type UserId = String");
+        assert!(result.is_ok(), "Failed: {:?}", result.err());
+        let (_, type_def) = result.unwrap();
+        assert_eq!(type_def.name, "UserId");
+    }
+
+    #[test]
+    fn test_parse_ir_with_type_def() {
+        let input = "type UserId = String";
+        let result = parse_ir(input);
+        assert!(result.is_ok(), "Failed: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.type_defs.len(), 1);
+        assert_eq!(program.type_defs[0].name, "UserId");
+    }
+
+    #[test]
+    fn test_parse_type_then_func() {
+        let input = "type UserId = String\n\nfunc get_id (x: Int) -> UserId :\n  x";
+        let result = parse_ir(input);
+        assert!(result.is_ok(), "Failed: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.type_defs.len(), 1);
+        assert_eq!(program.func_defs.len(), 1);
+    }
+
+    #[test]
+    fn test_parse_simple_func() {
+        let input = "func get_id (x: Int) -> UserId :\n  x";
+        let result = parse_function_def(input);
+        assert!(result.is_ok(), "Failed: {:?}", result.err());
+    }
+
+    #[test]
+    fn test_parse_max_func() {
+        let input = "@source(\"examples/07-max.pole\")\nfunc max(a: Int, b: Int) -> Int\n  requires true\n  ensures result >= a\n:\n  if a >= b then a else b";
+        let result = parse_ir(input);
+        assert!(result.is_ok(), "Failed: {:?}", result.err());
+        let program = result.unwrap();
+        assert_eq!(program.func_defs.len(), 1);
+    }
