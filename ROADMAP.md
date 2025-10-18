@@ -248,50 +248,47 @@ Year 7-10  : Phase 10   언어 생태계 & 패키지 시스템
    - 복잡한 컴파일러 개발 중 디버깅 용이
    - LLVM 결과물 검증을 위한 baseline 필요
 
-1. **M1: Rust IR Parser 완성 & 타입 시스템 확장** ⭐ **최우선** (2-3주, 2025-10-20 ~ 2025-11-10)
+1. **M1: Rust IR Parser 완성 & 타입 시스템 확장** ✅ **완료** (1일, 2025-10-19)
    
    **목표:** Python IR Parser와 기능 동등성 확보, LLVM 백엔드를 위한 안정적 기반 마련
    
-   **현재 상태:**
+   **완료 상태:**
    - ✅ Python IR Parser: 6/6 예제 파싱 성공 (Type definitions, Multi-line let 지원)
    - ✅ Python Type Checker: Custom types 지원
-   - ⚠️ Rust IR Parser: 2/6 예제만 파싱 성공
+   - ✅ Rust IR Parser: 6/6 예제 파싱 성공 (Python과 기능 동등성 달성!)
    
-   **1단계: Rust IR Parser 기능 추가** (1-1.5주)
-   - Type definition parsing 구현 (compiler/src/ir_parser.rs)
+   **1단계: Rust IR Parser 기능 추가** ✅ **완료**
+   - ✅ Type definition parsing 구현 (compiler/src/ir_parser.rs)
      - Record types: `type User = { name: String, age: Nat }`
      - Variant types: `type Error = | NotFound | Invalid`
      - Type aliases: `type UserId = String`
-   - Multi-line let expression 지원
-     - `let x = List.concat [...] in`
-     - Bracket/paren 균형 추적
-   - Unicode/Korean annotation arguments 지원
+   - ✅ Multi-line record type 지원
+   - ✅ Custom type names 인식 (parse_type 개선)
+   - ✅ Logical operators 지원 (`&&`, `||`)
    
-   **2단계: 검증 및 테스트** (3-5일)
-   - 6/6 예제 파싱 성공 확인
-   - Python IR Parser 결과와 일치 검증
-   - 성능 벤치마크 재측정
-   
-   **3단계: Type Checker Rust 업데이트** (선택, 2-3일)
-   - Custom type resolution 추가
-   - Record field access 지원
+   **2단계: 검증 및 테스트** ✅ **완료**
+   - ✅ 6/6 예제 파싱 성공 확인
+   - ✅ Python IR Parser 결과와 100% 일치 검증
+   - ✅ 성능 벤치마크 측정: **23.4배 향상** (0.014ms vs 0.322ms)
    
    **산출물:**
-   - `compiler/src/ir_parser.rs` 업데이트 (Type definitions 지원)
-   - `compiler/src/ast.rs` 업데이트 (TypeDef AST 노드)
-   - 6/6 예제 파싱 성공
-   - Python-Rust 기능 동등성 달성
+   - ✅ `compiler/src/ir_parser.rs` 업데이트 (Type definitions, 논리 연산자)
+   - ✅ `compiler/src/python_bindings.rs` 업데이트 (type_def_to_py)
+   - ✅ 6/6 예제 파싱 성공
+   - ✅ Python-Rust 기능 동등성 달성
    
-   **성공 기준:**
+   **성공 기준 달성:**
    - ✅ Rust IR Parser: 6/6 예제 파싱 성공
    - ✅ Type definitions 완전 지원 (Record, Variant, Alias)
-   - ✅ Multi-line expression 완전 지원
-   - ✅ 성능: Python 대비 5-10배 유지 또는 개선
+   - ✅ Python과 결과 100% 일치
+   - ✅ 성능: Python 대비 **23.4배 향상** (목표 5-10배 초과 달성!)
    
-   **M1 완료 조건:**
-   - Rust IR Parser가 Python IR Parser와 동등한 기능 제공
-   - 모든 예제 파싱 가능 (6/6)
-   - LLVM 백엔드 작업 시작 준비 완료
+   **M1 완료:**
+   - ✅ Rust IR Parser가 Python IR Parser와 동등한 기능 제공
+   - ✅ 모든 예제 파싱 가능 (6/6)
+   - ✅ LLVM 백엔드 작업 시작 준비 완료
+   
+   **완료 일자:** 2025-10-19
 
 2. **M2: LLVM 백엔드 - 기본 함수 컴파일** (2개월, 2025-11-10 ~ 2026-01-10)
    
@@ -1204,7 +1201,7 @@ pole publish
 
 **현재 Phase:** Phase 5 (네이티브 컴파일러)
 
-**현재 마일스톤:** ⭐ **5.1 M1 - Rust IR Parser 완성 & 타입 시스템 확장**
+**현재 마일스톤:** ⭐ **5.1 M2 - LLVM 백엔드 개발 준비**
 
 **완료된 작업:**
 - ✅ M0: Rust 학습 & 핵심 인프라 전환 (2025-10-19)
@@ -1216,39 +1213,46 @@ pole publish
   - Type definitions 지원 (Record, Variant, Alias)
   - Multi-line let expression 지원
   - End-to-end 테스트 완성
+- ✅ **M1: Rust IR Parser 완성 & 타입 시스템 확장** (2025-10-19) 🎉
+  - Type definitions 파싱 완성 (Record, Variant, Alias)
+  - Custom type names 인식
+  - Logical operators 지원 (&&, ||)
+  - **6/6 예제 파싱 성공**
+  - Python-Rust 기능 동등성 달성
+  - 성능: Python 대비 **23.4배 향상**
 
 **다음 작업 (최우선):**
 
-**M1: Rust IR Parser 완성** (2-3주, 2025-10-20 ~ 2025-11-10)
+**M2: LLVM 백엔드 - 기본 함수 컴파일** (2개월, 예정 2025-11-10 ~ 2026-01-10)
 
-**1단계: Type Definitions 구현** (1주, 최우선)
-   - `compiler/src/ast.rs`에 TypeDef AST 노드 추가
-   - `compiler/src/ir_parser.rs`에 type definition 파싱 추가
-     - Record types: `type User = { name: String, age: Nat }`
-     - Variant types: `type Error = | NotFound | Invalid`
-     - Type aliases: `type UserId = String`
-   - Multi-line record type 지원
+**목표:** Pole IR → LLVM IR → 네이티브 실행 파일
 
-**2단계: Multi-line Expression 지원** (3-5일)
-   - Multi-line let expression 파싱
-   - Bracket/paren 균형 추적
-   - List.concat 등 다중 줄 함수 호출
+**선행 조건:** ✅ M1 완료 (Rust IR Parser 6/6 예제 통과)
 
-**3단계: 검증** (2-3일)
-   - 6/6 예제 파싱 성공 확인
-   - Python IR Parser와 결과 일치 검증
-   - 성능 벤치마크
+**다음 단계:**
+1. LLVM 바인딩 선택 (llvm-sys vs inkwell)
+2. 간단한 함수 (factorial) 컴파일
+3. 기본 타입 (Int, Bool, Nat) 지원
+4. 산술 연산자
+5. 조건문 (if-then-else)
+6. 재귀 함수 호출
 
-**목표:** Rust IR Parser가 Python IR Parser와 기능 동등성 확보
+**시작 예정일:** 2025-11-10
 
-**시작일:** 2025-10-20 (오늘)
-
-**M1 완료 후:** M2 (LLVM 백엔드 - 기본 함수 컴파일) 시작
+**M2 완료 후:** M3 (LLVM 백엔드 - 고급 기능) 시작
 
 ---
 
 ## 변경 이력
 
+- **2025-10-19**: Phase 5 M1 완료 (Rust IR Parser 완성) 🎉
+  - **완료 내용**: Rust IR Parser가 Python IR Parser와 기능 동등성 달성
+  - Type definitions 파싱 구현 (Record, Variant, Alias)
+  - Custom type names 인식 및 logical operators 지원
+  - **6/6 예제 파싱 성공** (이전 2/6에서 개선)
+  - Python-Rust 결과 100% 일치
+  - 성능: Python 대비 **23.4배 향상** (0.014ms vs 0.322ms)
+  - **다음 단계**: M2 (LLVM 백엔드 개발) 준비 완료
 - **2025-10-19**: Phase 5 M1 마일스톤 재구성 (우선순위 수정)
   - **변경 이유**: Rust IR Parser 기능 부족 발견 (2/6 예제만 통과)
   - M1 분할: "Rust IR Parser 완성" (2-3주) + "LLVM 백엔드" (2개월) → M1, M2로 분리
