@@ -210,11 +210,18 @@
     - MockLLMClient: API 없이 테스트용 더미 응답
     - SpecificationTransformer: 명세를 IR로 변환
 
-- [ ] **2.5 IR 인터프리터 (최소 버전)**
+- [x] **2.5 IR 인터프리터 (최소 버전)**
+  - 완료일: 2025-10-19
   - IR 코드 실행
-  - 기본 연산만 지원
-  - 산출물: `src/runtime/interpreter.py`
+  - 기본 연산 지원 (산술, 비교, 조건문, 패턴 매칭, 재귀)
+  - 산출물: `src/pole/runtime/ir_ast.py`, `src/pole/runtime/ir_parser.py`, `src/pole/runtime/interpreter.py`
   - 선행 조건: 2.4 완료
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_interpreter.py` (all tests passed, including factorial example)
+  - **기능**:
+    - IR Parser: IR 코드를 AST로 파싱
+    - Interpreter: AST 실행 (리터럴, 변수, 이항/단항 연산, if/let/match, 함수 호출, 재귀)
+    - Pattern Matching: wildcard, variable, literal, constructor patterns 지원
 
 ### P1 작업 (중요)
 
