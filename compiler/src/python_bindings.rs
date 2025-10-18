@@ -222,8 +222,33 @@ fn pattern_to_py(py: Python, pattern: &Pattern) -> PyResult<PyObject> {
     Ok(dict.into())
 }
 
+#[pyfunction]
+fn check_types_py(py: Python, input: &str) -> PyResult<PyObject> {
+    let program = ir_parser::parse_ir(input)
+        .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(format!("Parse error: {}", e)))?;
+    
+    let result = crate::type_checker::check_types(program);
+    
+    let dict = PyDict::new(py);
+    dict.set_item("success", result.success)?;
+    
+    let errors = PyList::empty(py);
+    for error in &result.errors {
+        let error_dict = PyDict::new(py);
+        error_dict.set_item("message", &error.message)?;
+        if let Some(loc) = &error.location {
+            error_dict.set_item("location", loc)?;
+        }
+        errors.append(error_dict)?;
+    }
+    dict.set_item("errors", errors)?;
+    
+    Ok(dict.into())
+}
+
 #[pymodule]
 fn pole_compiler(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(parse_ir, m)?)?;
+    m.add_function(wrap_pyfunction!(check_types_py, m)?)?;
     Ok(())
 }
