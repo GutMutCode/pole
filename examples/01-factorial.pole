@@ -1,0 +1,16 @@
+// Example 1: Factorial function
+
+function factorial:
+  purpose: calculate factorial of given integer
+  input: n (non-negative integer)
+  output: n! (integer)
+  
+  constraints:
+    - n >= 0
+    - handle overflow safely if n is too large
+  
+  examples:
+    - 0 → 1
+    - 1 → 1
+    - 5 → 120
+    - -1 → error (negative not allowed)

@@ -1,0 +1,36 @@
+// Example 3: User input validation (practical example)
+
+type User:
+  fields:
+    - name: string - user's name
+    - email: string - email address
+    - age: integer - user's age
+
+function validate_user:
+  purpose: validate if user information is valid
+  
+  input: user (User type)
+  output: validation result (success/failure + error messages)
+  
+  constraints:
+    - name must be between 1 and 50 characters
+    - email must be valid format (contains @, domain exists)
+    - age must be between 0 and 150
+    - all fields must not be empty
+  
+  examples:
+    - input: {name: "John Doe", email: "john@example.com", age: 25}
+      output: success
+      
+    - input: {name: "", email: "john@example.com", age: 25}  
+      output: failure - "name is empty"
+      
+    - input: {name: "John Doe", email: "invalid-email", age: 25}
+      output: failure - "invalid email format"
+      
+    - input: {name: "John Doe", email: "john@example.com", age: 200}
+      output: failure - "age out of valid range"
+
+  note:
+    - if multiple errors exist, return all of them
+    - email validation doesn't need full RFC 5322 compliance, practical level is enough
