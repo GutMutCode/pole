@@ -648,7 +648,9 @@ pole/
 
 ## 📄 라이선스
 
-TBD
+MIT License - See [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2025 Pole Project
 
 ---
 
