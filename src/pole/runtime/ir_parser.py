@@ -472,15 +472,39 @@ class IRParser:
         return VariablePattern(name=pattern_str)
 
     def _parse_if_expr(self, line: str) -> IfExpr:
-        match = re.match(r"if (.+?) then (.+?) else (.+)", line)
-        if not match:
-            raise ValueError(f"Invalid if expression: {line}")
+        if "else" in line:
+            match = re.match(r"if (.+?) then (.+?) else (.+)", line, re.DOTALL)
+            if not match:
+                raise ValueError(f"Invalid if expression: {line}")
 
-        condition = self._parse_simple_expr(match.group(1).strip())
-        then_branch = self._parse_simple_expr(match.group(2).strip())
-        else_branch = self._parse_simple_expr(match.group(3).strip())
+            condition = self._parse_simple_expr(match.group(1).strip())
+            then_branch = self._parse_simple_expr(match.group(2).strip())
+            else_branch = self._parse_simple_expr(match.group(3).strip())
 
-        return IfExpr(condition=condition, then_branch=then_branch, else_branch=else_branch)
+            return IfExpr(condition=condition, then_branch=then_branch, else_branch=else_branch)
+        else:
+            match = re.match(r"if (.+?) then", line)
+            if not match:
+                raise ValueError(f"Invalid if expression: {line}")
+
+            condition = self._parse_simple_expr(match.group(1).strip())
+
+            then_line = self.lines[self.pos].strip()
+            self.pos += 1
+            then_branch = self._parse_simple_expr(then_line)
+
+            else_line = self.lines[self.pos].strip()
+            if else_line == "else":
+                self.pos += 1
+                else_line = self.lines[self.pos].strip()
+                self.pos += 1
+            elif else_line.startswith("else"):
+                else_line = else_line[4:].strip()
+                self.pos += 1
+
+            else_branch = self._parse_simple_expr(else_line)
+
+            return IfExpr(condition=condition, then_branch=then_branch, else_branch=else_branch)
 
     def _parse_let_expr(self, line: str) -> LetExpr:
         match = re.match(r"let (\w+) = (.+?) in (.+)", line)

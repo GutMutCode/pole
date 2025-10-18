@@ -253,12 +253,22 @@
     - Type compatibility: 타입 호환성 검사 (Nat ↔ Int, 제네릭 타입)
     - Error reporting: 상세한 타입 오류 메시지 생성
 
-- [ ] **2.8 CLI 도구**
+- [x] **2.8 CLI 도구**
+  - 완료일: 2025-10-19
   - `pole check <file>` - 명세 검증
   - `pole build <file>` - IR 생성
   - `pole run <file>` - 실행
-  - 산출물: `src/cli/main.py`
+  - `pole test <file>` - IR 테스트 실행
+  - 산출물: `src/pole/cli/main.py`
   - 선행 조건: 2.4, 2.5 완료
+  - 상태: ✅ 완료
+  - **기능**:
+    - pole check: 명세 파일 검증 (parser + validator)
+    - pole build: 명세에서 IR 생성 (transformer, --mock 옵션 지원)
+    - pole run: IR 파일에서 함수 실행 (interpreter)
+    - pole test: IR 파일의 @test_case 실행 (example tester + type checker)
+    - Error handling: 파일 없음, 타입 오류, 실행 오류 등 처리
+    - Help messages: 상세한 사용법 및 예제 제공
 
 ### P2 작업 (선택)
 
