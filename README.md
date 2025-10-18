@@ -30,14 +30,34 @@ git clone <repository-url>
 cd pole
 ```
 
-**의존성**: Python 3.10+ (외부 패키지 의존성 없음, OpenRouter API는 선택사항)
+**의존성**: Python 3.11+ (외부 패키지 의존성 없음, OpenRouter API는 선택사항)
+
+### 환경 설정
+
+**옵션 1: NixOS / Nix 사용자 (권장)**
+
+```bash
+# direnv 사용 (자동 환경 설정)
+direnv allow
+
+# 또는 nix-shell 직접 사용
+nix-shell
+
+# pole 명령어가 자동으로 사용 가능
+pole run examples/01-factorial.pole-ir factorial 5
+```
+
+**옵션 2: 일반 Python 환경**
+
+```bash
+# PYTHONPATH 설정 후 사용
+export PYTHONPATH=src
+alias pole="python -m pole.cli.main"
+```
 
 ### 사용 예시
 
 ```bash
-# CLI 명령어 (PYTHONPATH 설정 필요)
-alias pole="PYTHONPATH=src python -m pole.cli.main"
-
 # 1. 명세 파일 검증 - 완전성 체크 및 불명확성 탐지
 pole check examples/01-factorial.pole
 
