@@ -145,52 +145,160 @@ Year 7-10  : Phase 10   언어 생태계 & 패키지 시스템
 
 **목표:** Pole IR → LLVM IR → 네이티브 기계어
 
-**기간:** 6-9개월 (2025-10 ~ 2026-06)
+**기간:** 9-12개월 (2025-10 ~ 2026-09) - Rust 학습 포함
 
 **산출물:**
-- `src/pole/compiler/llvm/` (신규)
-  - `ir_to_llvm.py` - IR → LLVM IR 변환
-  - `codegen.py` - 코드 생성
-  - `optimization.py` - 최적화 패스
+
+**Rust 컴포넌트 (compiler/):**
+- `src/ir_parser.rs` - IR 파싱 (Python 대체) ⭐ M0부터
+- `src/type_checker.rs` - 타입 체커 (Python 대체) ⭐ M0부터
+- `src/ir_to_llvm.rs` - IR → LLVM IR 변환
+- `src/codegen.rs` - 코드 생성
+- `src/optimization.rs` - 최적화 패스
+- `src/contract_verifier.rs` - 계약 검증 (Python 대체) ⭐ M1 이후
+- `src/interpreter.rs` - IR 인터프리터 (선택사항)
+- `src/lib.rs` - 라이브러리 인터페이스 & PyO3 바인딩
+
+**Python 컴포넌트 (유지):**
+- `src/pole/cli/` - CLI 도구 (pole check, run, build 등)
+- `src/pole/transformer/` - LLM API 연동 (OpenRouter)
+- `src/pole/parser/` - 명세 언어 파서 (.pole)
+- `src/pole/validator/` - 명세 검증기
+- `src/pole/runtime/ir_parser.py` → Rust 래퍼로 전환
+- `src/pole/verifier/type_checker.py` → Rust 래퍼로 전환
+
+**최종 산출물:**
 - `pole compile <file> --target x86_64-linux` CLI 명령어
 - 실행 파일 생성 (`game.exe`, `game`)
 
 **마일스톤:**
-1. **M1: 기본 함수 컴파일** (3개월)
-   - 간단한 함수 (factorial) 컴파일
-   - 기본 타입 (Int, Bool) 지원
-   - 산술 연산자
+0. **M0: Rust 학습 & 핵심 인프라 Rust 전환** (3개월, 2025-10 ~ 2026-01)
+   
+   **Week 1-6: Rust 기초 학습**
+   - The Rust Book (Chapter 1-17)
+   - Rust by Example (실습)
+   - 소유권, 빌림, 생명주기 완전 이해
+   
+   **Week 7-10: IR Parser Rust 구현** ⭐ 최우선
+   - nom parser combinator 학습
+   - `compiler/src/ir_parser.rs` 구현 (498줄 Python 대체)
+   - PyO3 바인딩 구현
+   - **성능 목표:** 10-100배 향상 (5ms → <0.5ms)
+   - **검증:** 모든 기존 IR 예제 파싱 성공
+   
+   **Week 11-14: Type Checker Rust 구현** ⭐ 강력 추천
+   - `compiler/src/type_checker.rs` 구현 (379줄 Python 대체)
+   - Rust enum + pattern matching 활용
+   - 타입 추론 및 unification 알고리즘
+   - **성능 목표:** 5-20배 향상
+   - **검증:** 모든 기존 타입 체크 테스트 통과
+   
+   **Week 15-16: LLVM 준비**
+   - llvm-sys 또는 inkwell 튜토리얼
+   - 간단한 LLVM "Hello World" 컴파일러 구현
+   
+   **Week 17-18: PyO3 통합 완성**
+   - Python에서 Rust 컴포넌트 호출 검증
+   - 성능 벤치마크 및 비교
+   
+   **M0 산출물:**
+   - ✅ IR Parser (Rust) - 모든 Phase에서 사용
+   - ✅ Type Checker (Rust) - 컴파일러 기반 인프라
+   - ✅ PyO3 바인딩 완성
+   - ✅ Rust 개발 환경 구축
+   
+   **성공 기준:**
+   - IR Parser: 기존 Python 대비 10배 이상 성능
+   - Type Checker: 모든 테스트 통과 + 5배 이상 성능
+   - PyO3 통합: Python에서 투명하게 사용 가능
+
+1. **M1: 기본 함수 컴파일** (3개월, 2026-01 ~ 2026-04)
+   - **LLVM 백엔드 구현**
+     - 간단한 함수 (factorial) 컴파일
+     - 기본 타입 (Int, Bool) 지원
+     - 산술 연산자
+   - **Contract Verifier Rust 전환** (선택사항, 1-2주)
+     - `compiler/src/contract_verifier.rs` 구현
+     - requires/ensures 검증
    - **검증:** `pole compile factorial.pole` → 실행 파일 생성
+   - **통합:** IR Parser, Type Checker (M0 완성) 활용
 
-2. **M2: 제어 흐름** (2개월)
-   - if-then-else
-   - match 패턴 매칭
+2. **M2: 제어 흐름** (2개월, 2026-04 ~ 2026-06)
+   - if-then-else 컴파일
+   - match 패턴 매칭 컴파일
    - **검증:** is_even, max 예제 컴파일
+   - **성능:** Type Checker (Rust) 덕분에 빠른 검증
 
-3. **M3: 재귀 함수** (2개월)
+3. **M3: 재귀 함수** (2개월, 2026-06 ~ 2026-08)
    - 꼬리 재귀 최적화
    - 스택 오버플로우 방지
    - **검증:** fibonacci 컴파일, 성능 측정
+   - **Interpreter Rust 전환 검토** (선택사항)
+     - `compiler/src/interpreter.rs` 구현
+     - 100배+ 빠른 테스트 실행
 
-4. **M4: 전체 예제 컴파일** (2개월)
+4. **M4: 전체 예제 컴파일** (2개월, 2026-08 ~ 2026-09)
    - 모든 examples/*.pole 컴파일 성공
-   - 타입 체킹 통합
+   - 타입 체킹 통합 (이미 Rust로 완성)
    - **검증:** 6개 예제 네이티브 실행
+   - **성능 벤치마크:** IR Parser + Type Checker Rust 효과 측정
 
 **성공 기준:**
 - ✅ 컴파일 성공률: 100% (모든 예제)
-- ✅ 성능: factorial(20) < 0.001ms (인터프리터: ~0.06ms)
+- ✅ 컴파일 성능: factorial(20) < 0.001ms (인터프리터: ~0.06ms)
+- ✅ IR 파싱 성능: <0.5ms (Python 대비 10배+)
+- ✅ 타입 체킹 성능: 5배+ 향상
 - ✅ 정확성: 모든 테스트 통과
+- ✅ 메모리 안전성: Rust 소유권 시스템으로 보장
 
 **기술 스택:**
-- LLVM 17.0+ (안정 버전)
-- Python llvmlite 또는 Rust llvm-sys
-- 참고: Cranelift (백업 옵션)
+
+**Rust (핵심 컴포넌트):**
+- **언어**: Rust 1.75+ (2024 Edition)
+- **LLVM 바인딩**: llvm-sys 17.0+ 또는 inkwell 0.4+
+- **파서**: nom 7.0+ (parser combinator)
+- **Python 연동**: PyO3 0.20+
+- **빌드**: Cargo + maturin (Python wheel)
+- **테스트**: criterion (벤치마크)
+
+**Python (인터페이스 & 도구):**
+- **CLI**: Click 또는 argparse
+- **LLM API**: anthropic, openai
+- **테스트**: pytest (통합 테스트)
+
+**하이브리드 아키텍처:**
+```
+Python (사용자 레이어)
+  ├── CLI (pole check, run, build)
+  ├── LLM Transformer (OpenRouter)
+  └── Spec Parser (.pole)
+       ↓ PyO3 바인딩
+Rust (성능 critical 레이어)
+  ├── IR Parser ⭐
+  ├── Type Checker ⭐
+  ├── LLVM Compiler
+  ├── Contract Verifier ⭐
+  └── Memory Manager
+```
 
 **리스크:**
-- **High**: LLVM 학습 곡선
-- **완화:** 단계적 구현, 커뮤니티 지원
-- **비상 계획:** C++ 트랜스파일러 (Pole IR → C++)
+- **High**: Rust 학습 곡선 (3개월)
+- **완화:** 
+  - 체계적 학습 계획 (The Rust Book → nom → LLVM)
+  - M0에서 IR Parser/Type Checker로 실전 경험
+  - 소규모 예제부터 시작
+  - Rust 커뮤니티 활용 (Discord, Reddit)
+- **Medium**: PyO3 통합 복잡도
+- **완화:** 
+  - M0에서 IR Parser 바인딩으로 먼저 검증
+  - 간단한 C FFI 스타일 인터페이스 설계
+  - Python 래퍼 패턴 사용 (기존 API 유지)
+- **Medium**: IR Parser/Type Checker 마이그레이션
+- **완화:**
+  - Python 버전 유지 (백업)
+  - 단계적 전환 (feature flag)
+  - 철저한 테스트 (기존 테스트 100% 통과)
+- **비상 계획:** Python 버전으로 롤백 (코드 보존)
 
 **선행 조건:** 없음
 
@@ -207,9 +315,10 @@ Year 7-10  : Phase 10   언어 생태계 & 패키지 시스템
 
 **산출물:**
 - `specs/memory-model.md` - 메모리 모델 설계
-- `src/pole/compiler/memory/` (신규)
-  - `gc.py` - 가비지 컬렉션 (참조 카운팅)
-  - `allocator.py` - 커스텀 할당자 (Arena, Pool)
+- `compiler/src/memory/` (Rust, 신규)
+  - `gc.rs` - 가비지 컬렉션 (참조 카운팅)
+  - `allocator.rs` - 커스텀 할당자 (Arena, Pool)
+  - `ownership.rs` - 소유권 추적 및 검증
 - `@manual_memory`, `@heap_allocated` 어노테이션
 
 **구현 내용:**
@@ -899,8 +1008,11 @@ pole publish
 
 ### Year 2 (Phase 5)
 - [ ] 네이티브 컴파일: 100%
-- [ ] 성능: 100x vs 인터프리터
+- [ ] 컴파일 성능: 100x vs 인터프리터
+- [ ] IR 파싱 성능: 10-100x vs Python (Rust 전환)
+- [ ] 타입 체킹 성능: 5-20x vs Python (Rust 전환)
 - [ ] 메모리 안전성: 0 누수
+- [ ] Rust 핵심 인프라: IR Parser, Type Checker 완성
 
 ### Year 4 (Phase 7)
 - [ ] 표준 라이브러리 완성: `pole_graphics`, `pole_ecs`, `pole_physics` 등
@@ -952,9 +1064,10 @@ pole publish
 ### 팀 규모
 
 #### Year 1-2 (Phase 5)
-- 컴파일러 엔지니어: 2명
+- 컴파일러 엔지니어: 2명 (Rust 학습 필수)
 - 런타임 엔지니어: 1명
 - **총:** 3명
+- **요구 스킬:** Rust, LLVM, Python (기존), 시스템 프로그래밍
 
 #### Year 3-4 (Phase 6-7)
 - 컴파일러: 2명
@@ -987,16 +1100,32 @@ pole publish
 
 **현재 Phase:** Phase 5 (네이티브 컴파일러)
 
-**다음 작업:** ⭐ **5.1 LLVM 백엔드 개발 (M1)**
+**다음 작업:** ⭐ **5.1 M0 - Rust 학습 & 핵심 인프라 전환**
 
-**작업 내용:**
-1. LLVM 학습 (튜토리얼, 문서)
-2. 간단한 함수 컴파일 프로토타입
-3. factorial 예제 네이티브 실행
+**우선순위 작업 (병렬 진행):**
 
-**예상 기간:** 3개월
+**1. IR Parser → Rust 전환** (Week 7-10, 최우선)
+   - `src/pole/runtime/ir_parser.py` (498줄) 분석
+   - `compiler/src/ir_parser.rs` 구현 (nom 사용)
+   - PyO3 바인딩 구현
+   - 성능 벤치마크 (10배+ 목표)
+
+**2. Type Checker → Rust 전환** (Week 11-14, 강력 추천)
+   - `src/pole/verifier/type_checker.py` (379줄) 분석
+   - `compiler/src/type_checker.rs` 구현
+   - Rust enum + pattern matching 활용
+   - 성능 벤치마크 (5배+ 목표)
+
+**3. Rust 기초 학습** (Week 1-6, 선행)
+   - The Rust Book 완독
+   - Rust by Example 실습
+   - 소유권, 빌림, 생명주기 마스터
+
+**예상 기간:** 3개월 (M0 전체)
 
 **시작일:** 2025-10-20
+
+**M0 완료 후:** M1 (LLVM 백엔드) 시작
 
 ---
 

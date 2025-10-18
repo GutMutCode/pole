@@ -51,9 +51,10 @@
 - **설계 문서**: `specs/implementation-lang.md` (예정)
 
 ### 실행 코드 (Executable Code)
-- **생성자**: 컴파일러
-- **형태**: 기계어, 바이트코드, LLVM IR 등
-- **목적**: 실제 하드웨어에서 실행
+- **생성자**: 컴파일러 (Phase 5: Rust + LLVM)
+- **형태**: 네이티브 기계어 (x86_64, ARM64 등)
+- **중간 형태**: LLVM IR (최적화 및 타겟 독립성)
+- **목적**: 실제 하드웨어에서 고성능 실행
 
 ## 핵심 개념
 
@@ -113,47 +114,107 @@ LLM은 단순한 변환기가 아니라, **명세 검증 → 변환 → 검증**
 2. **기계 검증성**: 구현 언어는 검증 가능해야 함
 3. **LLM 활용**: 두 세계를 LLM이 연결
 
-## 프로젝트 구조
+## 프로젝트 구조 (하이브리드 아키텍처)
 
 ```
 pole/
-├── specs/
-│   ├── syntax-v0.md              # 명세 언어 문법
-│   └── implementation-lang.md     # 구현 언어 설계 (예정)
+├── specs/                          # 언어 사양 문서
+│   ├── syntax-v0.md                # 명세 언어 문법
+│   ├── ir-syntax.md                # IR 문법
+│   ├── verification.md             # 검증 시스템
+│   └── workflow.md                 # LLM 변환 워크플로우
 ├── examples/
-│   ├── *.pole                     # 명세 언어 예제
-│   └── *.pole-ir                  # 구현 언어 예제 (예정)
-├── src/
-│   ├── transformer/               # LLM 기반 변환기 (예정)
-│   ├── compiler/                  # IR 컴파일러 (예정)
-│   └── verifier/                  # 검증 시스템 (예정)
-└── README.md                      # 설계 원칙 및 조건
+│   ├── *.pole                      # 명세 언어 예제
+│   └── *.pole-ir                   # IR 예제
+├── src/pole/                       # Python Layer (인터페이스)
+│   ├── cli/                        # CLI 도구 ✅ Python 유지
+│   ├── parser/                     # 명세 언어 파서 ✅ Python 유지
+│   ├── validator/                  # 명세 검증기 ✅ Python 유지
+│   ├── transformer/                # LLM API 연동 ✅ Python 유지
+│   ├── runtime/
+│   │   ├── ir_parser.py            # → Rust 래퍼 (Phase 5 M0)
+│   │   ├── interpreter.py          # ✅ Python 유지 (선택적 Rust 전환)
+│   │   └── ir_ast.py               # AST 정의
+│   ├── verifier/
+│   │   ├── type_checker.py         # → Rust 래퍼 (Phase 5 M0)
+│   │   ├── contract_verifier.py    # → Rust 래퍼 (Phase 5 M1)
+│   │   └── example_tester.py       # ✅ Python 유지
+│   └── compiler/
+│       ├── __init__.py             # Rust 바인딩 래퍼
+│       └── bindings.py             # PyO3 Python 바인딩
+├── compiler/                       # Rust Layer (성능 critical)
+│   ├── src/
+│   │   ├── lib.rs                  # 라이브러리 루트 & PyO3 바인딩
+│   │   ├── ir_parser.rs            # ⭐ M0: Python 대체 (498줄)
+│   │   ├── type_checker.rs         # ⭐ M0: Python 대체 (379줄)
+│   │   ├── contract_verifier.rs    # ⭐ M1: Python 대체 (145줄)
+│   │   ├── ir_to_llvm.rs           # M1-M4: LLVM IR 변환
+│   │   ├── codegen.rs              # M1-M4: 코드 생성
+│   │   ├── optimization.rs         # M2-M4: 최적화
+│   │   ├── interpreter.rs          # 선택: Python 대체 (233줄)
+│   │   └── memory/                 # Phase 5.2: 메모리 관리
+│   │       ├── mod.rs
+│   │       ├── gc.rs               # 가비지 컬렉션
+│   │       └── allocator.rs        # 커스텀 할당자
+│   ├── Cargo.toml                  # Rust 프로젝트 설정
+│   ├── benches/                    # 성능 벤치마크
+│   └── tests/                      # Rust 통합 테스트
+├── tests/                          # Python 통합 테스트
+└── README.md                       # 설계 원칙 및 조건
+
+레이어 구조:
+┌─────────────────────────────────────────┐
+│  Python (사용자 인터페이스 & 도구)         │
+│  - CLI, LLM API, 명세 파서, 검증기       │
+└─────────────────────────────────────────┘
+              ↓ PyO3 바인딩
+┌─────────────────────────────────────────┐
+│  Rust (성능 critical 컴포넌트)           │
+│  - IR Parser, Type Checker, Compiler   │
+│  - Contract Verifier, Memory Manager   │
+└─────────────────────────────────────────┘
 ```
 
 ## 개발 단계
 
-### Phase 1: 설계 (현재)
+### Phase 0-4: 프로토타입 (완료) ✅
 - [x] 명세 언어 문법 정의
-- [ ] 구현 언어 설계
-- [ ] 검증 시스템 요구사항
+- [x] IR 설계 및 인터프리터
+- [x] LLM 변환기
+- [x] 타입 체커 및 검증 시스템
+- [x] CLI 도구
 
-### Phase 2: 프로토타입
-- [ ] 간단한 LLM 변환기
-- [ ] 기본 인터프리터
-- [ ] 예제 검증
+### Phase 5: 네이티브 컴파일러 (진행 중) 🔨
+- [ ] **M0**: Rust 학습 및 LLVM 준비 (3개월)
+- [ ] **M1**: 기본 함수 컴파일 (3개월)
+- [ ] **M2**: 제어 흐름 (2개월)
+- [ ] **M3**: 재귀 함수 (2개월)
+- [ ] **M4**: 전체 예제 컴파일 (2개월)
 
-### Phase 3: 완성도
-- [ ] 타입 체커
-- [ ] 형식 검증기
-- [ ] 최적화
+**기술 스택**:
+- Rust 1.75+ (컴파일러 구현)
+- llvm-sys 17.0+ (LLVM 바인딩)
+- PyO3 0.20+ (Python 연동)
+
+### Phase 6-10: 시스템 프로그래밍 & 생태계
+- [ ] FFI, 메모리 관리, 모듈 시스템
+- [ ] 게임 개발 표준 라이브러리
+- [ ] IDE 통합, 패키지 레지스트리
 
 ## FAQ
 
 ### Q: 기존 언어(Rust, OCaml)를 타겟으로 하지 않나요?
-**A**: 아닙니다. Pole IR을 직접 설계합니다. 다만 최종 실행 단계에서 LLVM IR 등을 활용할 수는 있습니다.
+**A**: 아닙니다. Pole IR을 직접 설계합니다. 컴파일러는 Pole IR → LLVM IR → 네이티브 기계어로 변환합니다. Rust는 컴파일러 구현 언어입니다.
 
 ### Q: LLM이 Rust 코드를 생성하는 건가요?
-**A**: 아닙니다. LLM은 Pole IR을 생성합니다. Pole IR은 우리가 설계하는 형식 언어입니다.
+**A**: 아닙니다. LLM은 Pole IR을 생성합니다. Rust는 컴파일러를 구현하는 데 사용됩니다 (Python 대신 Rust 선택 이유: 성능 + 메모리 안전성 + LLVM 통합).
+
+### Q: 왜 Rust로 컴파일러를 구현하나요?
+**A**: 
+- **성능**: LLVM과 네이티브 통합, 빠른 컴파일 속도
+- **안전성**: Rust 소유권 시스템이 Pole 메모리 모델과 유사
+- **생태계**: llvm-sys, PyO3 등 풍부한 도구
+- **장기 비전**: Phase 7+ 게임 엔진 라이브러리도 Rust로 구현 예정
 
 ### Q: 왜 직접 기계어를 만들지 않나요?
-**A**: 명세 언어(.pole)와 기계어는 추상화 수준 차이가 너무 큽니다. IR이 중간 다리 역할을 합니다.
+**A**: LLVM IR을 중간 단계로 사용하여 크로스 플랫폼 지원 및 최적화를 자동화합니다. LLVM이 x86_64, ARM64 등 다양한 타겟으로 컴파일을 담당합니다.

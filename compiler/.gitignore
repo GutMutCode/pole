@@ -1,0 +1,12 @@
+# Rust build artifacts
+/target/
+Cargo.lock
+
+# Debug files
+*.pdb
+
+# Python bindings
+*.so
+*.dylib
+*.dll
+*.pyd
