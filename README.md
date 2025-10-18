@@ -80,10 +80,18 @@ pole build examples/01-factorial.pole --mock
 ### 예제 파일 보기
 
 ```bash
-cat examples/01-factorial.pole      # 명세 언어 (사람이 작성)
-cat examples/01-factorial.pole-ir   # IR (LLM이 생성)
-cat examples/02-fibonacci.pole      # 피보나치 명세
-cat examples/03-user-validation.pole # 사용자 검증 명세
+cat examples/01-factorial.pole       # 팩토리얼 (재귀, 패턴 매칭)
+cat examples/02-fibonacci.pole       # 피보나치 (단순 재귀)
+cat examples/03-user-validation.pole # 사용자 검증 (복잡한 제약조건)
+cat examples/04-simple-math.pole     # 수학 연산 (abs, max, sum_to_n)
+```
+
+**실행 가능한 모든 예제:**
+- `factorial(7)` → 5040
+- `fibonacci(8)` → 21  
+- `abs(-15)` → 15
+- `max(42, 17)` → 42
+- `sum_to_n(100)` → 5050
 ```
 
 ---
