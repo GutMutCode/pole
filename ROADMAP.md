@@ -283,10 +283,19 @@
 
 ### P0 작업 (필수)
 
-- [ ] **3.1 에러 메시지 개선**
-
+- [x] **3.1 에러 메시지 개선**
+  - 완료일: 2025-10-19
   - 명확하고 도움이 되는 에러 메시지
   - 소스 위치 추적
+  - 산출물: `src/pole/common/errors.py`
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_errors.py` (all tests passed)
+  - **기능**:
+    - SourceLocation: 파일명, 라인, 컬럼 위치 추적
+    - ErrorContext: 소스 코드 라인 및 하이라이트 표시
+    - PoleError 계층: ParseError, ValidationError, IRParseError, TypeCheckError, RuntimeError, TransformError
+    - format_error_with_context: 통합 에러 포맷팅 함수
+    - 사용자 친화적 에러 메시지 및 제안 (suggestion) 제공
 
 - [ ] **3.2 성능 최적화**
   - IR 실행 속도 개선

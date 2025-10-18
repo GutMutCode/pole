@@ -1,5 +1,12 @@
 from typing import Any
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
+from pole.common.errors import RuntimeError as PoleRuntimeError, SourceLocation
+
 from .ir_ast import (
     Application,
     BinaryOp,
@@ -25,7 +32,7 @@ from .ir_ast import (
 )
 
 
-class InterpreterError(Exception):
+class InterpreterError(PoleRuntimeError):
     pass
 
 
