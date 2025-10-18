@@ -290,11 +290,59 @@ Year 7-10  : Phase 10   언어 생태계 & 패키지 시스템
    
    **완료 일자:** 2025-10-19
 
+1.5 **M1.5: Python-Rust 통합 완성** ⭐ **최우선** (1-2일, 2025-10-19 ~ 2025-10-21)
+   
+   **목표:** Rust IR Parser를 Python 코드베이스에 완전히 통합, Type definitions 손실 방지
+   
+   **현재 문제:**
+   - ❌ `ir_parser_rust.py`의 `_dict_to_program`이 type_defs를 무시 (빈 리스트 반환)
+   - ❌ CLI 도구가 Rust parser 사용 시 custom types 손실
+   - ❌ Type checker가 custom types를 인식하지 못함
+   
+   **1단계: Type Definitions 변환 구현** (반나절)
+   - `ir_parser_rust.py`에 type_defs 변환 로직 추가
+     - `convert_type_def()` 함수 구현
+     - Record, Variant, Alias 변환 지원
+     - Python AST (TypeDef, RecordType 등)로 변환
+   - `_dict_to_program`에서 type_defs 처리
+   
+   **2단계: End-to-End 검증** (반나절)
+   - user-validation 예제로 type_defs 검증
+     - Rust parser로 파싱
+     - Type definitions가 Python AST에 올바르게 전달되는지 확인
+     - Type checker가 custom types 인식하는지 검증
+   - 모든 예제 End-to-End 테스트
+   
+   **3단계: CLI 통합 확인** (반나절)
+   - `pole check`, `pole test` 명령어가 Rust parser 사용하는지 확인
+   - Type definitions가 CLI를 통해 올바르게 작동하는지 검증
+   
+   **산출물:**
+   - ✅ `src/pole/runtime/ir_parser_rust.py` 업데이트 (type_defs 변환)
+   - ✅ End-to-end 테스트 통과 (Rust parser 사용)
+   - ✅ CLI 도구가 Rust parser와 완전히 작동
+   
+   **성공 기준:**
+   - ✅ Rust parser로 파싱한 user-validation에서 2개 type_defs 인식
+   - ✅ Type checker가 User, ValidationError 타입 인식
+   - ✅ 모든 예제 End-to-End 테스트 통과 (Rust parser 사용)
+   - ✅ CLI 명령어가 type definitions와 함께 작동
+   
+   **M1.5 완료 조건:**
+   - Rust parser가 Python 코드베이스에 완전히 통합
+   - Type definitions가 전체 파이프라인에서 보존됨
+   - LLVM 백엔드 개발 시작 준비 완료
+   
+   **왜 필요한가:**
+   - M1에서 Rust parser 자체는 완성했지만 Python 통합이 불완전
+   - Type definitions 손실은 LLVM 백엔드 개발 시 치명적 문제
+   - CLI 도구가 실제로 Rust parser를 사용해야 성능 향상 실현
+
 2. **M2: LLVM 백엔드 - 기본 함수 컴파일** (2개월, 2025-11-10 ~ 2026-01-10)
    
    **목표:** Pole IR → LLVM IR → 네이티브 실행 파일
    
-   **선행 조건:** M1 완료 (Rust IR Parser 6/6 예제 통과)
+   **선행 조건:** M1.5 완료 (Rust-Python 통합 완성)
    
    **구현 내용:**
    - LLVM 바인딩 선택 (llvm-sys vs inkwell)
@@ -1201,7 +1249,7 @@ pole publish
 
 **현재 Phase:** Phase 5 (네이티브 컴파일러)
 
-**현재 마일스톤:** ⭐ **5.1 M2 - LLVM 백엔드 개발 준비**
+**현재 마일스톤:** ⭐ **5.1 M1.5 - Python-Rust 통합 완성**
 
 **완료된 작업:**
 - ✅ M0: Rust 학습 & 핵심 인프라 전환 (2025-10-19)
@@ -1213,7 +1261,7 @@ pole publish
   - Type definitions 지원 (Record, Variant, Alias)
   - Multi-line let expression 지원
   - End-to-end 테스트 완성
-- ✅ **M1: Rust IR Parser 완성 & 타입 시스템 확장** (2025-10-19) 🎉
+- ✅ **M1: Rust IR Parser 완성 & 타입 시스템 확장** (2025-10-19)
   - Type definitions 파싱 완성 (Record, Variant, Alias)
   - Custom type names 인식
   - Logical operators 지원 (&&, ||)
@@ -1221,30 +1269,48 @@ pole publish
   - Python-Rust 기능 동등성 달성
   - 성능: Python 대비 **23.4배 향상**
 
+**현재 문제 (Critical):**
+- ❌ `ir_parser_rust.py`가 type_defs를 무시하고 빈 리스트 반환
+- ❌ CLI 도구 사용 시 custom types 손실
+- ❌ Type checker가 Rust parser로 파싱된 코드에서 custom types 인식 불가
+
 **다음 작업 (최우선):**
 
-**M2: LLVM 백엔드 - 기본 함수 컴파일** (2개월, 예정 2025-11-10 ~ 2026-01-10)
+**M1.5: Python-Rust 통합 완성** (1-2일, 2025-10-19 ~ 2025-10-21)
 
-**목표:** Pole IR → LLVM IR → 네이티브 실행 파일
+**1단계: Type Definitions 변환 구현** (반나절, 최우선)
+- `src/pole/runtime/ir_parser_rust.py` 수정
+  - `convert_type_def()` 함수 추가
+  - Record, Variant, Alias 타입 변환
+  - `_dict_to_program`에서 type_defs 처리
 
-**선행 조건:** ✅ M1 완료 (Rust IR Parser 6/6 예제 통과)
+**2단계: End-to-End 검증** (반나절)
+- user-validation 예제로 type_defs 검증
+- 모든 예제 End-to-End 테스트 (Rust parser 사용)
 
-**다음 단계:**
-1. LLVM 바인딩 선택 (llvm-sys vs inkwell)
-2. 간단한 함수 (factorial) 컴파일
-3. 기본 타입 (Int, Bool, Nat) 지원
-4. 산술 연산자
-5. 조건문 (if-then-else)
-6. 재귀 함수 호출
+**3단계: CLI 통합 확인** (반나절)
+- `pole check`, `pole test` 명령어 검증
+- Type definitions와 CLI 통합 확인
 
-**시작 예정일:** 2025-11-10
+**성공 기준:**
+- ✅ Rust parser로 파싱 시 type_defs 보존
+- ✅ Type checker가 custom types 인식
+- ✅ 모든 예제 End-to-End 테스트 통과
 
-**M2 완료 후:** M3 (LLVM 백엔드 - 고급 기능) 시작
+**시작일:** 2025-10-19 (오늘)
+
+**M1.5 완료 후:** M2 (LLVM 백엔드) 시작
 
 ---
 
 ## 변경 이력
 
+- **2025-10-19**: Phase 5 M1.5 추가 (Python-Rust 통합 완성)
+  - **발견 문제**: `ir_parser_rust.py`가 type_defs를 무시 (빈 리스트 반환)
+  - **영향**: CLI 도구 사용 시 custom types 손실
+  - **M1.5 목표**: Type definitions 변환 로직 추가, End-to-End 검증
+  - **우선순위**: M2 (LLVM) 시작 전 필수 해결
+  - **예상 기간**: 1-2일
 - **2025-10-19**: Phase 5 M1 완료 (Rust IR Parser 완성) 🎉
   - **완료 내용**: Rust IR Parser가 Python IR Parser와 기능 동등성 달성
   - Type definitions 파싱 구현 (Record, Variant, Alias)
@@ -1252,7 +1318,7 @@ pole publish
   - **6/6 예제 파싱 성공** (이전 2/6에서 개선)
   - Python-Rust 결과 100% 일치
   - 성능: Python 대비 **23.4배 향상** (0.014ms vs 0.322ms)
-  - **다음 단계**: M2 (LLVM 백엔드 개발) 준비 완료
+  - **발견**: Python 통합 레이어 불완전 (type_defs 손실)
 - **2025-10-19**: Phase 5 M1 마일스톤 재구성 (우선순위 수정)
   - **변경 이유**: Rust IR Parser 기능 부족 발견 (2/6 예제만 통과)
   - M1 분할: "Rust IR Parser 완성" (2-3주) + "LLVM 백엔드" (2개월) → M1, M2로 분리
