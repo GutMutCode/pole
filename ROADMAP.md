@@ -81,6 +81,11 @@
   - 효과 시스템
   - 산출물: `specs/implementation-lang.md`
   - 선행 조건: 1.1 완료
+  - **참고 문서**:
+    - README.md (라인 134-201: 구현 언어 상세 조건)
+    - ARCHITECTURE.md (라인 46-51: IR 정의 및 목적)
+    - specs/syntax-v0.md (명세 언어와의 대응 관계)
+    - examples/*.pole (변환 대상 명세 예제)
   - **다음 작업**: 이것부터 시작
 
 - [ ] **1.3 IR 문법 및 예제 작성**
@@ -88,6 +93,9 @@
   - 명세 언어 예제의 IR 버전 작성
   - 산출물: `specs/ir-syntax.md`, `examples/*.pole-ir`
   - 선행 조건: 1.2 완료
+  - **참고 문서**:
+    - specs/implementation-lang.md (1.2에서 작성한 IR 설계)
+    - examples/*.pole (변환할 명세 예제)
 
 ### P1 작업 (중요)
 
@@ -97,6 +105,10 @@
   - 테스트 생성 전략
   - 산출물: `specs/verification.md`
   - 선행 조건: 1.2, 1.3 완료
+  - **참고 문서**:
+    - README.md (라인 205-277: 검증 시스템 조건)
+    - specs/workflow.md (Step 5: 검증 단계)
+    - specs/implementation-lang.md (타입 시스템 설계)
 
 ### P2 작업 (선택)
 
@@ -129,6 +141,9 @@
   - 산출물: `src/validator/spec_validator.py`
   - 선행 조건: 2.2 완료
   - **핵심**: 이 단계에서 LLM이 사용자에게 질문
+  - **참고 문서**:
+    - specs/workflow.md (Step 3: 완전성 검증 - 체크리스트 및 프로세스)
+    - AGENTS.md (명세 검증 프로세스)
 
 - [ ] **2.4 LLM 변환기 (Transformer)**
   - LLM API 연동 (Claude/GPT)

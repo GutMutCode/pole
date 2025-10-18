@@ -46,6 +46,47 @@ Pole is an LLM-optimized programming language system with two distinct layers:
 
 **Never assume priority** - always verify against the roadmap and ask the user.
 
+## Before Starting Any Task (Critical Checklist)
+
+When starting a new task, you **MUST** follow this research process:
+
+### 1. Identify the Task
+- [ ] Read [ROADMAP.md](ROADMAP.md) to identify the current task
+- [ ] Note the task number, description, and deliverables
+
+### 2. Understand Requirements
+- [ ] Read [README.md](README.md) - check if task-related requirements exist
+  - Search for keywords related to the task
+  - Read relevant sections thoroughly
+- [ ] Read [ARCHITECTURE.md](ARCHITECTURE.md) - understand system context
+  - How does this task fit into the overall architecture?
+  - What are the dependencies and interfaces?
+
+### 3. Review Existing Design
+- [ ] Read all files in `specs/` directory
+  - Check for existing design documents related to the task
+  - Understand design decisions already made
+- [ ] Review `examples/` if relevant
+  - Understand concrete use cases
+
+### 4. Search Codebase
+- [ ] Use grep/search to find related keywords in all markdown files
+- [ ] Check if similar work has been done before
+- [ ] Look for related discussions or design notes
+
+### 5. Synthesize Understanding
+- [ ] List what is already defined vs. what needs to be created
+- [ ] Identify gaps or ambiguities
+- [ ] Note any conflicts or inconsistencies
+
+### 6. Ask Before Proceeding
+If you find:
+- Sufficient information exists → Proceed with confidence
+- Information is unclear → Ask specific questions
+- Conflicts in documentation → Point them out and ask for clarification
+
+**DO NOT skip this process**. Recommendations made without proper research waste time and erode trust.
+
 ## Working with Specifications (Critical Process)
 
 When you receive a specification or requirement, **DO NOT** immediately start implementation. Follow this process:
