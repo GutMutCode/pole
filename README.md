@@ -667,6 +667,8 @@ pole/
 
 **게임 엔진 프로젝트**: Pole 언어로 만들 게임 엔진은 Phase 7+ 이후 별도 프로젝트로 시작 가능 - [GAME_ENGINE_VISION.md](GAME_ENGINE_VISION.md)
 
+**게임 개발 가이드**: Pole Engine으로 게임 개발하는 실전 로드맵 - [GAME_DEVELOPMENT_ROADMAP.md](GAME_DEVELOPMENT_ROADMAP.md)
+
 ---
 
 ## 📚 문서
@@ -688,6 +690,7 @@ pole/
 
 **미래 비전**
 - [GAME_ENGINE_VISION.md](GAME_ENGINE_VISION.md) - Pole로 만들 게임 엔진 프로젝트 비전 (별도 프로젝트, Phase 7+ 이후)
+- [GAME_DEVELOPMENT_ROADMAP.md](GAME_DEVELOPMENT_ROADMAP.md) - Pole Engine으로 게임 개발하는 실전 가이드
 
 ---
 
