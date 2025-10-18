@@ -225,12 +225,19 @@
 
 ### P1 작업 (중요)
 
-- [ ] **2.6 예제 기반 테스트 실행기**
-
+- [x] **2.6 예제 기반 테스트 실행기**
+  - 완료일: 2025-10-19
   - 명세의 examples로 IR 검증
   - workflow.md Step 5 구현
-  - 산출물: `src/verifier/example_tester.py`
+  - 산출물: `src/pole/verifier/example_tester.py`
   - 선행 조건: 2.5 완료
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_example_tester.py` (all tests passed)
+  - **기능**:
+    - TestCase extraction: @test_case 어노테이션에서 테스트 추출
+    - Test execution: 인터프리터로 각 테스트 실행
+    - Report generation: 통과/실패 리포트 생성 (성공률, 실패한 테스트 상세 정보)
+    - Verification: verify_examples()로 모든 테스트 통과 여부 확인
 
 - [ ] **2.7 타입 체커**
 
