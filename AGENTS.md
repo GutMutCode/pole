@@ -1,7 +1,12 @@
 # Agent Guidelines for Pole Project
 
 ## Project Context
-This is a conceptual repository defining design principles for an LLM-optimized programming language. Currently contains only specification documents in Korean.
+Pole is an LLM-optimized programming language system with two distinct layers:
+
+1. **Specification Language** (.pole files) - Human-written, natural language friendly
+2. **Implementation Language** (Pole IR) - LLM-generated, formal, type-safe
+
+**IMPORTANT**: We are designing BOTH languages from scratch. Pole does NOT compile to existing languages like Rust or Python. See ARCHITECTURE.md for the complete pipeline.
 
 ## Build/Test Commands
 - No build system yet - this is a design/specification phase project
@@ -9,17 +14,20 @@ This is a conceptual repository defining design principles for an LLM-optimized 
 - Git operations: standard git commands
 
 ## Code Style (When Implementation Begins)
-- **Language**: To be determined based on project evolution
-- **Documentation**: Write all documents in Korean (한국어) to match README.md
-- **Format**: Design documents should be LLM-friendly and parseable
-- **Structure**: Follow the categorical organization in README.md (명세 언어, 구현 언어, 검증 시스템, etc.)
-- **Naming**: Use descriptive Korean or English terms appropriate to the domain
+- **Specification Language** (.pole): English keywords for LLM compatibility
+- **Documentation**: Korean (한국어) for design docs, English for code/specs
+- **Implementation Tool**: Python for transformer/compiler (빠른 프로토타이핑)
+- **Format**: All documents should be LLM-friendly and parseable
+- **Structure**: Follow the categorical organization in README.md
+- **Naming**: English for all code and language constructs
 - **Comments**: Avoid unless explicitly requested per project rules
 
 ## File Organization
-- Design specifications and principles in root-level markdown files
+- `specs/` - Language specifications (syntax-v0.md, implementation-lang.md)
+- `examples/` - Example programs (*.pole for spec lang, *.pole-ir for IR)
+- `src/` - Implementation code (transformer, compiler, verifier)
 - Follow the priority system defined in README.md (P0/P1/P2)
-- Maintain clear separation between specification language (명세 언어) and implementation language (구현 언어) concepts
+- **Critical**: Never confuse "타겟 언어" with "구현 언어" - we design the IR ourselves
 
 ## Development Approach
 - Focus on "what" and "why" over "how" in specifications
