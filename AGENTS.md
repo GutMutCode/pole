@@ -9,9 +9,33 @@ Pole is an LLM-optimized programming language system with two distinct layers:
 **IMPORTANT**: We are designing BOTH languages from scratch. Pole does NOT compile to existing languages like Rust or Python. See ARCHITECTURE.md for the complete pipeline.
 
 ## Build/Test Commands
-- No build system yet - this is a design/specification phase project
-- No tests yet - implementation has not started
-- Git operations: standard git commands
+
+### Python Tests (Phase 0-4 Complete)
+- **Run individual test**: `python tests/test_<name>.py`
+- **All tests**: 13 test modules in `tests/` directory
+- **Requirements**: Run from project root OR set `PYTHONPATH=src`
+- **New tests** (M0.5 Week 2):
+  - `tests/test_e2e_integration.py` - End-to-end pipeline tests (8 tests)
+  - `tests/test_llm_pipeline.py` - LLM transformation tests (3 tests)
+
+### Rust Compiler (Phase 5 M0+)
+- **Build**: `cd compiler && cargo build --release`
+- **Test**: `cargo test`
+- **Benchmark**: `cargo bench`
+- **Components**: IR Parser, Type Checker (25.6x faster than Python)
+
+### Pole CLI Commands
+- **Run IR**: `pole run examples/01-factorial.pole-ir factorial 5`
+- **Test IR**: `pole test examples/01-factorial.pole-ir`
+- **Check spec**: `pole check examples/01-factorial.pole`
+- **Build IR** (Mock LLM): `pole build examples/01-factorial.pole --mock`
+- **Build IR** (Real LLM): Requires `OPENROUTER_API_KEY` environment variable
+
+### Git Operations
+- Standard git commands
+- Always check `git status` and `git diff` before committing
+- Follow commit message format from `git log --oneline -5`
+- **Never push** without explicit user permission
 
 ## Code Style (When Implementation Begins)
 - **Specification Language** (.pole): English keywords for LLM compatibility
