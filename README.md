@@ -11,22 +11,59 @@
 - LLM은 **어떻게(How)** 구현할지 결정
 - 시스템이 안전성과 정확성을 **자동 검증**
 
-### 현재 상태
+### 현재 상태 (2025-10-19)
 - ✅ Phase 0: 기획 및 문서화 완료
-- ✅ Phase 1.1: 명세 언어 문법 설계 완료
-- 🚧 Phase 1.2: 구현 언어(IR) 설계 진행 중
-- ⏳ Phase 2: 프로토타입 구현 예정
-- ⏳ Phase 3: 완성도 향상 예정
+- ✅ Phase 1: 언어 설계 완료 (명세 언어, IR, 검증 시스템)
+- ✅ Phase 2: 프로토타입 구현 완료 (파서, 변환기, 인터프리터, 타입 체커, CLI)
+- ✅ Phase 3: 완성도 향상 (P0 + 계약 검증 완료)
 
-### 빠른 시작
+**작동하는 프로토타입** - 명세 작성부터 실행까지 전체 파이프라인 구현 완료
+
+---
+
+## 🚀 설치 및 사용법
+
+### 설치
+
 ```bash
-# 예제 명세 언어 파일 보기
-cat examples/01-factorial.pole
-cat examples/02-fibonacci.pole
-cat examples/03-user-validation.pole
+git clone <repository-url>
+cd pole
+```
 
-# 문법 문서
-cat specs/syntax-v0.md
+**의존성**: Python 3.10+ (외부 패키지 의존성 없음, OpenRouter API는 선택사항)
+
+### 사용 예시
+
+```bash
+# CLI 명령어 (PYTHONPATH 설정 필요)
+alias pole="PYTHONPATH=src python -m pole.cli.main"
+
+# 1. 명세 파일 검증 - 완전성 체크 및 불명확성 탐지
+pole check examples/01-factorial.pole
+
+# 2. IR 파일에서 함수 실행
+pole run examples/01-factorial.pole-ir factorial 5
+# 출력: Result: 120
+
+# 3. IR 파일의 모든 테스트 자동 실행
+pole test examples/01-factorial.pole-ir
+# 출력: Test Report (통과율, 실패한 테스트 상세)
+
+# 4. 명세에서 IR 생성 (LLM API 필요 - OpenRouter)
+export OPENROUTER_API_KEY=your_key_here
+pole build examples/01-factorial.pole --output output.pole-ir
+
+# 5. 또는 Mock LLM으로 테스트 (API 없이)
+pole build examples/01-factorial.pole --mock
+```
+
+### 예제 파일 보기
+
+```bash
+cat examples/01-factorial.pole      # 명세 언어 (사람이 작성)
+cat examples/01-factorial.pole-ir   # IR (LLM이 생성)
+cat examples/02-fibonacci.pole      # 피보나치 명세
+cat examples/03-user-validation.pole # 사용자 검증 명세
 ```
 
 ---
@@ -53,15 +90,66 @@ cat specs/syntax-v0.md
 
 ```
 pole/
-├── specs/           # 언어 사양 문서
-│   └── syntax-v0.md        # 명세 언어 문법
-├── examples/        # 예제 프로그램
-│   ├── 01-factorial.pole
-│   ├── 02-fibonacci.pole
-│   └── 03-user-validation.pole
-├── ARCHITECTURE.md  # 시스템 아키텍처 설명
-└── README.md        # 설계 원칙 및 요구사항 (본 문서)
+├── src/pole/              # 소스 코드
+│   ├── parser/           # 명세 언어 파서
+│   ├── validator/        # 명세 검증기
+│   ├── transformer/      # LLM 변환기 (명세 → IR)
+│   ├── runtime/          # IR 인터프리터
+│   ├── verifier/         # 타입 체커, 계약 검증, 테스트 실행기
+│   ├── common/           # 공통 에러 시스템
+│   └── cli/              # CLI 도구
+├── tests/                # 테스트 코드
+├── specs/                # 언어 사양 문서
+│   ├── syntax-v0.md      # 명세 언어 문법
+│   ├── ir-syntax.md      # IR 문법
+│   ├── verification.md   # 검증 시스템
+│   └── workflow.md       # LLM 변환 워크플로우
+├── examples/             # 예제 프로그램
+│   ├── *.pole            # 명세 언어 예제
+│   └── *.pole-ir         # IR 예제
+├── ARCHITECTURE.md       # 시스템 아키텍처
+├── ROADMAP.md            # 개발 로드맵
+├── DEVELOPMENT.md        # 개발 가이드
+└── README.md             # 본 문서
 ```
+
+---
+
+## 🎯 주요 기능
+
+### ✅ 완성된 기능
+
+**전체 파이프라인**
+- 명세 언어 (.pole) 파싱 및 검증
+- LLM 기반 IR 변환 (OpenRouter API 지원)
+- IR 파싱 및 타입 체킹
+- IR 인터프리터 (재귀, 패턴 매칭 지원)
+- 예제 기반 자동 테스트
+- 런타임 계약 검증 (requires/ensures)
+
+**CLI 도구**
+- `pole check` - 명세 파일 검증 및 불명확성 탐지
+- `pole build` - LLM으로 IR 생성 (--mock 옵션으로 API 없이 테스트 가능)
+- `pole run` - IR 함수 실행
+- `pole test` - IR 테스트 자동 실행
+
+**품질 보증**
+- 통합 에러 시스템 (소스 위치 추적, 코드 하이라이팅)
+- 정적 타입 체킹 (타입 추론 및 검증)
+- 계약 기반 검증 (precondition/postcondition)
+- 높은 성능 (대부분 작업 < 1ms)
+
+**테스트 커버리지**
+- 9개 테스트 모듈, 모든 테스트 통과
+- 파서, 검증기, 변환기, 인터프리터, 타입 체커, 계약 검증, 에러 시스템, 성능 벤치마크
+
+### 📋 향후 작업 (Phase 3 P1/P2)
+
+- IDE 통합 (LSP) - 문법 하이라이팅, 자동 완성, 에러 표시
+- 대화형 명세 개선 도구 - 사용자와 대화하며 명세 정제
+- 디버거 - 실행 추적 및 중단점
+- 프로파일러 - 성능 분석
+- 문서 생성기 - 명세에서 문서 자동 생성
 
 ---
 
@@ -477,40 +565,55 @@ pole/
 
 자세한 작업 목록과 우선순위는 [ROADMAP.md](ROADMAP.md) 참조
 
-### Phase 0: 기획 및 문서화 (완료)
+### Phase 0: 기획 및 문서화 ✅
 - [x] 프로젝트 구조 정의
 - [x] 아키텍처 문서 작성
 - [x] 변환 워크플로우 정의
 - [x] 개발 가이드라인 작성
 
-### Phase 1: 언어 설계 (진행 중)
+### Phase 1: 언어 설계 ✅
 - [x] 명세 언어 문법 정의
-- [ ] 구현 언어(IR) 설계 ⭐ 현재 작업
-- [ ] 검증 시스템 요구사항 정의
+- [x] 구현 언어(IR) 설계
+- [x] IR 문법 및 예제 작성
+- [x] 검증 시스템 요구사항 정의
 
-### Phase 2: 프로토타입 구현
-- [ ] 개발 환경 설정
-- [ ] 명세 언어 파서
-- [ ] 명세 검증기
-- [ ] LLM 변환기
-- [ ] IR 인터프리터
-- [ ] 예제 기반 테스트 실행기
+### Phase 2: 프로토타입 구현 ✅
+- [x] 개발 환경 설정
+- [x] 명세 언어 파서
+- [x] 명세 검증기
+- [x] LLM 변환기
+- [x] IR 인터프리터
+- [x] 예제 기반 테스트 실행기
+- [x] 타입 체커
+- [x] CLI 도구
 
-### Phase 3: 완성도 향상
-- [ ] 에러 메시지 개선
-- [ ] 타입 체커 구현
-- [ ] 형식 검증기 통합
-- [ ] 성능 최적화
-- [ ] IDE 통합 (LSP)
+### Phase 3: 완성도 향상 (P0 완료, P1/P2 일부 남음)
+- [x] 에러 메시지 개선 (P0)
+- [x] 성능 최적화 (P0)
+- [x] 계약 검증 시스템 (P1)
+- [ ] IDE 통합 (LSP) (P1)
+- [ ] 대화형 명세 개선 도구 (P2)
+- [ ] 디버거 (P2)
+- [ ] 프로파일러 (P2)
+- [ ] 문서 생성기 (P2)
 
 ---
 
 ## 📚 문서
 
+**아키텍처 및 설계**
 - [ARCHITECTURE.md](ARCHITECTURE.md) - 시스템 아키텍처 상세 설명
-- [ROADMAP.md](ROADMAP.md) - 개발 로드맵 및 우선순위 관리
+- [README.md](README.md) - 프로젝트 소개 및 설계 원칙 (본 문서)
+
+**언어 명세**
 - [specs/syntax-v0.md](specs/syntax-v0.md) - 명세 언어 문법 정의
+- [specs/ir-syntax.md](specs/ir-syntax.md) - IR 문법 정의
+- [specs/verification.md](specs/verification.md) - 검증 시스템 설계
 - [specs/workflow.md](specs/workflow.md) - LLM 변환 워크플로우
+
+**개발 문서**
+- [ROADMAP.md](ROADMAP.md) - 개발 로드맵 및 우선순위 관리
+- [DEVELOPMENT.md](DEVELOPMENT.md) - 개발 환경 설정 및 가이드
 - [AGENTS.md](AGENTS.md) - 개발 가이드라인 (AI 에이전트용)
 
 ---
