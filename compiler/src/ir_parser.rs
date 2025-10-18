@@ -454,11 +454,12 @@ fn parse_binary_op(input: &str) -> ParseResult<Expr> {
     
     let (input, op_and_right) = opt(tuple((
         ws(alt((
-            tag("*"), tag("/"), tag("%"),
-            tag("+"), tag("-"),
+            tag("&&"), tag("||"),  // Logical operators (must be before single &, |)
             tag("=="), tag("!="), 
             tag("<="), tag(">="), 
             tag("<"), tag(">"),
+            tag("*"), tag("/"), tag("%"),
+            tag("+"), tag("-"),
             tag("=>"),
         ))),
         parse_expr,
