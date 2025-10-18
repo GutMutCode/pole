@@ -197,12 +197,18 @@
     - specs/workflow.md (Step 3: 완전성 검증 - 체크리스트 및 프로세스)
     - AGENTS.md (명세 검증 프로세스)
 
-- [ ] **2.4 LLM 변환기 (Transformer)**
-
-  - LLM API 연동 (Claude/GPT)
+- [x] **2.4 LLM 변환기 (Transformer)**
+  - 완료일: 2025-10-19
+  - LLM API 연동 (OpenRouter with Claude/GPT)
   - 명세 → IR 변환
-  - 산출물: `src/transformer/llm_transformer.py`
+  - 산출물: `src/pole/transformer/llm_client.py`, `src/pole/transformer/llm_transformer.py`
   - 선행 조건: 2.3 완료
+  - 상태: ✅ 완료
+  - 테스트: `tests/test_transformer.py` (all tests passed)
+  - **기능**:
+    - OpenRouterClient: 실제 LLM API 호출 (anthropic/claude-3.5-sonnet)
+    - MockLLMClient: API 없이 테스트용 더미 응답
+    - SpecificationTransformer: 명세를 IR로 변환
 
 - [ ] **2.5 IR 인터프리터 (최소 버전)**
   - IR 코드 실행
