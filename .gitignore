@@ -46,3 +46,4 @@ result-*
 
 # Direnv
 .direnv/
+.env

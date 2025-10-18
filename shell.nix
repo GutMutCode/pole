@@ -5,10 +5,16 @@ let
     export PYTHONPATH="$PWD/src:$PYTHONPATH"
     exec python -m pole.cli.main "$@"
   '';
+  
+  # Python with required packages
+  pythonEnv = pkgs.python311.withPackages (ps: with ps; [
+    openai
+    anthropic
+  ]);
 in
 pkgs.mkShell {
   buildInputs = with pkgs; [
-    python311
+    pythonEnv
     pole-wrapper
   ];
 

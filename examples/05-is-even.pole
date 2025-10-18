@@ -1,0 +1,18 @@
+// Example 5: Check if number is even
+
+function is_even:
+  purpose: check if a number is even
+  
+  input: n (integer)
+  output: true if even, false if odd
+  
+  constraints:
+    - works with negative numbers
+    - 0 is even
+  
+  examples:
+    - is_even(0) → true
+    - is_even(2) → true
+    - is_even(3) → false
+    - is_even(-4) → true
+    - is_even(7) → false
