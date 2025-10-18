@@ -15,8 +15,11 @@ name = "pole_compiler"
 crate-type = ["cdylib", "rlib"]  # cdylib for Python bindings, rlib for Rust
 
 [dependencies]
-# LLVM bindings
-llvm-sys = "170"
+# Parser combinators (for IR Parser)
+nom = "7.1"
+
+# LLVM bindings (Phase 5 M1+)
+# llvm-sys = "170"
 # Alternative: inkwell = { version = "0.4", features = ["llvm17-0"] }
 
 # Python bindings
@@ -42,9 +45,10 @@ criterion = { version = "0.5", features = ["html_reports"] }
 # For LLVM build configuration
 cc = "1.0"
 
-[[bench]]
-name = "compiler_bench"
-harness = false
+# Benchmarks will be added later
+# [[bench]]
+# name = "compiler_bench"
+# harness = false
 
 [profile.release]
 opt-level = 3
