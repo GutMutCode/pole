@@ -493,7 +493,9 @@ pole/
 ## 📚 문서
 
 - [ARCHITECTURE.md](ARCHITECTURE.md) - 시스템 아키텍처 상세 설명
+- [ROADMAP.md](ROADMAP.md) - 개발 로드맵 및 우선순위 관리
 - [specs/syntax-v0.md](specs/syntax-v0.md) - 명세 언어 문법 정의
+- [specs/workflow.md](specs/workflow.md) - LLM 변환 워크플로우
 - [AGENTS.md](AGENTS.md) - 개발 가이드라인 (AI 에이전트용)
 
 ---

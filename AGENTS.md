@@ -36,6 +36,16 @@ Pole is an LLM-optimized programming language system with two distinct layers:
 - Document examples, use cases, and edge cases
 - Emphasize verification and formal correctness where applicable
 
+## Task Priority Management
+
+**Before starting any new work**, consult [ROADMAP.md](ROADMAP.md) to:
+1. Check current highest priority task
+2. Compare new task against existing priorities
+3. Ask user to confirm priority if unclear
+4. Update roadmap with new tasks
+
+**Never assume priority** - always verify against the roadmap and ask the user.
+
 ## Working with Specifications (Critical Process)
 
 When you receive a specification or requirement, **DO NOT** immediately start implementation. Follow this process:
