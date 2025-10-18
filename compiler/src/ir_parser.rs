@@ -240,11 +240,201 @@ fn parse_variable(input: &str) -> ParseResult<Expr> {
     map(identifier, |name| Expr::Variable(Variable { name }))(input)
 }
 
-// Simplified expression parser for now
-fn parse_expr(input: &str) -> ParseResult<Expr> {
+// ============================================================================
+// Pattern Parsers
+// ============================================================================
+
+fn parse_literal_pattern(input: &str) -> ParseResult<Pattern> {
+    alt((
+        map(
+            recognize(pair(opt(char('-')), digit1)),
+            |s: &str| Pattern::Literal(LiteralPattern {
+                value: LiteralValue::Int(s.parse().unwrap()),
+            }),
+        ),
+        map(
+            tag("true"),
+            |_| Pattern::Literal(LiteralPattern {
+                value: LiteralValue::Bool(true),
+            }),
+        ),
+        map(
+            tag("false"),
+            |_| Pattern::Literal(LiteralPattern {
+                value: LiteralValue::Bool(false),
+            }),
+        ),
+    ))(input)
+}
+
+fn parse_wildcard_pattern(input: &str) -> ParseResult<Pattern> {
+    value(Pattern::Wildcard(WildcardPattern), char('_'))(input)
+}
+
+fn parse_variable_pattern(input: &str) -> ParseResult<Pattern> {
+    map(identifier, |name| {
+        Pattern::Variable(VariablePattern { name })
+    })(input)
+}
+
+fn parse_constructor_pattern(input: &str) -> ParseResult<Pattern> {
+    map(
+        pair(
+            identifier,
+            opt(delimited(
+                ws(char('(')),
+                separated_list0(ws(char(',')), parse_pattern),
+                ws(char(')')),
+            )),
+        ),
+        |(name, args)| {
+            // Check if starts with uppercase (constructor)
+            if name.chars().next().unwrap().is_uppercase() {
+                Pattern::Constructor(ConstructorPattern {
+                    name,
+                    args: args.unwrap_or_default(),
+                })
+            } else {
+                Pattern::Variable(VariablePattern { name })
+            }
+        },
+    )(input)
+}
+
+fn parse_pattern(input: &str) -> ParseResult<Pattern> {
+    alt((
+        parse_wildcard_pattern,
+        parse_literal_pattern,
+        parse_constructor_pattern,
+        parse_variable_pattern,
+    ))(input)
+}
+
+// ============================================================================
+// Complex Expression Parsers
+// ============================================================================
+
+fn parse_binary_op(input: &str) -> ParseResult<Expr> {
+    // Simple binary op parser - can be improved with precedence
+    let (input, left) = parse_primary_expr(input)?;
+    
+    let (input, op_and_right) = opt(tuple((
+        ws(alt((
+            tag("*"), tag("/"), tag("%"),
+            tag("+"), tag("-"),
+            tag("=="), tag("!="), 
+            tag("<="), tag(">="), 
+            tag("<"), tag(">"),
+            tag("=>"),
+        ))),
+        parse_expr,
+    )))(input)?;
+    
+    if let Some((op, right)) = op_and_right {
+        Ok((input, Expr::BinaryOp(BinaryOp {
+            op: op.to_string(),
+            left: Box::new(left),
+            right: Box::new(right),
+        })))
+    } else {
+        Ok((input, left))
+    }
+}
+
+fn parse_application(input: &str) -> ParseResult<Expr> {
+    map(
+        pair(
+            identifier,
+            delimited(
+                ws(char('(')),
+                parse_expr,
+                ws(char(')')),
+            ),
+        ),
+        |(func_name, arg)| {
+            Expr::Application(Application {
+                func: Box::new(Expr::Variable(Variable { name: func_name })),
+                arg: Box::new(arg),
+            })
+        },
+    )(input)
+}
+
+fn parse_match_expr(input: &str) -> ParseResult<Expr> {
+    let (input, _) = ws(tag("match"))(input)?;
+    let (input, scrutinee) = ws(parse_simple_expr)(input)?;
+    let (input, _) = ws(tag("with"))(input)?;
+    
+    // Parse match arms: | pattern -> expr
+    let (input, arms) = many1(preceded(
+        multispace0,
+        map(
+            tuple((
+                preceded(ws(char('|')), ws(parse_pattern)),
+                preceded(ws(tag("->")), ws(parse_simple_expr)),
+            )),
+            |(pattern, expr)| (pattern, expr),
+        ),
+    ))(input)?;
+    
+    Ok((input, Expr::Match(MatchExpr {
+        scrutinee: Box::new(scrutinee),
+        arms,
+    })))
+}
+
+fn parse_if_expr(input: &str) -> ParseResult<Expr> {
+    let (input, _) = ws(tag("if"))(input)?;
+    let (input, condition) = ws(parse_simple_expr)(input)?;
+    let (input, _) = ws(tag("then"))(input)?;
+    let (input, then_branch) = ws(parse_simple_expr)(input)?;
+    let (input, _) = ws(tag("else"))(input)?;
+    let (input, else_branch) = ws(parse_expr)(input)?;
+    
+    Ok((input, Expr::If(IfExpr {
+        condition: Box::new(condition),
+        then_branch: Box::new(then_branch),
+        else_branch: Box::new(else_branch),
+    })))
+}
+
+fn parse_let_expr(input: &str) -> ParseResult<Expr> {
+    let (input, _) = ws(tag("let"))(input)?;
+    let (input, var_name) = ws(identifier)(input)?;
+    let (input, _) = ws(char('='))(input)?;
+    let (input, value) = ws(parse_simple_expr)(input)?;
+    let (input, _) = ws(tag("in"))(input)?;
+    let (input, body) = ws(parse_expr)(input)?;
+    
+    Ok((input, Expr::Let(LetExpr {
+        var_name,
+        value: Box::new(value),
+        body: Box::new(body),
+    })))
+}
+
+// Primary expressions (literals, variables, parenthesized)
+fn parse_primary_expr(input: &str) -> ParseResult<Expr> {
     alt((
         parse_literal,
+        parse_application,
         parse_variable,
+        delimited(char('('), parse_expr, char(')')),
+    ))(input)
+}
+
+// Simple expressions (no complex control flow)
+fn parse_simple_expr(input: &str) -> ParseResult<Expr> {
+    parse_binary_op(input)
+}
+
+// Full expression parser
+fn parse_expr(input: &str) -> ParseResult<Expr> {
+    alt((
+        parse_match_expr,
+        parse_if_expr,
+        parse_let_expr,
+        parse_simple_expr,
     ))(input)
 }
 
@@ -260,6 +450,20 @@ fn parse_function_param(input: &str) -> ParseResult<(String, Type)> {
     )(input)
 }
 
+fn parse_requires(input: &str) -> ParseResult<Expr> {
+    preceded(
+        ws(tag("requires")),
+        ws(parse_simple_expr),
+    )(input)
+}
+
+fn parse_ensures(input: &str) -> ParseResult<Expr> {
+    preceded(
+        ws(tag("ensures")),
+        ws(parse_simple_expr),
+    )(input)
+}
+
 fn parse_function_def(input: &str) -> ParseResult<FunctionDef> {
     let (input, annotations) = many0(terminated(parse_annotation, multispace0))(input)?;
     let (input, _) = ws(tag("func"))(input)?;
@@ -272,19 +476,23 @@ fn parse_function_def(input: &str) -> ParseResult<FunctionDef> {
     let (input, _) = ws(tag("->"))(input)?;
     let (input, return_type) = ws(parse_type)(input)?;
     
-    // Skip requires/ensures for now (simplified)
-    let (input, _) = opt(preceded(multispace0, char(':')))(input)?;
+    // Parse requires/ensures clauses
+    let (input, requires) = many0(terminated(parse_requires, multispace0))(input)?;
+    let (input, ensures) = many0(terminated(parse_ensures, multispace0))(input)?;
+    
+    // Expect ':' before body
+    let (input, _) = ws(char(':'))(input)?;
     let (input, _) = multispace0(input)?;
     
-    // Parse body (simplified - just one expression)
+    // Parse body
     let (input, body) = parse_expr(input)?;
     
     Ok((input, FunctionDef {
         name,
         params,
         return_type,
-        requires: vec![],
-        ensures: vec![],
+        requires,
+        ensures,
         body,
         annotations,
     }))
@@ -338,5 +546,64 @@ mod tests {
     fn test_parse_annotation() {
         let result = parse_annotation("@test_case(input=5, expected=120)");
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_pattern() {
+        // Literal pattern
+        let result = parse_pattern("0");
+        assert!(result.is_ok());
+        
+        // Variable pattern
+        let result = parse_pattern("n");
+        assert!(result.is_ok());
+        
+        // Wildcard pattern
+        let result = parse_pattern("_");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_binary_op() {
+        let result = parse_simple_expr("n * factorial (n - 1)");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_application() {
+        let result = parse_application("factorial (n - 1)");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_match_expr() {
+        let input = r#"match n with
+  | 0 -> 1
+  | n -> n * factorial (n - 1)"#;
+        let result = parse_match_expr(input);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_parse_factorial() {
+        let input = r#"
+@source("examples/01-factorial.pole", line=3)
+@test_case(input=0, expected=1)
+func factorial (n: Nat) -> Nat
+  requires n >= 0
+  ensures result >= 1
+:
+  match n with
+  | 0 -> 1
+  | n -> n * factorial (n - 1)
+"#;
+        let result = parse_ir(input);
+        assert!(result.is_ok(), "Failed to parse factorial: {:?}", result.err());
+        
+        let program = result.unwrap();
+        assert_eq!(program.func_defs.len(), 1);
+        assert_eq!(program.func_defs[0].name, "factorial");
+        assert_eq!(program.func_defs[0].requires.len(), 1);
+        assert_eq!(program.func_defs[0].ensures.len(), 1);
     }
 }
