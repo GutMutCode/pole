@@ -248,16 +248,40 @@ Year 7-10  : Phase 10   언어 생태계 & 패키지 시스템
    - 복잡한 컴파일러 개발 중 디버깅 용이
    - LLVM 결과물 검증을 위한 baseline 필요
 
-1. **M1: 기본 함수 컴파일** (3개월, 2026-01 ~ 2026-04)
-   - **LLVM 백엔드 구현**
+1. **M1: 기본 함수 컴파일 & 타입 시스템 확장** (3개월, 2026-01 ~ 2026-04)
+   
+   **타입 시스템 확장** (1-2주, M1 초기)
+   - Type definition parsing 구현
+     - Record types: `type User = { name: String, age: Nat }`
+     - Variant types: `type Result<T,E> = Ok(T) | Err(E)`
+     - Type aliases: `type UserId = String`
+   - Type checker 확장 (custom types 지원)
+   - IR Parser (Rust) 개선
+     - Unicode/Korean annotation arguments
+     - Record/Variant type definitions
+     - 6/6 예제 완전 통과 목표
+   
+   **LLVM 백엔드 구현** (2개월)
      - 간단한 함수 (factorial) 컴파일
-     - 기본 타입 (Int, Bool) 지원
+     - 기본 타입 (Int, Bool, Nat) 지원
+     - Record type → LLVM struct 매핑
      - 산술 연산자
-   - **Contract Verifier Rust 전환** (선택사항, 1-2주)
+     - 메모리 레이아웃 계산
+   
+   **Contract Verifier Rust 전환** (선택사항, 1-2주)
      - `compiler/src/contract_verifier.rs` 구현
      - requires/ensures 검증
-   - **검증:** `pole compile factorial.pole` → 실행 파일 생성
-   - **통합:** IR Parser, Type Checker (M0 완성) 활용
+   
+   **검증:** 
+   - `pole compile factorial.pole` → 실행 파일 생성
+   - 6/6 예제 파싱 성공 (user-validation 포함)
+   
+   **통합:** IR Parser, Type Checker (M0 완성) 활용
+   
+   **M1 완료 시 달성:**
+   - ✅ Type definitions 완전 지원
+   - ✅ 모든 예제 파싱 가능 (6/6)
+   - ✅ 기본 함수 네이티브 컴파일
 
 2. **M2: 제어 흐름** (2개월, 2026-04 ~ 2026-06)
    - if-then-else 컴파일
