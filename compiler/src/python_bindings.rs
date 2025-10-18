@@ -186,6 +186,7 @@ fn expression_to_py(py: Python, expr: &Expr) -> PyResult<PyObject> {
         Expr::Literal(lit) => {
             dict.set_item("type", "Literal")?;
             dict.set_item("value", literal_to_py(py, &lit.value)?)?;
+            dict.set_item("type_name", &lit.type_name)?;
         }
         Expr::Variable(var) => {
             dict.set_item("type", "Variable")?;

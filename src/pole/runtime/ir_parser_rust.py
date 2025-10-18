@@ -57,6 +57,8 @@ class IRParser:
         from .ir_ast import (
             Program,
             FunctionDef,
+            TypeDef,
+            RecordType,
             Annotation,
             Type,
             BasicType,
@@ -94,10 +96,42 @@ class IRParser:
             else:
                 raise ValueError(f"Unknown type kind: {kind}")
 
+        def convert_type_def(td: dict) -> TypeDef:
+            """Convert type definition from Rust dict to Python TypeDef."""
+            name = td["name"]
+            kind = td["kind"]
+
+            annotations = [
+                Annotation(name=ann["name"], args=ann.get("args", {}))
+                for ann in td.get("annotations", [])
+            ]
+
+            if kind == "Alias":
+                # Type alias: type UserId = String
+                definition = convert_type(td["aliased_type"])
+            elif kind == "Record":
+                # Record type: type User = { name: String, age: Nat }
+                fields = {}
+                for field_name, field_type_dict in td["fields"].items():
+                    fields[field_name] = convert_type(field_type_dict)
+                definition = RecordType(fields=fields)
+            elif kind == "Variant":
+                # Variant type: type Error = | NotFound | Invalid
+                constructors = []
+                for cons in td["constructors"]:
+                    cons_name = cons["name"]
+                    cons_args = [convert_type(arg) for arg in cons.get("args", [])]
+                    constructors.append((cons_name, cons_args))
+                definition = constructors
+            else:
+                raise ValueError(f"Unknown type definition kind: {kind}")
+
+            return TypeDef(name=name, definition=definition, annotations=annotations)
+
         def convert_expr(e: dict) -> Expr:
             expr_type = e["type"]
             if expr_type == "Literal":
-                return Literal(value=e["value"], type_name="auto")
+                return Literal(value=e["value"], type_name=e.get("type_name", "auto"))
             elif expr_type == "Variable":
                 return Variable(name=e["name"])
             elif expr_type == "BinaryOp":
@@ -141,6 +175,13 @@ class IRParser:
             else:
                 raise ValueError(f"Unknown pattern type: {pat_type}")
 
+        # Convert type definitions
+        type_defs = []
+        for td_dict in data.get("type_defs", []):
+            type_def = convert_type_def(td_dict)
+            type_defs.append(type_def)
+
+        # Convert functions
         functions = []
         for func_dict in data.get("functions", []):
             params = [(p["name"], convert_type(p["type"])) for p in func_dict["parameters"]]
@@ -165,7 +206,7 @@ class IRParser:
             )
             functions.append(func)
 
-        return Program(type_defs=[], func_defs=functions)
+        return Program(type_defs=type_defs, func_defs=functions)
 
 
 def parse_ir(source: str, force_python: bool = False) -> Program:
