@@ -1,0 +1,7 @@
+@source("examples/15-simple-option.pole")
+
+func get_none() -> Option<Int> :
+  None
+
+func get_some() -> Option<Int> :
+  Some(42)

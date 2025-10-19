@@ -1,7 +1,7 @@
 # M4: Advanced Types Implementation Progress
 
 **Start Date:** 2025-10-19  
-**Current Status:** M4.3 Complete, M4.4 In Progress
+**Current Status:** M4.4 Complete, M4.5 In Progress
 
 ## Overview
 
@@ -89,16 +89,73 @@ define i1 @is_red(i32 %c) {
 - No pattern matching on variants
 - No Option/Result with payload yet
 
-## Current Task: M4.4 Result & Option Types
+### M4.4: Option & Result Types ✅ (2025-10-19)
 
-**Goal:** Support Option<T> and Result<T,E> types with payload
+**Implementation:**
+- Option<T>: `{ i32 tag, T value }` (tag: 0=None, 1=Some)
+- Result<T,E>: `{ i32 tag, max(T,E) value }` (tag: 0=Err, 1=Ok)
+- Constructor handling in Application expressions
+- Pattern matching with value extraction
+- Variable binding in Some/Ok patterns
+
+**Files:**
+- `examples/15-simple-option.pole-ir` - None and Some constructors
+- `examples/16-option-match.pole-ir` - Pattern matching with unwrap_or
+- `compiler/examples/test_option_codegen.rs` - Constructor verification
+- `compiler/examples/test_option_match.rs` - Pattern matching verification
+- `compiler/examples/m4_4_summary.rs` - Complete verification
+
+**LLVM IR Output:**
+```llvm
+; None
+define { i32, i64 } @get_none() {
+  ret { i32, i64 } { i32 0, i64 undef }
+}
+
+; Some(42)
+define { i32, i64 } @get_some() {
+  ret { i32, i64 } { i32 1, i64 42 }
+}
+
+; Pattern matching
+define i64 @unwrap_or({ i32, i64 } %opt, i64 %default) {
+  %tag = extractvalue { i32, i64 } %opt, 0
+  %is_some = icmp eq i32 %tag, 1
+  br i1 %is_some, label %match_some, label %match_next
+match_some:
+  %value = extractvalue { i32, i64 } %opt, 1
+  br label %match_merge
+match_next:
+  br label %match_merge
+match_merge:
+  %match_result = phi i64 [ %value, %match_some ], [ %default, %match_next ]
+  ret i64 %match_result
+}
+```
+
+**Code Changes:**
+1. `codegen.rs:compile_type()` - Added Option/Result type → struct mapping
+2. `codegen.rs:compile_expr()` - Handle Some/Ok/Err in Application
+3. `codegen.rs:compile_variable()` - Handle None constructor
+4. `codegen.rs:compile_match()` - Pattern matching on Option/Result
+5. Added `current_function_return_type` to track context for None
+
+**Features:**
+- None uses function return type to infer inner type
+- Some(x)/Ok(x)/Err(e) create tagged structs with insertvalue
+- Pattern matching extracts tag, branches, extracts value
+- Variable binding in patterns (Some(x) -> x)
+- PHI nodes merge pattern match branches
+
+## Current Task: M4.5 Unit Type & Runtime Functions
+
+**Goal:** Add Unit type and basic runtime functions
 
 **Next Steps:**
-1. Design tagged union representation for variants with arguments
-2. Implement Option<T> as `{ i32 tag, T value }`
-3. Implement Result<T,E> as `{ i32 tag, union { T ok, E err } }`
-4. Add pattern matching on variant constructors
-5. Create example: `14-option-result.pole-ir`
+1. Implement Unit type as `void` or `i8`
+2. Add string length function
+3. Add list length function
+4. Consider other basic utilities
 
 ## Performance Metrics
 
@@ -117,7 +174,9 @@ All tests compile and verify successfully:
 | 11-simple-list.pole-ir | List literals | ✅ |
 | 12-simple-variant.pole-ir | Basic variants | ✅ |
 | 13-variant-tags.pole-ir | Tag values & comparison | ✅ |
+| 15-simple-option.pole-ir | Option constructors | ✅ |
+| 16-option-match.pole-ir | Option pattern matching | ✅ |
 
-## Next Milestone: M4.4
+## Next Milestone: M4.5
 
-Target: Option and Result types with proper payload support
+Target: Unit type and runtime utility functions

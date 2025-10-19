@@ -26,6 +26,7 @@ pub struct CodeGen<'ctx> {
     variant_defs: HashMap<String, Vec<(String, Vec<Type>)>>,
     local_vars: HashMap<String, BasicValueEnum<'ctx>>,
     var_types: HashMap<String, Type>,
+    current_function_return_type: Option<Type>,
 }
 
 impl<'ctx> CodeGen<'ctx> {
@@ -41,6 +42,7 @@ impl<'ctx> CodeGen<'ctx> {
             variant_defs: HashMap::new(),
             local_vars: HashMap::new(),
             var_types: HashMap::new(),
+            current_function_return_type: None,
         }
     }
 
@@ -89,7 +91,9 @@ impl<'ctx> CodeGen<'ctx> {
         let entry_bb = self.context.append_basic_block(fn_value, "entry");
         self.builder.position_at_end(entry_bb);
 
+        self.current_function_return_type = Some(function.return_type.clone());
         let body_value = self.compile_expr(&function.body, fn_value)?;
+        self.current_function_return_type = None;
 
         self.builder.build_return(Some(&body_value)).unwrap();
 
@@ -116,6 +120,65 @@ impl<'ctx> CodeGen<'ctx> {
             Expr::Record(record_expr) => self.compile_record(record_expr, function),
             Expr::Constructor(constructor) => self.compile_constructor(constructor, function),
             Expr::Application(app) => {
+                // Check if this is an Option/Result constructor
+                if let Expr::Variable(var) = &*app.func {
+                    match var.name.as_str() {
+                        "Some" => {
+                            // Some(x) -> { i32 1, T x }
+                            let value = self.compile_expr(&app.arg, function)?;
+                            let i32_type = self.context.i32_type();
+                            let tag = i32_type.const_int(1, false);
+                            
+                            let option_type = self.context.struct_type(
+                                &[i32_type.into(), value.get_type()],
+                                false
+                            );
+                            
+                            let mut option_val = option_type.get_undef();
+                            option_val = self.builder.build_insert_value(option_val, tag, 0, "tag").unwrap().into_struct_value();
+                            option_val = self.builder.build_insert_value(option_val, value, 1, "value").unwrap().into_struct_value();
+                            
+                            return Ok(option_val.into());
+                        }
+                        "Ok" => {
+                            // Ok(x) -> { i32 1, T x }
+                            let value = self.compile_expr(&app.arg, function)?;
+                            let i32_type = self.context.i32_type();
+                            let tag = i32_type.const_int(1, false);
+                            
+                            let result_type = self.context.struct_type(
+                                &[i32_type.into(), value.get_type()],
+                                false
+                            );
+                            
+                            let mut result_val = result_type.get_undef();
+                            result_val = self.builder.build_insert_value(result_val, tag, 0, "tag").unwrap().into_struct_value();
+                            result_val = self.builder.build_insert_value(result_val, value, 1, "value").unwrap().into_struct_value();
+                            
+                            return Ok(result_val.into());
+                        }
+                        "Err" => {
+                            // Err(e) -> { i32 0, E e }
+                            let value = self.compile_expr(&app.arg, function)?;
+                            let i32_type = self.context.i32_type();
+                            let tag = i32_type.const_int(0, false);
+                            
+                            let result_type = self.context.struct_type(
+                                &[i32_type.into(), value.get_type()],
+                                false
+                            );
+                            
+                            let mut result_val = result_type.get_undef();
+                            result_val = self.builder.build_insert_value(result_val, tag, 0, "tag").unwrap().into_struct_value();
+                            result_val = self.builder.build_insert_value(result_val, value, 1, "value").unwrap().into_struct_value();
+                            
+                            return Ok(result_val.into());
+                        }
+                        _ => {}
+                    }
+                }
+                
+                // Regular function call
                 // Collect all args from nested Applications
                 let (func_name, args) = self.flatten_application(app)?;
                 
@@ -195,7 +258,7 @@ impl<'ctx> CodeGen<'ctx> {
         }
         
         // Check if it's a variant constructor
-        for (variant_name, constructors) in &self.variant_defs {
+        for (_variant_name, constructors) in &self.variant_defs {
             for (idx, (ctor_name, ctor_args)) in constructors.iter().enumerate() {
                 if ctor_name == name && ctor_args.is_empty() {
                     // Simple enum constructor (no arguments)
@@ -204,6 +267,26 @@ impl<'ctx> CodeGen<'ctx> {
                     let tag_value = i32_type.const_int(idx as u64, false);
                     return Ok(tag_value.into());
                 }
+            }
+        }
+        
+        // Check if it's None (Option type)
+        if name == "None" {
+            if let Some(Type::Option(option_type)) = &self.current_function_return_type {
+                // None -> { i32 0, T undef }
+                let i32_type = self.context.i32_type();
+                let tag = i32_type.const_int(0, false);
+                let inner_type = self.compile_type(&option_type.inner);
+                
+                let option_struct_type = self.context.struct_type(
+                    &[i32_type.into(), inner_type],
+                    false
+                );
+                
+                let mut option_val = option_struct_type.get_undef();
+                option_val = self.builder.build_insert_value(option_val, tag, 0, "tag").unwrap().into_struct_value();
+                
+                return Ok(option_val.into());
             }
         }
 
@@ -299,7 +382,7 @@ impl<'ctx> CodeGen<'ctx> {
             return Err("Match expression must have at least one arm".to_string());
         }
 
-        let scrutinee_value = self.compile_expr(&match_expr.scrutinee, function)?.into_int_value();
+        let scrutinee_value = self.compile_expr(&match_expr.scrutinee, function)?;
 
         if arms.len() == 1 {
             return self.compile_expr(&arms[0].1, function);
@@ -314,10 +397,11 @@ impl<'ctx> CodeGen<'ctx> {
                     let match_bb = self.context.append_basic_block(function, "match_case");
                     let next_bb = self.context.append_basic_block(function, "match_next");
 
+                    let scrutinee_int = scrutinee_value.into_int_value();
                     let pattern_value = self.context.i64_type().const_int(*n as u64, true);
                     let cond = self
                         .builder
-                        .build_int_compare(IntPredicate::EQ, scrutinee_value, pattern_value, "cond")
+                        .build_int_compare(IntPredicate::EQ, scrutinee_int, pattern_value, "cond")
                         .unwrap();
 
                     self.builder
@@ -353,6 +437,108 @@ impl<'ctx> CodeGen<'ctx> {
             }
             Pattern::Variable(_) => {
                 self.compile_expr(first_expr, function)
+            }
+            Pattern::Constructor(ctor_pattern) => {
+                // Handle Option/Result constructor patterns
+                match ctor_pattern.name.as_str() {
+                    "Some" | "Ok" => {
+                        // Extract tag from { i32 tag, T value }
+                        let scrutinee_struct = scrutinee_value.into_struct_value();
+                        let tag = self.builder.build_extract_value(scrutinee_struct, 0, "tag")
+                            .unwrap().into_int_value();
+                        
+                        // Check if tag == 1 (Some/Ok)
+                        let tag_one = self.context.i32_type().const_int(1, false);
+                        let is_some = self.builder.build_int_compare(
+                            IntPredicate::EQ, tag, tag_one, "is_some"
+                        ).unwrap();
+                        
+                        let match_bb = self.context.append_basic_block(function, "match_some");
+                        let next_bb = self.context.append_basic_block(function, "match_next");
+                        
+                        self.builder.build_conditional_branch(is_some, match_bb, next_bb).unwrap();
+                        
+                        // Some/Ok branch
+                        self.builder.position_at_end(match_bb);
+                        
+                        // Extract value and bind to pattern variable
+                        if let Some(Pattern::Variable(var_pattern)) = ctor_pattern.args.first() {
+                            let value = self.builder.build_extract_value(scrutinee_struct, 1, "value")
+                                .unwrap();
+                            
+                            let old_var = self.local_vars.insert(var_pattern.name.clone(), value);
+                            let match_value = self.compile_expr(first_expr, function)?;
+                            
+                            // Restore old variable binding
+                            if let Some(old) = old_var {
+                                self.local_vars.insert(var_pattern.name.clone(), old);
+                            } else {
+                                self.local_vars.remove(&var_pattern.name);
+                            }
+                            
+                            let merge_bb = self.context.append_basic_block(function, "match_merge");
+                            self.builder.build_unconditional_branch(merge_bb).unwrap();
+                            let match_bb_end = self.builder.get_insert_block().unwrap();
+                            
+                            // None/Err branch
+                            self.builder.position_at_end(next_bb);
+                            let rest_match = MatchExpr {
+                                scrutinee: match_expr.scrutinee.clone(),
+                                arms: rest_arms.to_vec(),
+                            };
+                            let next_value = self.compile_match(&rest_match, function)?;
+                            self.builder.build_unconditional_branch(merge_bb).unwrap();
+                            let next_bb_end = self.builder.get_insert_block().unwrap();
+                            
+                            self.builder.position_at_end(merge_bb);
+                            let phi = self.builder.build_phi(match_value.get_type(), "match_result").unwrap();
+                            phi.add_incoming(&[(&match_value, match_bb_end), (&next_value, next_bb_end)]);
+                            
+                            Ok(phi.as_basic_value())
+                        } else {
+                            Err("Some/Ok pattern must have exactly one variable argument".to_string())
+                        }
+                    }
+                    "None" | "Err" => {
+                        // Extract tag from { i32 tag, T value }
+                        let scrutinee_struct = scrutinee_value.into_struct_value();
+                        let tag = self.builder.build_extract_value(scrutinee_struct, 0, "tag")
+                            .unwrap().into_int_value();
+                        
+                        let expected_tag = if ctor_pattern.name == "None" { 0 } else { 0 };
+                        let tag_value = self.context.i32_type().const_int(expected_tag, false);
+                        let is_match = self.builder.build_int_compare(
+                            IntPredicate::EQ, tag, tag_value, "is_none"
+                        ).unwrap();
+                        
+                        let match_bb = self.context.append_basic_block(function, "match_none");
+                        let next_bb = self.context.append_basic_block(function, "match_next");
+                        
+                        self.builder.build_conditional_branch(is_match, match_bb, next_bb).unwrap();
+                        
+                        self.builder.position_at_end(match_bb);
+                        let match_value = self.compile_expr(first_expr, function)?;
+                        let merge_bb = self.context.append_basic_block(function, "match_merge");
+                        self.builder.build_unconditional_branch(merge_bb).unwrap();
+                        let match_bb_end = self.builder.get_insert_block().unwrap();
+                        
+                        self.builder.position_at_end(next_bb);
+                        let rest_match = MatchExpr {
+                            scrutinee: match_expr.scrutinee.clone(),
+                            arms: rest_arms.to_vec(),
+                        };
+                        let next_value = self.compile_match(&rest_match, function)?;
+                        self.builder.build_unconditional_branch(merge_bb).unwrap();
+                        let next_bb_end = self.builder.get_insert_block().unwrap();
+                        
+                        self.builder.position_at_end(merge_bb);
+                        let phi = self.builder.build_phi(match_value.get_type(), "match_result").unwrap();
+                        phi.add_incoming(&[(&match_value, match_bb_end), (&next_value, next_bb_end)]);
+                        
+                        Ok(phi.as_basic_value())
+                    }
+                    _ => Err(format!("Unsupported constructor pattern: {}", ctor_pattern.name))
+                }
             }
             _ => Err(format!("Unsupported pattern: {:?}", first_pattern)),
         }
@@ -426,6 +612,32 @@ impl<'ctx> CodeGen<'ctx> {
                 let element_ptr_type = element_type.ptr_type(inkwell::AddressSpace::default());
                 let i64_type = self.context.i64_type();
                 self.context.struct_type(&[element_ptr_type.into(), i64_type.into()], false).into()
+            }
+            Type::Option(option_type) => {
+                // Option<T> = { i32 tag, T value }
+                // tag: 0 = None, 1 = Some
+                let i32_type = self.context.i32_type();
+                let inner_type = self.compile_type(&option_type.inner);
+                self.context.struct_type(&[i32_type.into(), inner_type], false).into()
+            }
+            Type::Result(result_type) => {
+                // Result<T, E> = { i32 tag, union { T ok, E err } }
+                // tag: 0 = Err, 1 = Ok
+                // For now, use the larger of the two types
+                let i32_type = self.context.i32_type();
+                let ok_type = self.compile_type(&result_type.ok_type);
+                let err_type = self.compile_type(&result_type.err_type);
+                
+                // Use the larger type for the union
+                let ok_size = ok_type.size_of().unwrap();
+                let err_size = err_type.size_of().unwrap();
+                let value_type = if ok_size.get_zero_extended_constant().unwrap() >= err_size.get_zero_extended_constant().unwrap() {
+                    ok_type
+                } else {
+                    err_type
+                };
+                
+                self.context.struct_type(&[i32_type.into(), value_type], false).into()
             }
             _ => panic!("Unsupported type: {:?}", ty),
         }
