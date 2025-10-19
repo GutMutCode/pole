@@ -551,6 +551,7 @@ fn parse_let_expr(input: &str) -> ParseResult<Expr> {
 // Primary expressions (literals, variables, parenthesized)
 fn parse_primary_expr(input: &str) -> ParseResult<Expr> {
     alt((
+        parse_list_literal,
         parse_record_expr,
         parse_literal,
         parse_application,
@@ -874,4 +875,23 @@ fn parse_record_expr(input: &str) -> ParseResult<Expr> {
     let (input, _) = char('}')(input)?;
     
     Ok((input, Expr::Record(RecordExpr { fields })))
+}
+
+fn parse_list_literal(input: &str) -> ParseResult<Expr> {
+    let (input, _) = char('[')(input)?;
+    let (input, _) = multispace0(input)?;
+    
+    let (input, elements) = separated_list0(
+        ws(char(',')),
+        ws(parse_expr),
+    )(input)?;
+    
+    let (input, _) = multispace0(input)?;
+    let (input, _) = char(']')(input)?;
+    
+    // Represent list literal as Constructor
+    Ok((input, Expr::Constructor(Constructor {
+        name: "List".to_string(),
+        args: elements,
+    })))
 }

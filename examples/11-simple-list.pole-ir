@@ -1,0 +1,10 @@
+@source("examples/11-simple-list.pole")
+
+func empty_list() -> List<Int> :
+  []
+
+func single_item() -> List<Int> :
+  [42]
+
+func three_items() -> List<Int> :
+  [1, 2, 3]

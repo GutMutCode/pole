@@ -11,9 +11,9 @@ use inkwell::IntPredicate;
 use std::path::Path;
 
 use crate::ast::{
-    Application, BasicType as AstBasicType, BinaryOp, Expr, FieldAccess, FunctionDef, IfExpr,
-    LetExpr, Literal, LiteralValue, MatchExpr, Pattern, Program, RecordExpr, RecordType, Type,
-    TypeDefKind, Variable,
+    Application, BasicType as AstBasicType, BinaryOp, Constructor, Expr, FieldAccess, FunctionDef,
+    IfExpr, LetExpr, Literal, LiteralValue, MatchExpr, Pattern, Program, RecordExpr, RecordType,
+    Type, TypeDefKind, Variable,
 };
 
 use std::collections::HashMap;
@@ -106,6 +106,7 @@ impl<'ctx> CodeGen<'ctx> {
             Expr::Let(let_expr) => self.compile_let(let_expr, function),
             Expr::FieldAccess(field_access) => self.compile_field_access(field_access, function),
             Expr::Record(record_expr) => self.compile_record(record_expr, function),
+            Expr::Constructor(constructor) => self.compile_constructor(constructor, function),
             Expr::Application(app) => {
                 // Collect all args from nested Applications
                 let (func_name, args) = self.flatten_application(app)?;
@@ -395,6 +396,13 @@ impl<'ctx> CodeGen<'ctx> {
                     }
                 }
             },
+            Type::List(list_type) => {
+                // List<T> = { T*, i64 } (element pointer + length)
+                let element_type = self.compile_type(&list_type.element_type);
+                let element_ptr_type = element_type.ptr_type(inkwell::AddressSpace::default());
+                let i64_type = self.context.i64_type();
+                self.context.struct_type(&[element_ptr_type.into(), i64_type.into()], false).into()
+            }
             _ => panic!("Unsupported type: {:?}", ty),
         }
     }
@@ -532,6 +540,68 @@ impl<'ctx> CodeGen<'ctx> {
         }
         
         Ok(struct_val.into())
+    }
+    
+    fn compile_constructor(
+        &mut self,
+        constructor: &Constructor,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // Handle List constructor
+        if constructor.name == "List" {
+            let element_values: Vec<BasicValueEnum> = constructor
+                .args
+                .iter()
+                .map(|arg| self.compile_expr(arg, function))
+                .collect::<Result<Vec<_>, _>>()?;
+            
+            let length = element_values.len() as u64;
+            
+            if element_values.is_empty() {
+                // Empty list: { null, 0 }
+                let i64_type = self.context.i64_type();
+                let i64_ptr_type = i64_type.ptr_type(inkwell::AddressSpace::default());
+                let list_type = self.context.struct_type(
+                    &[i64_ptr_type.into(), i64_type.into()],
+                    false
+                );
+                
+                let null_ptr = i64_ptr_type.const_null();
+                let zero_len = i64_type.const_int(0, false);
+                let list_val = list_type.const_named_struct(&[null_ptr.into(), zero_len.into()]);
+                
+                Ok(list_val.into())
+            } else {
+                // Non-empty list: create global array and return { ptr, length }
+                let i64_type = self.context.i64_type();
+                
+                let const_values: Vec<_> = element_values.iter()
+                    .map(|v| match v {
+                        BasicValueEnum::IntValue(iv) => *iv,
+                        _ => panic!("Expected int value for now"),
+                    })
+                    .collect();
+                
+                let array_val = i64_type.const_array(&const_values);
+                let global_array = self.module.add_global(array_val.get_type(), None, "list_data");
+                global_array.set_initializer(&array_val);
+                global_array.set_constant(true);
+                
+                let array_ptr = global_array.as_pointer_value();
+                let length_val = i64_type.const_int(length, false);
+                
+                let i64_ptr_type = i64_type.ptr_type(inkwell::AddressSpace::default());
+                let list_type = self.context.struct_type(
+                    &[i64_ptr_type.into(), i64_type.into()],
+                    false
+                );
+                
+                let list_val = list_type.const_named_struct(&[array_ptr.into(), length_val.into()]);
+                Ok(list_val.into())
+            }
+        } else {
+            Err(format!("Unknown constructor: {}", constructor.name))
+        }
     }
 
     pub fn get_module(&self) -> &Module<'ctx> {
