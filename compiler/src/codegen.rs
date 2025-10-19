@@ -150,6 +150,20 @@ impl<'ctx> CodeGen<'ctx> {
                 let f64_type = self.context.f64_type();
                 Ok(f64_type.const_float(*f).into())
             }
+            LiteralValue::String(s) => {
+                // Create a global string constant
+                let global_string = self.builder.build_global_string_ptr(s, "str").unwrap();
+                let i8_ptr = global_string.as_pointer_value();
+                let length = self.context.i64_type().const_int(s.len() as u64, false);
+                
+                // Build String struct { i8*, i64 }
+                let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+                let i64_type = self.context.i64_type();
+                let string_type = self.context.struct_type(&[i8_ptr_type.into(), i64_type.into()], false);
+                
+                let string_val = string_type.const_named_struct(&[i8_ptr.into(), length.into()]);
+                Ok(string_val.into())
+            }
             _ => Err(format!("Unsupported literal: {:?}", lit)),
         }
     }
@@ -362,6 +376,12 @@ impl<'ctx> CodeGen<'ctx> {
                 "Int" | "Nat" => self.context.i64_type().into(),
                 "Bool" => self.context.bool_type().into(),
                 "Float64" => self.context.f64_type().into(),
+                "String" => {
+                    // String = { i8*, i64 } (data pointer + length)
+                    let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+                    let i64_type = self.context.i64_type();
+                    self.context.struct_type(&[i8_ptr_type.into(), i64_type.into()], false).into()
+                }
                 type_name => {
                     if let Some(record_type) = self.type_defs.get(type_name) {
                         let field_types: Vec<BasicTypeEnum> = record_type
@@ -414,6 +434,7 @@ impl<'ctx> CodeGen<'ctx> {
                 LiteralValue::Int(_) => Ok(Type::Basic(AstBasicType { name: "Int".to_string() })),
                 LiteralValue::Bool(_) => Ok(Type::Basic(AstBasicType { name: "Bool".to_string() })),
                 LiteralValue::Float(_) => Ok(Type::Basic(AstBasicType { name: "Float64".to_string() })),
+                LiteralValue::String(_) => Ok(Type::Basic(AstBasicType { name: "String".to_string() })),
                 _ => Err("Cannot infer type for literal".to_string()),
             },
             Expr::Variable(var) => self.var_types.get(&var.name)

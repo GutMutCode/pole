@@ -1,0 +1,7 @@
+@source("examples/10-string-literal.pole")
+
+func get_hello() -> String :
+  "Hello, World!"
+
+func get_name() -> String :
+  "Pole"

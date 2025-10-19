@@ -1,0 +1,7 @@
+@source("examples/09-simple-string.pole")
+
+func greet(name: String) -> String :
+  name
+
+func string_length(s: String) -> Nat :
+  42
