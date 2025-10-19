@@ -802,6 +802,20 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     .map(|(_, ty)| ty.clone())
                     .ok_or_else(|| format!("Field '{}' not found", field_access.field))
             },
+            Expr::Application(app) => {
+                // Check for builtin functions
+                if let Expr::Variable(var) = &*app.func {
+                    match var.name.as_str() {
+                        "String_length" => return Ok(Type::Basic(AstBasicType { name: "Nat".to_string() })),
+                        "String_contains" => return Ok(Type::Basic(AstBasicType { name: "Bool".to_string() })),
+                        _ => {}
+                    }
+                }
+                
+                // For other applications, we'd need full type inference
+                // For now, just fail
+                Err(format!("Cannot infer type for application: {:?}", app))
+            },
             _ => Err(format!("Cannot infer type for expression: {:?}", expr)),
         }
     }
