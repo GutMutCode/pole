@@ -453,17 +453,74 @@ Rust (성능 critical 레이어)
 
 ---
 
-#### 5.2 **메모리 관리 시스템**
+#### 5.1.5 **컴파일러 메모리 관리 최적화 (Arena Allocator)** ⭐ 높은 우선순위
 
-**목표:** 자동 + 수동 메모리 관리, 누수 방지
+**목표:** SQLite 스타일 메모리 관리로 컴파일러 안정성/성능 대폭 개선
 
-**기간:** 4-6개월 (5.1 M2 이후 시작)
+**기간:** 1개월 (M2 직후 또는 병행)
+
+**산출물:**
+- `compiler/src/arena.rs` - Rust Arena allocator 구현
+- `compiler/src/memory.rs` - 메모리 관리 시스템
+- 문서: `docs/COMPILER_MEMORY_MANAGEMENT.md`
+
+**구현 내용:**
+
+1. **Rust Arena Allocator 통합**
+   ```rust
+   // bumpalo 라이브러리 활용
+   use bumpalo::Bump;
+   
+   pub struct CompilerArenas {
+       parse_arena: Bump,    // AST 파싱용 (50MB)
+       ir_arena: Bump,       // IR 생성용 (30MB)
+       codegen_arena: Bump,  // 코드 생성용 (20MB)
+   }
+   ```
+
+2. **OOM 복구 메커니즘**
+   ```rust
+   // panic 대신 Result 반환
+   fn compile_with_limit(source: &str, limit: usize) 
+       -> Result<Module, CompileError> {
+       let arena = CompilerArenas::new(limit);
+       arena.compile(source)
+           .map_err(|_| CompileError::OutOfMemory)
+   }
+   ```
+
+3. **컴파일러 통합**
+   - codegen.rs에 Arena 통합
+   - ir_parser.rs 메모리 최적화
+   - type_checker.rs Arena 활용
+
+**예상 개선 효과:**
+- 메모리 사용량: 75% 감소 (110MB → 30MB)
+- 컴파일 속도: 3x 향상 (할당 오버헤드 감소)
+- OOM 복구: 크래시 → 우아한 에러 처리
+- 대규모 프로젝트: 1000 파일 컴파일 가능 (8GB RAM)
+
+**성공 기준:**
+- ✅ factorial 컴파일: 110MB → 30MB
+- ✅ 1000 파일 프로젝트: 2GB → 500MB
+- ✅ OOM 시 크래시 없음
+- ✅ 성능: 3x 향상
+
+**선행 조건:** 5.1 M2 완료 또는 병행
+
+---
+
+#### 5.2 **런타임 메모리 관리 시스템**
+
+**목표:** Pole 프로그램의 런타임 메모리 관리 (컴파일된 코드용)
+
+**기간:** 4-6개월 (5.1 완료 후)
 
 **산출물:**
 - `specs/memory-model.md` - 메모리 모델 설계
-- `compiler/src/memory/` (Rust, 신규)
+- `compiler/src/runtime_memory/` (Rust, 신규)
   - `gc.rs` - 가비지 컬렉션 (참조 카운팅)
-  - `allocator.rs` - 커스텀 할당자 (Arena, Pool)
+  - `allocator.rs` - 런타임 할당자 (게임 엔진용)
   - `ownership.rs` - 소유권 추적 및 검증
 - `@manual_memory`, `@heap_allocated` 어노테이션
 
@@ -474,9 +531,9 @@ Rust (성능 critical 레이어)
    - 순환 참조 감지 (Weak references)
    - Zero-cost abstractions
 
-2. **커스텀 할당자**
-   - Arena allocator (프레임 단위 일괄 해제)
-   - Pool allocator (작은 객체 재사용)
+2. **게임 엔진용 커스텀 할당자**
+   - Frame allocator (프레임 단위 해제)
+   - Object pool (엔티티 재사용)
    - Stack allocator (임시 데이터)
 
 3. **소유권 시스템** (Rust 스타일)
@@ -497,20 +554,22 @@ Rust (성능 critical 레이어)
    - Weak references
    - 누수 검증 도구
 
-3. **M3: Arena allocator** (1개월)
-   - 프레임 단위 할당/해제
-   - 게임 엔진 최적화
+3. **M3: 게임 엔진 할당자** (1개월)
+   - Frame allocator
+   - Object pooling
 
 4. **M4: 메모리 프로파일러** (1개월)
-   - 메모리 사용량 추적
+   - 런타임 메모리 추적
    - 누수 자동 감지
 
 **성공 기준:**
 - ✅ 메모리 누수: 0개 (Valgrind 검증)
 - ✅ 오버헤드: < 5% (RC)
-- ✅ Arena allocator: 10x 빠른 할당
+- ✅ Frame allocator: 10x 빠른 할당
 
-**선행 조건:** 5.1 M2 (컴파일러 기본 완성)
+**선행 조건:** 5.1 완료
+
+**주의:** 5.1.5는 컴파일러 자체의 메모리, 5.2는 컴파일된 프로그램의 런타임 메모리
 
 ---
 
@@ -555,7 +614,7 @@ Rust (성능 critical 레이어)
 - ✅ 성능: Python 대비 10-100x
 - ✅ SIMD: 벡터 연산 4x 빠름
 
-**선행 조건:** 5.1 M3
+**선행 조건:** 5.1 M3, 5.1.5 (컴파일러 메모리 최적화)
 
 ---
 
@@ -1274,28 +1333,32 @@ pole publish
 
 **다음 작업:**
 
-**M2: LLVM 백엔드 - 기본 함수 컴파일** (2개월, 예정 2025-11-10 ~ 2026-01-10)
+**5.1.5: 컴파일러 메모리 관리 최적화 (Arena Allocator)** ⭐ 높은 우선순위
 
-**목표:** Pole IR → LLVM IR → 네이티브 실행 파일
+**목표:** SQLite 스타일 메모리 관리로 컴파일러 안정성/성능 개선
 
-**선행 조건:** ✅ M1.5 완료 (Rust-Python 통합 완성)
+**선행 조건:** M2 진행 중 (병행 개발 가능)
 
-**다음 단계:**
-1. LLVM 바인딩 선택 (llvm-sys vs inkwell)
-2. 간단한 함수 (factorial) 컴파일
-3. 기본 타입 (Int, Bool, Nat) 지원
-4. 산술 연산자
-5. 조건문 (if-then-else)
-6. 재귀 함수 호출
+**구현 계획:**
+1. bumpalo 라이브러리 통합 (Cargo.toml)
+2. CompilerArenas 구조체 구현
+3. codegen.rs에 Arena 통합
+4. OOM 복구 메커니즘 추가
+5. 벤치마크 및 검증
 
-**시작 예정일:** 2025-11-10
+**예상 소요 시간:** 2-3주
 
-**M2 완료 후:** M3 (LLVM 백엔드 - 고급 기능) 시작
+**완료 후:** M2 계속 진행 + M3 (LLVM 고급 기능)
 
 ---
 
 ## 변경 이력
 
+- **2025-10-19**: Arena Allocator 도입 계획 추가 (5.1.5)
+  - SQLite 스타일 메모리 관리를 Rust로 구현
+  - 컴파일러 메모리 사용량 75% 감소 목표
+  - OOM 복구 메커니즘 도입
+  - 5.2 런타임 메모리 관리와 구분 명확화
 - **2025-10-19**: Phase 5 M1.5 완료 (Python-Rust 통합 완성) 🎉
   - **해결한 문제**: `ir_parser_rust.py`가 type_defs를 무시하던 문제 수정
   - **구현**: convert_type_def() 함수, Literal type_name 전달

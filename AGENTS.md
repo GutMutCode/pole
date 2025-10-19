@@ -381,7 +381,9 @@ Complete task 1.4: Add verification system requirements
 - ✅ **M0.5**: 시스템 안정화 완료  
 - ✅ **M1**: Rust IR Parser 완성 (6/6 예제)
 - ✅ **M1.5**: Python-Rust 통합 완성
-- ⏳ **M2**: LLVM 백엔드 개발 (2025-11 시작)
+- ✅ **M2 준비**: LLVM 환경 구축, factorial 네이티브 컴파일 성공
+- ⏳ **5.1.5**: Arena Allocator 도입 (높은 우선순위)
+- ⏳ **M2**: LLVM 백엔드 완성 (진행 중)
 
 ### Key Performance Metrics
 - Rust IR Parser: **23.4x** faster than Python
