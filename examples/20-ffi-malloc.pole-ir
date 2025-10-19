@@ -1,0 +1,15 @@
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("putchar")
+func c_putchar(c: Int) -> Int
+
+func test_simple_ffi() -> Int :
+  let _ = c_puts("Testing multiple FFI calls:") in
+  let _ = c_puts("Line 1") in
+  let _ = c_puts("Line 2") in
+  let _ = c_puts("Line 3") in
+  let _ = c_putchar(10) in
+  c_puts("Done!")
+
+@test_case(expected=6)
