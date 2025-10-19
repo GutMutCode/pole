@@ -127,9 +127,19 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
             Expr::Record(record_expr) => self.compile_record(record_expr, function),
             Expr::Constructor(constructor) => self.compile_constructor(constructor, function),
             Expr::Application(app) => {
-                // Check if this is an Option/Result constructor
+                // Check if this is a builtin function or constructor
                 if let Expr::Variable(var) = &*app.func {
                     match var.name.as_str() {
+                        "String_length" | "String.length" => {
+                            // String.length: String -> Nat
+                            // String is { i8*, i64 }, extract field 1 (length)
+                            let string_val = self.compile_expr(&app.arg, function)?;
+                            let string_struct = string_val.into_struct_value();
+                            let length = self.builder
+                                .build_extract_value(string_struct, 1, "length")
+                                .unwrap();
+                            return Ok(length);
+                        }
                         "Some" => {
                             // Some(x) -> { i32 1, T x }
                             let value = self.compile_expr(&app.arg, function)?;
@@ -181,7 +191,9 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                             
                             return Ok(result_val.into());
                         }
-                        _ => {}
+                        _ => {
+                            // Check if it's a builtin before falling through
+                        }
                     }
                 }
                 
