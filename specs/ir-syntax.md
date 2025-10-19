@@ -294,6 +294,10 @@ annotation_name = "source"
                 | "inline"
                 | "pure"
                 | "tailrec"
+                | "extern"
+                | "link"
+                | "variadic"
+                | "header"
                 ;
 
 annotation_args = annotation_arg ("," annotation_arg)* ;
@@ -307,6 +311,45 @@ annotation_arg  = identifier "=" literal ;
 @test_case(input=5, expected=120)
 @inline
 @pure
+@extern("printf")
+@link("SDL2")
+@variadic
+@header("SDL2/SDL.h")
+```
+
+### 6.1 FFI 어노테이션 (Phase 6.1)
+
+FFI 관련 어노테이션은 외부 C/C++ 함수 선언에 사용됩니다.
+
+**`@extern(name)`**: C 함수 이름 지정
+
+```
+@extern("printf")
+func c_printf(format: String) -> Int
+```
+
+**`@link(library)`**: 링크할 라이브러리 지정 (옵션)
+
+```
+@extern("SDL_Init")
+@link("SDL2")
+func sdl_init(flags: Int) -> Int
+```
+
+**`@variadic`**: 가변 인자 함수 표시
+
+```
+@extern("printf")
+@variadic
+func c_printf(format: String) -> Int
+```
+
+**`@header(path)`**: C 헤더 파일 경로 (문서화/bindgen용)
+
+```
+@header("SDL2/SDL.h")
+@extern("SDL_CreateWindow")
+func sdl_create_window(...) -> Ptr<Unit>
 ```
 
 ---
@@ -386,6 +429,26 @@ func validate_name (name: String) -> Result<Unit, ValidationError> :
     Err(NameTooLong)
   else
     Ok(())
+```
+
+### 8.5 FFI 함수 선언 예시 (Phase 6.1)
+
+```
+@extern("printf")
+@variadic
+func c_printf(format: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("SDL_Init")
+@link("SDL2")
+@header("SDL2/SDL.h")
+func sdl_init(flags: Int) -> Int
+
+func main() -> Unit :
+  let _ = c_printf("Hello from C!\n") in
+  ()
 ```
 
 ---
