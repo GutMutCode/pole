@@ -578,7 +578,8 @@ fn parse_let_expr(input: &str) -> ParseResult<Expr> {
     let (input, _) = ws(tag("let"))(input)?;
     let (input, var_name) = ws(identifier)(input)?;
     let (input, _) = ws(char('='))(input)?;
-    let (input, value) = ws(parse_simple_expr)(input)?;
+    // Use parse_non_control_expr instead of parse_simple_expr to support record/list literals
+    let (input, value) = ws(parse_non_control_expr)(input)?;
     let (input, _) = ws(tag("in"))(input)?;
     let (input, body) = ws(parse_expr)(input)?;
     
@@ -615,6 +616,11 @@ fn parse_postfix_expr(input: &str) -> ParseResult<Expr> {
     }
     
     Ok((input, expr))
+}
+
+// Non-control expressions (no if/match/let but includes records/lists)
+fn parse_non_control_expr(input: &str) -> ParseResult<Expr> {
+    parse_binary_op(input)
 }
 
 // Simple expressions (no complex control flow)

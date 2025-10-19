@@ -1,0 +1,14 @@
+type Point = { x: Int, y: Int }
+
+func add_points(p1: Point, p2: Point) -> Point:
+  let x = p1.x + p2.x in
+  let y = p1.y + p2.y in
+  { x = x, y = y }
+
+func main() -> Int:
+  let p1 = { x = 1, y = 2 } in
+  let p2 = { x = 4, y = 6 } in
+  let result = add_points(p1, p2) in
+  result.x
+
+@test_case(expected=5)

@@ -1167,9 +1167,59 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     return Ok(return_type.clone());
                 }
                 
+                // Check if it's a regular function call
+                // Get the function from LLVM module and extract return type
+                if let Some(llvm_func) = self.module.get_function(&func_name) {
+                    // We need to map LLVM type back to AST type
+                    // For now, check if we have the function definition in our tracking
+                    // This is a workaround - we should track function return types properly
+                    
+                    // Try to infer from LLVM return type
+                    let llvm_return_type = llvm_func.get_type().get_return_type();
+                    if let Some(return_type) = llvm_return_type {
+                        // Try to map LLVM type to AST type
+                        if return_type.is_int_type() {
+                            return Ok(Type::Basic(AstBasicType { name: "Int".to_string() }));
+                        } else if return_type.is_struct_type() {
+                            // For struct types, we need to find which type definition it matches
+                            // This is incomplete - we should track this properly
+                            // For now, assume it's the first struct type we find
+                            for (type_name, _type_def) in &self.type_defs {
+                                return Ok(Type::Basic(AstBasicType { name: type_name.clone() }));
+                            }
+                        }
+                    } else {
+                        return Ok(Type::Basic(AstBasicType { name: "Unit".to_string() }));
+                    }
+                }
+                
                 // For other applications, we'd need full type inference
                 // For now, just fail
                 Err(format!("Cannot infer type for application: {:?}", app))
+            },
+            Expr::Record(record_expr) => {
+                // Try to infer record type by matching field names against known types
+                // For now, we can't fully infer the type name, so we construct an anonymous record type
+                // This is a workaround - ideally we'd have bidirectional type checking
+                
+                // Extract field names
+                let field_names: Vec<String> = record_expr.fields.iter()
+                    .map(|(name, _)| name.clone())
+                    .collect();
+                
+                // Try to find a matching type definition
+                for (type_name, type_def) in &self.type_defs {
+                    let def_field_names: Vec<String> = type_def.fields.iter()
+                        .map(|(name, _)| name.clone())
+                        .collect();
+                    
+                    if field_names == def_field_names {
+                        return Ok(Type::Basic(AstBasicType { name: type_name.clone() }));
+                    }
+                }
+                
+                // If no exact match, return error
+                Err(format!("Cannot find type definition for record with fields: {:?}", field_names))
             },
             _ => Err(format!("Cannot infer type for expression: {:?}", expr)),
         }

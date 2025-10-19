@@ -5,7 +5,7 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
-    let ir_source = fs::read_to_string("../examples/08-simple-record.pole-ir")
+    let ir_source = fs::read_to_string("../examples/09-add-points.pole-ir")
         .expect("Failed to read IR file");
 
     println!("=== Parsing Pole IR ===");
