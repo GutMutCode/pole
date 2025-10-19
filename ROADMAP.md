@@ -396,7 +396,62 @@ Year 5+    : 지속적 개선 및 확장
    **M2 완료:**
    - ✅ 5개 예제 네이티브 컴파일 성공 (factorial, fibonacci, simple-math, is-even, max)
    - ✅ LLVM IR 생성 → Object file → 실행 파일 파이프라인 완성
-   - ✅ M3 작업 시작 준비 완료 (Record types, String 지원)
+   - ✅ M3 작업 시작 준비 완료 (Record types, String 지로)
+
+2.1 **M2.1: PZ Isometric Demo 버그 수정** 🔥 **최우선** (1-2일, 2025-10-19 ~ 2025-10-20)
+   
+   **목표:** 아이소메트릭 렌더링 PoC를 완성하여 PZ Clone 개발 시작
+   
+   **선행 조건:** M2 완료 (SDL2 FFI 기본 작동)
+   
+   **발견된 문제:**
+   1. ❌ **Unit 반환 함수 버그**: `draw_test_tile` 함수 LLVM IR 검증 실패
+      - 선언: `func draw_test_tile(...) -> Unit`
+      - 실제 반환: `ret i64 %call` (SDL 함수 반환값)
+      - 에러: "Function return type does not match operand type"
+      
+   2. ❌ **세미콜론 종료 처리**: 함수 본문 마지막 세미콜론 처리 불일치
+      
+   3. ⚠️ **언어 기능 미지원** (워크어라운드 적용됨):
+      - 루프 미구현 (하드코딩으로 대체)
+      - Multi-parameter 함수 제한 (curried 스타일 필요)
+      - Let-in 표현식 제한 (main에서만 작동)
+   
+   **작업 내용:**
+   
+   **1단계: Unit 반환 타입 버그 수정** (P0, Day 1)
+   - [ ] `compiler/src/codegen.rs`의 함수 반환 처리 수정
+   - [ ] Unit 반환 함수: SDL 호출 결과 무시하고 void 반환
+   - [ ] 세미콜론으로 끝나는 statement는 Unit 반환 처리
+   - [ ] `draw_test_tile`, `draw_grid` 함수 컴파일 성공 확인
+   
+   **2단계: Isometric Demo 실행** (P0, Day 1)
+   - [ ] `examples/27-isometric-simple.pole-ir` 컴파일 성공
+   - [ ] SDL2 윈도우 렌더링 확인
+   - [ ] 3x3 아이소메트릭 그리드 시각 검증
+   - [ ] 10초 표시 후 정상 종료
+   
+   **3단계: 언어 기능 확장** (P1, Day 2)
+   - [ ] For 루프 구문 추가 (간단한 정수 범위 반복)
+   - [ ] Let-in 표현식 함수 본문 지원
+   - [ ] 10x10 그리드로 확장
+   
+   **산출물:**
+   - [ ] 수정된 `compiler/src/codegen.rs` (Unit 반환 처리)
+   - [ ] 작동하는 `examples/27-isometric-simple.pole-ir`
+   - [ ] 아이소메트릭 렌더링 스크린샷
+   - [ ] (선택) For 루프 구현
+   
+   **검증 기준:**
+   - [ ] `cargo run --example test_isometric` 성공
+   - [ ] SDL2 윈도우에 아이소메트릭 그리드 표시
+   - [ ] 에러 없이 10초 표시 후 종료
+   - [ ] LLVM IR 검증 통과
+   
+   **성공 시 다음 단계:**
+   - Week 1 Day 3-4: SDL2 이벤트 폴링 (키보드/마우스)
+   - Week 1 Day 5-6: 카메라 컨트롤 (WASD, 줌)
+   - Week 1 Day 7: YouTube 데모 제작
    
    **완료 일자:** 2025-10-19
    **총 소요 시간:** 1일 (M2 준비 완료 → M2 완료)
