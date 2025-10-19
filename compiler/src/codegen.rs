@@ -78,6 +78,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
     fn declare_libc_functions(&self) {
         let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
         let i32_type = self.context.i32_type();
+        let i64_type = self.context.i64_type();
         
         // char* strstr(const char* haystack, const char* needle)
         let strstr_type = i8_ptr_type.fn_type(&[i8_ptr_type.into(), i8_ptr_type.into()], false);
@@ -90,6 +91,17 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         // int puts(const char* s)
         let puts_type = i32_type.fn_type(&[i8_ptr_type.into()], false);
         self.module.add_function("puts", puts_type, None);
+        
+        // void* malloc(size_t size)
+        let malloc_type = i8_ptr_type.fn_type(&[i64_type.into()], false);
+        self.module.add_function("malloc", malloc_type, None);
+        
+        // void* memcpy(void* dest, const void* src, size_t n)
+        let memcpy_type = i8_ptr_type.fn_type(
+            &[i8_ptr_type.into(), i8_ptr_type.into(), i64_type.into()],
+            false
+        );
+        self.module.add_function("memcpy", memcpy_type, None);
     }
 
     fn compile_function(&mut self, function: &FunctionDef) -> Result<FunctionValue<'ctx>, String> {
@@ -238,6 +250,14 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     return self.compile_print(&args[0], func_name == "println", function);
                 }
                 
+                if func_name == "List_concat" || func_name == "List.concat" {
+                    // List.concat: List<List<T>> -> List<T>
+                    if args.len() != 1 {
+                        return Err(format!("List.concat expects 1 argument, got {}", args.len()));
+                    }
+                    return self.compile_list_concat(&args[0], function);
+                }
+                
                 let arg_values: Vec<BasicValueEnum> = args
                     .iter()
                     .map(|arg_expr| self.compile_expr(arg_expr, function))
@@ -382,6 +402,215 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         Ok(i8_type.const_int(0, false).into())
     }
 
+    fn compile_list_concat(
+        &mut self,
+        list_of_lists_expr: &Expr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // List.concat: List<List<T>> -> List<T>
+        // For ValidationError which is i32
+        
+        let list_of_lists = self.compile_expr(list_of_lists_expr, function)?;
+        let outer_list = list_of_lists.into_struct_value();
+        
+        let outer_ptr = self.builder
+            .build_extract_value(outer_list, 0, "outer_ptr")
+            .unwrap()
+            .into_pointer_value();
+        let outer_len = self.builder
+            .build_extract_value(outer_list, 1, "outer_len")
+            .unwrap()
+            .into_int_value();
+        
+        let i64_type = self.context.i64_type();
+        let i32_type = self.context.i32_type();
+        let i32_ptr_type = i32_type.ptr_type(inkwell::AddressSpace::default());
+        
+        // Step 1: Calculate total length
+        let total_len_ptr = self.builder.build_alloca(i64_type, "total_len").unwrap();
+        self.builder.build_store(total_len_ptr, i64_type.const_zero()).unwrap();
+        
+        let index_ptr = self.builder.build_alloca(i64_type, "i").unwrap();
+        self.builder.build_store(index_ptr, i64_type.const_zero()).unwrap();
+        
+        let calc_loop = self.context.append_basic_block(function, "calc_loop");
+        let calc_body = self.context.append_basic_block(function, "calc_body");
+        let calc_done = self.context.append_basic_block(function, "calc_done");
+        
+        self.builder.build_unconditional_branch(calc_loop).unwrap();
+        
+        self.builder.position_at_end(calc_loop);
+        let i = self.builder.build_load(i64_type, index_ptr, "i").unwrap().into_int_value();
+        let cond = self.builder.build_int_compare(
+            inkwell::IntPredicate::SLT,
+            i,
+            outer_len,
+            "cond"
+        ).unwrap();
+        self.builder.build_conditional_branch(cond, calc_body, calc_done).unwrap();
+        
+        self.builder.position_at_end(calc_body);
+        
+        let inner_list_type = self.context.struct_type(
+            &[i32_ptr_type.into(), i64_type.into()],
+            false
+        );
+        
+        let inner_list_ptr = unsafe {
+            self.builder.build_gep(
+                inner_list_type,
+                outer_ptr,
+                &[i],
+                "inner_list_ptr"
+            ).unwrap()
+        };
+        
+        let inner_list = self.builder.build_load(
+            inner_list_type,
+            inner_list_ptr,
+            "inner_list"
+        ).unwrap().into_struct_value();
+        
+        let inner_len = self.builder.build_extract_value(
+            inner_list,
+            1,
+            "inner_len"
+        ).unwrap().into_int_value();
+        
+        let total_len = self.builder.build_load(i64_type, total_len_ptr, "total_len").unwrap().into_int_value();
+        let new_total = self.builder.build_int_add(total_len, inner_len, "new_total").unwrap();
+        self.builder.build_store(total_len_ptr, new_total).unwrap();
+        
+        let next_i = self.builder.build_int_add(i, i64_type.const_int(1, false), "next_i").unwrap();
+        self.builder.build_store(index_ptr, next_i).unwrap();
+        self.builder.build_unconditional_branch(calc_loop).unwrap();
+        
+        self.builder.position_at_end(calc_done);
+        let total_len = self.builder.build_load(i64_type, total_len_ptr, "total_len").unwrap().into_int_value();
+        
+        let element_size = i64_type.const_int(4, false);
+        let malloc_size = self.builder.build_int_mul(total_len, element_size, "malloc_size").unwrap();
+        
+        let malloc_fn = self.module.get_function("malloc").unwrap();
+        let result_ptr_i8 = self.builder
+            .build_call(malloc_fn, &[malloc_size.into()], "result_ptr_i8")
+            .unwrap()
+            .try_as_basic_value()
+            .left()
+            .unwrap()
+            .into_pointer_value();
+        
+        let result_ptr = self.builder.build_pointer_cast(
+            result_ptr_i8,
+            i32_ptr_type,
+            "result_ptr"
+        ).unwrap();
+        
+        // Step 2: Copy elements
+        let offset_ptr = self.builder.build_alloca(i64_type, "offset").unwrap();
+        self.builder.build_store(offset_ptr, i64_type.const_zero()).unwrap();
+        self.builder.build_store(index_ptr, i64_type.const_zero()).unwrap();
+        
+        let copy_loop = self.context.append_basic_block(function, "copy_loop");
+        let copy_body = self.context.append_basic_block(function, "copy_body");
+        let copy_done = self.context.append_basic_block(function, "copy_done");
+        
+        self.builder.build_unconditional_branch(copy_loop).unwrap();
+        
+        self.builder.position_at_end(copy_loop);
+        let i = self.builder.build_load(i64_type, index_ptr, "i").unwrap().into_int_value();
+        let cond = self.builder.build_int_compare(
+            inkwell::IntPredicate::SLT,
+            i,
+            outer_len,
+            "cond"
+        ).unwrap();
+        self.builder.build_conditional_branch(cond, copy_body, copy_done).unwrap();
+        
+        self.builder.position_at_end(copy_body);
+        
+        let inner_list_ptr = unsafe {
+            self.builder.build_gep(
+                inner_list_type,
+                outer_ptr,
+                &[i],
+                "inner_list_ptr"
+            ).unwrap()
+        };
+        
+        let inner_list = self.builder.build_load(
+            inner_list_type,
+            inner_list_ptr,
+            "inner_list"
+        ).unwrap().into_struct_value();
+        
+        let inner_ptr = self.builder.build_extract_value(
+            inner_list,
+            0,
+            "inner_ptr"
+        ).unwrap().into_pointer_value();
+        
+        let inner_len = self.builder.build_extract_value(
+            inner_list,
+            1,
+            "inner_len"
+        ).unwrap().into_int_value();
+        
+        let offset = self.builder.build_load(i64_type, offset_ptr, "offset").unwrap().into_int_value();
+        
+        let dest_ptr = unsafe {
+            self.builder.build_gep(
+                i32_type,
+                result_ptr,
+                &[offset],
+                "dest_ptr"
+            ).unwrap()
+        };
+        
+        let copy_size = self.builder.build_int_mul(inner_len, element_size, "copy_size").unwrap();
+        
+        let memcpy_fn = self.module.get_function("memcpy").unwrap();
+        let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+        let dest_i8 = self.builder.build_pointer_cast(dest_ptr, i8_ptr_type, "dest_i8").unwrap();
+        let src_i8 = self.builder.build_pointer_cast(inner_ptr, i8_ptr_type, "src_i8").unwrap();
+        
+        self.builder.build_call(
+            memcpy_fn,
+            &[dest_i8.into(), src_i8.into(), copy_size.into()],
+            ""
+        ).unwrap();
+        
+        let new_offset = self.builder.build_int_add(offset, inner_len, "new_offset").unwrap();
+        self.builder.build_store(offset_ptr, new_offset).unwrap();
+        
+        let next_i = self.builder.build_int_add(i, i64_type.const_int(1, false), "next_i").unwrap();
+        self.builder.build_store(index_ptr, next_i).unwrap();
+        self.builder.build_unconditional_branch(copy_loop).unwrap();
+        
+        self.builder.position_at_end(copy_done);
+        
+        let result_list_type = self.context.struct_type(
+            &[i32_ptr_type.into(), i64_type.into()],
+            false
+        );
+        
+        let mut result_list = result_list_type.get_undef();
+        result_list = self.builder.build_insert_value(
+            result_list,
+            result_ptr,
+            0,
+            "ptr"
+        ).unwrap().into_struct_value();
+        result_list = self.builder.build_insert_value(
+            result_list,
+            total_len,
+            1,
+            "len"
+        ).unwrap().into_struct_value();
+        
+        Ok(result_list.into())
+    }
+
     fn compile_variable(
         &self,
         name: &str,
@@ -434,7 +663,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         
         // Check if it's a builtin function
         // Builtins are handled in Application, not as standalone variables
-        if name == "String_length" || name == "String_contains" || name == "print" || name == "println" {
+        if name == "String_length" || name == "String_contains" || name == "print" || name == "println" || name == "List_concat" || name == "List.concat" {
             return Err(format!("Builtin function '{}' can only be used in function calls", name));
         }
 
