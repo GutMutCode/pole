@@ -314,11 +314,22 @@ fn parse_inline_type_def(annotations: Vec<Annotation>) -> impl FnMut(&str) -> Pa
 
 fn parse_literal(input: &str) -> ParseResult<Expr> {
     alt((
+        parse_unit_literal,
         parse_int_literal,
         parse_float_literal,
         parse_bool_literal,
         parse_string_literal,
     ))(input)
+}
+
+fn parse_unit_literal(input: &str) -> ParseResult<Expr> {
+    value(
+        Expr::Literal(Literal {
+            value: LiteralValue::Unit,
+            type_name: "Unit".to_string(),
+        }),
+        tuple((char('('), space0, char(')'))),
+    )(input)
 }
 
 fn parse_int_literal(input: &str) -> ParseResult<Expr> {

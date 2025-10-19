@@ -1,0 +1,7 @@
+@source("examples/17-unit-type.pole")
+
+func return_unit() -> Unit :
+  ()
+
+func take_unit(x: Unit) -> Int :
+  42

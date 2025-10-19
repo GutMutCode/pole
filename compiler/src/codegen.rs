@@ -236,7 +236,11 @@ impl<'ctx> CodeGen<'ctx> {
                 let string_val = string_type.const_named_struct(&[i8_ptr.into(), length.into()]);
                 Ok(string_val.into())
             }
-            _ => Err(format!("Unsupported literal: {:?}", lit)),
+            LiteralValue::Unit => {
+                // Unit is represented as i8 0
+                let i8_type = self.context.i8_type();
+                Ok(i8_type.const_int(0, false).into())
+            }
         }
     }
 
@@ -584,6 +588,7 @@ impl<'ctx> CodeGen<'ctx> {
                 "Int" | "Nat" => self.context.i64_type().into(),
                 "Bool" => self.context.bool_type().into(),
                 "Float64" => self.context.f64_type().into(),
+                "Unit" => self.context.i8_type().into(),
                 "String" => {
                     // String = { i8*, i64 } (data pointer + length)
                     let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
@@ -679,7 +684,7 @@ impl<'ctx> CodeGen<'ctx> {
                 LiteralValue::Bool(_) => Ok(Type::Basic(AstBasicType { name: "Bool".to_string() })),
                 LiteralValue::Float(_) => Ok(Type::Basic(AstBasicType { name: "Float64".to_string() })),
                 LiteralValue::String(_) => Ok(Type::Basic(AstBasicType { name: "String".to_string() })),
-                _ => Err("Cannot infer type for literal".to_string()),
+                LiteralValue::Unit => Ok(Type::Basic(AstBasicType { name: "Unit".to_string() })),
             },
             Expr::Variable(var) => self.var_types.get(&var.name)
                 .cloned()

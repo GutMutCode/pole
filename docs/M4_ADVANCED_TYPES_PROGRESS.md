@@ -1,7 +1,8 @@
 # M4: Advanced Types Implementation Progress
 
 **Start Date:** 2025-10-19  
-**Current Status:** M4.4 Complete, M4.5 In Progress
+**Completion Date:** 2025-10-19  
+**Status:** Complete ✅
 
 ## Overview
 
@@ -147,15 +148,52 @@ match_merge:
 - Variable binding in patterns (Some(x) -> x)
 - PHI nodes merge pattern match branches
 
-## Current Task: M4.5 Unit Type & Runtime Functions
+### M4.5: Unit Type ✅ (2025-10-19)
 
-**Goal:** Add Unit type and basic runtime functions
+**Implementation:**
+- Unit type represented as `i8 0` in LLVM
+- Unit literal `()` parsing support
+- Used for side-effect-only functions
 
-**Next Steps:**
-1. Implement Unit type as `void` or `i8`
-2. Add string length function
-3. Add list length function
-4. Consider other basic utilities
+**Files:**
+- `examples/17-unit-type.pole-ir` - Unit type functions
+- `compiler/examples/test_unit_codegen.rs` - Verification
+- `compiler/src/ir_parser.rs` - Added `parse_unit_literal`
+
+**LLVM IR Output:**
+```llvm
+define i8 @return_unit() {
+  ret i8 0
+}
+
+define i64 @take_unit(i8 %x) {
+  ret i64 42
+}
+```
+
+**Code Changes:**
+1. `ir_parser.rs:parse_literal()` - Added Unit literal parsing `()`
+2. `codegen.rs:compile_literal()` - Added Unit → i8 0 mapping
+3. `codegen.rs:compile_type()` - Added Unit type → i8 mapping
+4. `codegen.rs:infer_expr_type()` - Added Unit type inference
+
+## M4 Complete Summary ✅
+
+**All Milestones:**
+- M4.1: String Type ✅
+- M4.2: List Type ✅  
+- M4.3: Variant Type (Simple Enums) ✅
+- M4.4: Option & Result Types ✅
+- M4.5: Unit Type ✅
+
+**Type System Coverage:**
+- Basic types: Int, Nat, Bool, Float64, String, Unit
+- Compound types: Record, List, Option, Result
+- Simple variants (enums without payloads)
+- Pattern matching on all supported types
+
+**Completion Date:** 2025-10-19  
+**Total Time:** 1 day
 
 ## Performance Metrics
 
@@ -176,7 +214,8 @@ All tests compile and verify successfully:
 | 13-variant-tags.pole-ir | Tag values & comparison | ✅ |
 | 15-simple-option.pole-ir | Option constructors | ✅ |
 | 16-option-match.pole-ir | Option pattern matching | ✅ |
+| 17-unit-type.pole-ir | Unit type | ✅ |
 
-## Next Milestone: M4.5
+## Next Phase: M5
 
-Target: Unit type and runtime utility functions
+Phase 5 M4 완료. 다음은 LLVM 백엔드 완성 및 최적화.
