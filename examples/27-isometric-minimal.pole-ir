@@ -1,0 +1,22 @@
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow") 
+func SDL_CreateWindow(title: Ptr<Unit>, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit() -> Unit
+
+func main() -> Int:
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow(0, 100, 100, 800, 600, 4) in
+  let _ = SDL_Delay(3000) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit() in
+  0

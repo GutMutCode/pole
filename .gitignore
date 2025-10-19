@@ -47,3 +47,4 @@ result-*
 # Direnv
 .direnv/
 .env
+test_sdl_verbose
