@@ -1,0 +1,189 @@
+// Week 2 Day 5: Mouse Interaction - Tile Highlighting
+// Track mouse position and highlight hovered tile
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_RenderDrawLine")
+func SDL_RenderDrawLine(renderer: Ptr<Unit>, x1: Int, y1: Int, x2: Int, y2: Int) -> Int
+
+@extern("SDL_PollEvent")
+func SDL_PollEvent(event: Ptr<Unit>) -> Int
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("malloc")
+func malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func free(ptr: Ptr<Unit>) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("pole_read_i32")
+func pole_read_i32(ptr: Ptr<Unit>) -> Int
+
+@extern("pole_read_i32_at")
+func pole_read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+// Draw single tile
+func draw_tile(renderer: Ptr<Unit>, tx: Int, ty: Int, cam_x: Int, cam_y: Int, highlight: Int) -> Unit:
+  let base_x = (tx - ty) * 32 + 400 in
+  let base_y = (tx + ty) * 16 + 100 in
+  let sx = base_x + cam_x in
+  let sy = base_y + cam_y in
+  
+  let r = if highlight == 1 then 255 else 100 in
+  let g = if highlight == 1 then 255 else 200 in
+  let b = if highlight == 1 then 100 else 100 in
+  
+  let _ = SDL_SetRenderDrawColor(renderer, r, g, b, 255) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy - 16, sx + 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx + 32, sy, sx, sy + 16) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy + 16, sx - 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx - 32, sy, sx, sy - 16) in
+  ()
+
+// Render single row
+func render_row_with_highlight(renderer: Ptr<Unit>, row: Int, col: Int, max_row: Int, max_col: Int, cam_x: Int, cam_y: Int, highlight_x: Int, highlight_y: Int) -> Unit:
+  if row >= max_row then
+    ()
+  else
+    if col >= max_col then
+      render_row_with_highlight(renderer, row + 1, 0, max_row, max_col, cam_x, cam_y, highlight_x, highlight_y)
+    else
+      let is_highlighted = if row == highlight_y then if col == highlight_x then 1 else 0 else 0 in
+      let _ = draw_tile(renderer, col, row, cam_x, cam_y, is_highlighted) in
+      render_row_with_highlight(renderer, row, col + 1, max_row, max_col, cam_x, cam_y, highlight_x, highlight_y)
+
+// Render grid with highlighted tile
+func render_grid_with_highlight(renderer: Ptr<Unit>, grid_size: Int, cam_x: Int, cam_y: Int, highlight_x: Int, highlight_y: Int) -> Unit:
+  let _ = render_row_with_highlight(renderer, 0, 0, grid_size, grid_size, cam_x, cam_y, highlight_x, highlight_y) in
+  ()
+
+// Screen to tile conversion (inverse isometric transform)
+// screen_x = (tile_x - tile_y) * 32 + 400
+// screen_y = (tile_x + tile_y) * 16 + 100
+// Solving for tile_x, tile_y:
+// tile_x = ((screen_x - 400) / 32 + (screen_y - 100) / 16) / 2
+// tile_y = ((screen_y - 100) / 16 - (screen_x - 400) / 32) / 2
+func screen_to_tile_x(screen_x: Int, screen_y: Int, cam_x: Int, cam_y: Int) -> Int:
+  let adj_x = screen_x - cam_x - 400 in
+  let adj_y = screen_y - cam_y - 100 in
+  let a = adj_x / 32 in
+  let b = adj_y / 16 in
+  (a + b) / 2
+
+func screen_to_tile_y(screen_x: Int, screen_y: Int, cam_x: Int, cam_y: Int) -> Int:
+  let adj_x = screen_x - cam_x - 400 in
+  let adj_y = screen_y - cam_y - 100 in
+  let a = adj_x / 32 in
+  let b = adj_y / 16 in
+  (b - a) / 2
+
+// Clamp value to range [0, max-1]
+func clamp(value: Int, max: Int) -> Int:
+  if value < 0 then
+    0
+  else
+    if value >= max then
+      max - 1
+    else
+      value
+
+// Process mouse motion event
+// SDL_MOUSEMOTION = 1024, mouse x at offset 16, y at offset 20
+func process_mouse_event(event: Ptr<Unit>, grid_size: Int, cam_x: Int, cam_y: Int) -> Int:
+  let event_type = pole_read_i32(event) in
+  if event_type == 1024 then
+    let mouse_x = pole_read_i32_at(event, 16) in
+    let mouse_y = pole_read_i32_at(event, 20) in
+    let tile_x = screen_to_tile_x(mouse_x, mouse_y, cam_x, cam_y) in
+    let tile_y = screen_to_tile_y(mouse_x, mouse_y, cam_x, cam_y) in
+    let clamped_x = clamp(tile_x, grid_size) in
+    let clamped_y = clamp(tile_y, grid_size) in
+    clamped_y * grid_size + clamped_x
+  else
+    if event_type == 768 then
+      let keycode = pole_read_i32_at(event, 16) in
+      if keycode == 27 then
+        -1
+      else
+        100
+    else
+      100
+
+// Modulo operation using division (a % b = a - (a / b) * b)
+func mod(a: Int, b: Int) -> Int:
+  a - (a / b) * b
+
+// Game loop with mouse tracking
+func game_loop(renderer: Ptr<Unit>, event: Ptr<Unit>, grid_size: Int, cam_x: Int, cam_y: Int, hover_index: Int, frame: Int) -> Int:
+  if frame > 2000 then
+    0
+  else
+    let has_event = SDL_PollEvent(event) in
+    let new_hover = if has_event == 1 then process_mouse_event(event, grid_size, cam_x, cam_y) else hover_index in
+    
+    if new_hover == -1 then
+      0
+    else
+      let hover_x = mod(new_hover, grid_size) in
+      let hover_y = new_hover / grid_size in
+      
+      let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
+      let _ = SDL_RenderClear(renderer) in
+      let _ = render_grid_with_highlight(renderer, grid_size, cam_x, cam_y, hover_x, hover_y) in
+      let _ = SDL_RenderPresent(renderer) in
+      
+      game_loop(renderer, event, grid_size, cam_x, cam_y, new_hover, frame + 1)
+
+// Main entry point
+func main() -> Int :
+  let _ = c_puts("=== Week 2 Day 5: Mouse Hover ===") in
+  let _ = c_puts("Move mouse to highlight tiles") in
+  let _ = c_puts("ESC to exit") in
+  let _ = c_puts("") in
+  
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Pole Week 2 - Mouse Hover", 805240832, 805240832, 800, 600, 4) in
+  let renderer = SDL_CreateRenderer(window, -1, 2) in
+  let event = malloc(56) in
+  
+  let _ = game_loop(renderer, event, 5, 0, 0, 0, 0) in
+  
+  let _ = free(event) in
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = c_puts("") in
+  let _ = c_puts("Mouse hover demo complete!") in
+  let _ = c_puts("  - Mouse tracking") in
+  let _ = c_puts("  - Screen-to-tile conversion") in
+  let _ = c_puts("  - Tile highlighting") in
+  0
+
+@test_case(expected=0)
