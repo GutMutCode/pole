@@ -54,6 +54,9 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
     }
 
     pub fn compile_program(&mut self, program: &Program) -> Result<(), String> {
+        // Declare external C functions (libc)
+        self.declare_libc_functions();
+        
         for type_def in &program.type_defs {
             match &type_def.definition {
                 TypeDefKind::Record(record_type) => {
@@ -70,6 +73,14 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
             self.compile_function(function)?;
         }
         Ok(())
+    }
+    
+    fn declare_libc_functions(&self) {
+        let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+        
+        // char* strstr(const char* haystack, const char* needle)
+        let strstr_type = i8_ptr_type.fn_type(&[i8_ptr_type.into(), i8_ptr_type.into()], false);
+        self.module.add_function("strstr", strstr_type, None);
     }
 
     fn compile_function(&mut self, function: &FunctionDef) -> Result<FunctionValue<'ctx>, String> {
@@ -201,6 +212,15 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                 // Collect all args from nested Applications
                 let (func_name, args) = self.flatten_application(app)?;
                 
+                // Check for builtin functions with multiple arguments
+                if func_name == "String_contains" {
+                    // String_contains: String -> String -> Bool
+                    if args.len() != 2 {
+                        return Err(format!("String_contains expects 2 arguments, got {}", args.len()));
+                    }
+                    return self.compile_string_contains(&args[0], &args[1], function);
+                }
+                
                 let arg_values: Vec<BasicValueEnum> = args
                     .iter()
                     .map(|arg_expr| self.compile_expr(arg_expr, function))
@@ -263,6 +283,57 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         }
     }
 
+    fn compile_string_contains(
+        &mut self,
+        haystack_expr: &Expr,
+        needle_expr: &Expr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // String_contains: String -> String -> Bool
+        // Uses C strstr(haystack, needle) which returns NULL if not found
+        
+        let haystack = self.compile_expr(haystack_expr, function)?;
+        let needle = self.compile_expr(needle_expr, function)?;
+        
+        // Extract i8* pointers from String structs
+        let haystack_struct = haystack.into_struct_value();
+        let needle_struct = needle.into_struct_value();
+        
+        let haystack_ptr = self.builder
+            .build_extract_value(haystack_struct, 0, "haystack_ptr")
+            .unwrap()
+            .into_pointer_value();
+        let needle_ptr = self.builder
+            .build_extract_value(needle_struct, 0, "needle_ptr")
+            .unwrap()
+            .into_pointer_value();
+        
+        // Call strstr(haystack, needle)
+        let strstr_fn = self.module.get_function("strstr").unwrap();
+        let result = self.builder
+            .build_call(strstr_fn, &[haystack_ptr.into(), needle_ptr.into()], "strstr_result")
+            .unwrap()
+            .try_as_basic_value()
+            .left()
+            .unwrap()
+            .into_pointer_value();
+        
+        // Check if result is NULL (not found)
+        let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+        let null_ptr = i8_ptr_type.const_null();
+        
+        let is_not_null = self.builder
+            .build_int_compare(
+                inkwell::IntPredicate::NE,
+                result,
+                null_ptr,
+                "is_not_null"
+            )
+            .unwrap();
+        
+        Ok(is_not_null.into())
+    }
+
     fn compile_variable(
         &self,
         name: &str,
@@ -311,6 +382,12 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                 
                 return Ok(option_val.into());
             }
+        }
+        
+        // Check if it's a builtin function
+        // Builtins are handled in Application, not as standalone variables
+        if name == "String_length" || name == "String_contains" {
+            return Err(format!("Builtin function '{}' can only be used in function calls", name));
         }
 
         Err(format!("Variable '{}' not found", name))
