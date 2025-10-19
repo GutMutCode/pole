@@ -34,6 +34,20 @@ pkgs.mkShell {
     SDL2
     SDL2.dev
     pkg-config
+    
+    # X11 libraries for SDL2 video backend
+    xorg.libX11
+    xorg.libXext
+    xorg.libXcursor
+    xorg.libXi
+    xorg.libXrandr
+    xorg.libXfixes
+    xorg.libXinerama
+    libGL
+    
+    # Wayland libraries for SDL2 video backend
+    libxkbcommon
+    wayland
   ];
 
   shellHook = ''
@@ -43,7 +57,21 @@ pkgs.mkShell {
     # LLVM environment variables
     export LLVM_SYS_170_PREFIX="${pkgs.llvm_17.dev}"
     export LIBCLANG_PATH="${pkgs.llvm_17.lib}/lib"
-    export LD_LIBRARY_PATH="${pkgs.llvm_17.lib}/lib:$LD_LIBRARY_PATH"
+    
+    # SDL2 video backend libraries (X11 + Wayland)
+    export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath [
+      pkgs.llvm_17.lib
+      pkgs.libGL
+      pkgs.xorg.libX11
+      pkgs.xorg.libXext
+      pkgs.xorg.libXcursor
+      pkgs.xorg.libXi
+      pkgs.xorg.libXrandr
+      pkgs.xorg.libXfixes
+      pkgs.xorg.libXinerama
+      pkgs.libxkbcommon
+      pkgs.wayland
+    ]}:$LD_LIBRARY_PATH"
 
     echo "✓ Pole environment loaded (NixOS)"
     echo "  Python: $(python --version)"
