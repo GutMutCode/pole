@@ -243,7 +243,17 @@ pub struct FunctionDef {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ExternFunctionDecl {
+    pub name: String,
+    pub c_name: String,
+    pub params: Vec<(String, Type)>,
+    pub return_type: Type,
+    pub annotations: Vec<Annotation>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Program {
     pub type_defs: Vec<TypeDef>,
     pub func_defs: Vec<FunctionDef>,
+    pub extern_funcs: Vec<ExternFunctionDecl>,
 }

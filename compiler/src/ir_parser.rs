@@ -673,6 +673,35 @@ fn parse_function_def(input: &str) -> ParseResult<FunctionDef> {
     }))
 }
 
+fn parse_extern_function_decl(input: &str) -> ParseResult<ExternFunctionDecl> {
+    let (input, annotations) = many0(terminated(parse_annotation, multispace0))(input)?;
+    
+    // Find @extern annotation to get C name
+    let c_name = annotations.iter()
+        .find(|ann| ann.name == "extern")
+        .and_then(|ann| ann.args.first())
+        .map(|(_, val)| val.clone())
+        .unwrap_or_else(|| "unknown".to_string());
+    
+    let (input, _) = ws(tag("func"))(input)?;
+    let (input, name) = ws(identifier)(input)?;
+    let (input, params) = delimited(
+        char('('),
+        separated_list0(ws(char(',')), parse_function_param),
+        char(')'),
+    )(input)?;
+    let (input, _) = ws(tag("->"))(input)?;
+    let (input, return_type) = ws(parse_type)(input)?;
+    
+    Ok((input, ExternFunctionDecl {
+        name,
+        c_name,
+        params,
+        return_type,
+        annotations,
+    }))
+}
+
 // ============================================================================
 // Program Parser
 // ============================================================================
@@ -683,6 +712,7 @@ pub fn parse_ir(input: &str) -> Result<Program, String> {
     
     let mut type_defs = vec![];
     let mut func_defs = vec![];
+    let mut extern_funcs = vec![];
     
     // Parse type definitions and function definitions in order
     loop {
@@ -721,14 +751,27 @@ pub fn parse_ir(input: &str) -> Result<Program, String> {
             }
         }
         
+        // Check if this is an extern function (has @extern annotation)
+        let has_extern = annotations.iter().any(|ann| ann.name == "extern");
+        
         // Try to parse function definition
         if new_input.starts_with("func ") {
-            if let Ok((new_input, mut func_def)) = parse_function_def(new_input) {
-                // Merge annotations
-                func_def.annotations = [annotations, func_def.annotations].concat();
-                func_defs.push(func_def);
-                remaining = new_input;
-                continue;
+            if has_extern {
+                // Parse as extern function declaration (no body)
+                if let Ok((new_input, mut extern_func)) = parse_extern_function_decl(new_input) {
+                    extern_func.annotations = [annotations, extern_func.annotations].concat();
+                    extern_funcs.push(extern_func);
+                    remaining = new_input;
+                    continue;
+                }
+            } else {
+                // Parse as regular function definition (with body)
+                if let Ok((new_input, mut func_def)) = parse_function_def(new_input) {
+                    func_def.annotations = [annotations, func_def.annotations].concat();
+                    func_defs.push(func_def);
+                    remaining = new_input;
+                    continue;
+                }
             }
         }
         
@@ -743,6 +786,7 @@ pub fn parse_ir(input: &str) -> Result<Program, String> {
     Ok(Program {
         type_defs,
         func_defs,
+        extern_funcs,
     })
 }
 
