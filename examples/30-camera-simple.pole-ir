@@ -1,0 +1,94 @@
+// Simple Camera Movement Demo
+// Day 5-6: Demonstrates camera offset (without Record return workaround)
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_RenderDrawLine")
+func SDL_RenderDrawLine(renderer: Ptr<Unit>, x1: Int, y1: Int, x2: Int, y2: Int) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+// Draw single tile with camera offset
+func draw_tile(renderer: Ptr<Unit>, tx: Int, ty: Int, cam_x: Int, cam_y: Int) -> Unit:
+  let base_x = (tx - ty) * 32 + 400 in
+  let base_y = (tx + ty) * 16 + 100 in
+  let sx = base_x + cam_x in
+  let sy = base_y + cam_y in
+  
+  let _ = SDL_SetRenderDrawColor(renderer, 100, 200, 100, 255) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy - 16, sx + 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx + 32, sy, sx, sy + 16) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy + 16, sx - 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx - 32, sy, sx, sy - 16) in
+  ()
+
+func main() -> Int :
+  let _ = c_puts("=== Camera Movement Demo ===") in
+  let _ = c_puts("Demonstrating camera offset in rendering") in
+  let _ = c_puts("") in
+  
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Camera Demo - Auto-pan", 805240832, 805240832, 800, 600, 4) in
+  let renderer = SDL_CreateRenderer(window, -1, 2) in
+  
+  let _ = c_puts("Camera at (0, 0)") in
+  let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = draw_tile(renderer, 1, 1, 0, 0) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(2000) in
+  
+  let _ = c_puts("Camera moved up (-16 y)") in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = draw_tile(renderer, 1, 1, 0, -16) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(2000) in
+  
+  let _ = c_puts("Camera moved down (+32 y)") in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = draw_tile(renderer, 1, 1, 0, 32) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(2000) in
+  
+  let _ = c_puts("Camera moved left (-32 x)") in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = draw_tile(renderer, 1, 1, -32, 32) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(2000) in
+  
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = c_puts("Done! Camera offset system working!") in
+  0
+
+@test_case(expected=0)

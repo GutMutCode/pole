@@ -1,0 +1,194 @@
+// Isometric Camera Control Demo
+// Day 5-6: WASD camera movement
+
+// Camera type
+type Camera = { x: Int, y: Int }
+
+// SDL2 Functions
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_RenderDrawLine")
+func SDL_RenderDrawLine(renderer: Ptr<Unit>, x1: Int, y1: Int, x2: Int, y2: Int) -> Int
+
+@extern("SDL_PollEvent")
+func SDL_PollEvent(event: Ptr<Unit>) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_read_i32")
+func read_i32(ptr: Ptr<Unit>) -> Int
+
+@extern("pole_read_i32_at")
+func read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+// Draw tile with camera offset
+// Isometric: sx = (tile_x - tile_y) * 32 + 400 + camera_x
+//           sy = (tile_x + tile_y) * 16 + 100 + camera_y
+func draw_tile_with_camera(renderer: Ptr<Unit>, tile_x: Int, tile_y: Int, camera: Camera, r: Int, g: Int, b: Int) -> Unit:
+  let base_x = (tile_x - tile_y) * 32 + 400 in
+  let base_y = (tile_x + tile_y) * 16 + 100 in
+  let sx = base_x + camera.x in
+  let sy = base_y + camera.y in
+  
+  let _ = SDL_SetRenderDrawColor(renderer, r, g, b, 255) in
+  
+  let _ = SDL_RenderDrawLine(renderer, sx - 32, sy, sx + 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx - 24, sy - 4, sx + 24, sy + 4) in
+  let _ = SDL_RenderDrawLine(renderer, sx - 16, sy - 8, sx + 16, sy + 8) in
+  let _ = SDL_RenderDrawLine(renderer, sx - 8, sy - 12, sx + 8, sy + 12) in
+  
+  let _ = SDL_RenderDrawLine(renderer, sx, sy - 16, sx + 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx + 32, sy, sx, sy + 16) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy + 16, sx - 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx - 32, sy, sx, sy - 16) in
+  ()
+
+// Render simple 5x5 tilemap with camera
+func render_tilemap_with_camera(renderer: Ptr<Unit>, camera: Camera) -> Unit:
+  let _ = draw_tile_with_camera(renderer, 0, 0, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 1, 0, camera, 150, 150, 150) in
+  let _ = draw_tile_with_camera(renderer, 2, 0, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 3, 0, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 4, 0, camera, 100, 200, 100) in
+  
+  let _ = draw_tile_with_camera(renderer, 0, 1, camera, 150, 150, 150) in
+  let _ = draw_tile_with_camera(renderer, 1, 1, camera, 180, 160, 140) in
+  let _ = draw_tile_with_camera(renderer, 2, 1, camera, 150, 150, 150) in
+  let _ = draw_tile_with_camera(renderer, 3, 1, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 4, 1, camera, 100, 200, 100) in
+  
+  let _ = draw_tile_with_camera(renderer, 0, 2, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 1, 2, camera, 150, 150, 150) in
+  let _ = draw_tile_with_camera(renderer, 2, 2, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 3, 2, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 4, 2, camera, 100, 200, 100) in
+  
+  let _ = draw_tile_with_camera(renderer, 0, 3, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 1, 3, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 2, 3, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 3, 3, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 4, 3, camera, 100, 200, 100) in
+  
+  let _ = draw_tile_with_camera(renderer, 0, 4, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 1, 4, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 2, 4, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 3, 4, camera, 100, 200, 100) in
+  let _ = draw_tile_with_camera(renderer, 4, 4, camera, 100, 200, 100) in
+  ()
+
+// Update camera for W key (up)
+func camera_move_up(camera: Camera) -> Camera:
+  { x: camera.x, y: camera.y - 16 }
+
+// Update camera for S key (down)
+func camera_move_down(camera: Camera) -> Camera:
+  { x: camera.x, y: camera.y + 16 }
+
+// Update camera for A key (left)
+func camera_move_left(camera: Camera) -> Camera:
+  { x: camera.x - 32, y: camera.y }
+
+// Update camera for D key (right)
+func camera_move_right(camera: Camera) -> Camera:
+  { x: camera.x + 32, y: camera.y }
+
+// Update camera based on keycode
+func update_camera(camera: Camera, keycode: Int) -> Camera:
+  if keycode == 119 then
+    camera_move_up(camera)
+  else
+    if keycode == 115 then
+      camera_move_down(camera)
+    else
+      if keycode == 97 then
+        camera_move_left(camera)
+      else
+        if keycode == 100 then
+          camera_move_right(camera)
+        else
+          camera
+
+// Main function - demonstrates camera movement (auto-panning)
+func main() -> Int :
+  let _ = c_puts("=== Isometric Camera Demo ===") in
+  let _ = c_puts("Testing camera movement...") in
+  let _ = c_puts("") in
+  
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Camera Demo", 805240832, 805240832, 800, 600, 4) in
+  let renderer = SDL_CreateRenderer(window, -1, 2) in
+  let event = c_malloc(56) in
+  
+  let camera = { x: 0, y: 0 } in
+  
+  let _ = c_puts("Rendering with camera at (0, 0)...") in
+  let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = render_tilemap_with_camera(renderer, camera) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(2000) in
+  
+  let _ = c_puts("Moving camera UP (simulating W key)...") in
+  let camera2 = update_camera(camera, 119) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = render_tilemap_with_camera(renderer, camera2) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(2000) in
+  
+  let _ = c_puts("Moving camera DOWN (simulating S key)...") in
+  let camera3 = update_camera(camera2, 115) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = render_tilemap_with_camera(renderer, camera3) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(2000) in
+  
+  let _ = c_puts("Moving camera LEFT (simulating A key)...") in
+  let camera4 = update_camera(camera3, 97) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = render_tilemap_with_camera(renderer, camera4) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(2000) in
+  
+  let _ = c_free(event) in
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = c_puts("Done!") in
+  0
+
+@test_case(expected=0)
