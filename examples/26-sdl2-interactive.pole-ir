@@ -1,0 +1,129 @@
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderDrawPoint")
+func SDL_RenderDrawPoint(renderer: Ptr<Unit>, x: Int, y: Int) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+func main() -> Int :
+  let _ = c_puts("=== Pole SDL2 Interactive Demo ===") in
+  let _ = c_puts("Initializing SDL2...") in
+  let SDL_INIT_VIDEO = 32 in
+  let init_result = SDL_Init(SDL_INIT_VIDEO) in
+  
+  if init_result == 0 then
+    let _ = c_puts("Creating window (800x600)...") in
+    let SDL_WINDOWPOS_CENTERED = 805240832 in
+    let SDL_WINDOW_SHOWN = 4 in
+    let window = SDL_CreateWindow("Pole Interactive Demo - Close window to exit", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN) in
+    
+    let _ = c_puts("Creating hardware-accelerated renderer...") in
+    let SDL_RENDERER_ACCELERATED = 2 in
+    let renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED) in
+    
+    let _ = c_puts("Rendering graphics...") in
+    let _ = SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255) in
+    let _ = SDL_RenderClear(renderer) in
+    
+    let _ = c_puts("  - Drawing red pattern at (100, 100)") in
+    let _ = SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255) in
+    let _ = SDL_RenderDrawPoint(renderer, 100, 100) in
+    let _ = SDL_RenderDrawPoint(renderer, 101, 100) in
+    let _ = SDL_RenderDrawPoint(renderer, 102, 100) in
+    let _ = SDL_RenderDrawPoint(renderer, 100, 101) in
+    let _ = SDL_RenderDrawPoint(renderer, 100, 102) in
+    
+    let _ = c_puts("  - Drawing blue pattern at (200, 200)") in
+    let _ = SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255) in
+    let _ = SDL_RenderDrawPoint(renderer, 200, 200) in
+    let _ = SDL_RenderDrawPoint(renderer, 201, 200) in
+    let _ = SDL_RenderDrawPoint(renderer, 202, 200) in
+    let _ = SDL_RenderDrawPoint(renderer, 200, 201) in
+    let _ = SDL_RenderDrawPoint(renderer, 200, 202) in
+    
+    let _ = c_puts("  - Drawing green pattern at (300, 300)") in
+    let _ = SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255) in
+    let _ = SDL_RenderDrawPoint(renderer, 300, 300) in
+    let _ = SDL_RenderDrawPoint(renderer, 301, 300) in
+    let _ = SDL_RenderDrawPoint(renderer, 302, 300) in
+    let _ = SDL_RenderDrawPoint(renderer, 300, 301) in
+    let _ = SDL_RenderDrawPoint(renderer, 300, 302) in
+    
+    let _ = c_puts("  - Drawing yellow pattern at (400, 150)") in
+    let _ = SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255) in
+    let _ = SDL_RenderDrawPoint(renderer, 400, 150) in
+    let _ = SDL_RenderDrawPoint(renderer, 401, 150) in
+    let _ = SDL_RenderDrawPoint(renderer, 402, 150) in
+    let _ = SDL_RenderDrawPoint(renderer, 400, 151) in
+    let _ = SDL_RenderDrawPoint(renderer, 400, 152) in
+    
+    let _ = c_puts("  - Drawing cyan pattern at (500, 250)") in
+    let _ = SDL_SetRenderDrawColor(renderer, 0, 255, 255, 255) in
+    let _ = SDL_RenderDrawPoint(renderer, 500, 250) in
+    let _ = SDL_RenderDrawPoint(renderer, 501, 250) in
+    let _ = SDL_RenderDrawPoint(renderer, 502, 250) in
+    let _ = SDL_RenderDrawPoint(renderer, 500, 251) in
+    let _ = SDL_RenderDrawPoint(renderer, 500, 252) in
+    
+    let _ = c_puts("  - Drawing magenta pattern at (350, 400)") in
+    let _ = SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255) in
+    let _ = SDL_RenderDrawPoint(renderer, 350, 400) in
+    let _ = SDL_RenderDrawPoint(renderer, 351, 400) in
+    let _ = SDL_RenderDrawPoint(renderer, 352, 400) in
+    let _ = SDL_RenderDrawPoint(renderer, 350, 401) in
+    let _ = SDL_RenderDrawPoint(renderer, 350, 402) in
+    
+    let _ = SDL_RenderPresent(renderer) in
+    
+    let _ = c_puts("") in
+    let _ = c_puts("*** Window is now displayed! ***") in
+    let _ = c_puts("") in
+    let _ = c_puts("To view the window:") in
+    let _ = c_puts("  - In headless mode: Window runs for 10 seconds") in
+    let _ = c_puts("  - In GUI mode: Close the window or press Ctrl+C") in
+    let _ = c_puts("") in
+    let _ = c_puts("Waiting... (10 seconds timeout)") in
+    
+    let _ = SDL_Delay(10000) in
+    
+    let _ = c_puts("") in
+    let _ = c_puts("Cleaning up resources...") in
+    let _ = SDL_DestroyRenderer(renderer) in
+    let _ = SDL_DestroyWindow(window) in
+    let _ = SDL_Quit(()) in
+    let _ = c_puts("Done! SDL2 shut down successfully.") in
+    0
+  else
+    let _ = c_puts("ERROR: SDL2 initialization failed!") in
+    1
+
+@test_case(expected=0)

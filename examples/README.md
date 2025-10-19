@@ -362,6 +362,33 @@ SDL_VIDEODRIVER=dummy cargo run --example test_sdl2_rendering
 
 ---
 
+### 26-sdl2-interactive.pole-ir
+**난이도:** ⭐⭐⭐⭐ 전문가  
+**개념:** SDL2 인터랙티브 윈도우, 10초 표시
+
+완전한 그래픽 데모 - 6가지 색상 패턴:
+
+**특징:**
+- 10초 동안 윈도우 표시
+- 6가지 색상 패턴 (빨강, 파랑, 녹색, 노랑, 시안, 마젠타)
+- 실제 GUI 환경에서 윈도우 확인 가능
+- 하드웨어 가속 렌더러 사용
+
+**실행 (headless):**
+```bash
+cd compiler
+cargo run --example test_sdl2_interactive
+```
+
+**실제 윈도우 보기:**
+```bash
+/tmp/sdl2_interactive
+```
+
+윈도우가 10초간 표시되거나, 수동으로 닫을 수 있습니다.
+
+---
+
 ## 실행 방법
 
 ### Python 인터프리터로 실행
