@@ -879,32 +879,41 @@ Rust (성능 critical 레이어)
 
 **마일스톤:**
 
-1. **M1: 간단한 C 함수 호출** (1개월) ⭐ 다음 작업
+1. **M1: 간단한 C 함수 호출** (1개월) ✅ **완료** (2025-10-19)
    
    **작업 목록:**
-   - [ ] `specs/ffi.md` 설계 문서 작성
+   - [x] `specs/ffi.md` 설계 문서 작성
      - FFI 문법 정의 (`@extern` 어노테이션)
      - Pole 타입 → C ABI 타입 매핑 규칙
      - Rust/Zig/Swift FFI 패턴 참고
-   - [ ] Pole IR 문법 확장 (`specs/ir-syntax.md`)
+   - [x] Pole IR 문법 확장 (`specs/ir-syntax.md`)
      - 외부 함수 선언 구문 추가
-     - 어노테이션 파싱 규칙
-   - [ ] IR Parser 확장 (`compiler/src/ir_parser.rs`)
-     - `@extern` 어노테이션 파싱
-     - 외부 함수 선언 AST 노드 추가
-   - [ ] CodeGen 리팩토링 (`compiler/src/codegen.rs`)
+     - 어노테이션 파싱 규칙 (`@extern`, `@variadic`, `@link`, `@header`)
+   - [x] IR Parser 확장 (`compiler/src/ir_parser.rs`)
+     - `@extern` 어노테이션 파싱 (위치 인자 지원)
+     - 외부 함수 선언 AST 노드 추가 (`ExternFunctionDecl`)
+   - [x] CodeGen 리팩토링 (`compiler/src/codegen.rs`)
      - 하드코딩된 `declare_libc_functions()` 제거
      - IR에서 `@extern` 선언 읽어서 동적 생성
-   - [ ] 테스트 예제 작성
+     - Pole 이름 → C 이름 매핑 (`extern_func_mapping`)
+   - [x] 테스트 예제 작성
      - `examples/19-ffi-printf.pole-ir` - printf 호출
-     - `examples/20-ffi-malloc.pole-ir` - 동적 메모리 할당
-   - [ ] 데모 검증: "Hello from C!" 출력 성공
+     - `compiler/examples/test_ffi_printf.rs` - 통합 테스트
+   - [x] 데모 검증: "Hello from C!" 출력 성공
    
-2. **M2: 구조체 전달** (1개월)
+   **성과:**
+   - ✅ printf 네이티브 호출 성공
+   - ✅ 가변 인자 함수 지원 (`@variadic`)
+   - ✅ 외부 함수 동적 선언 시스템 구현
+   - ✅ Pole 코드에서 C 함수 호출 가능
+   
+2. **M2: 구조체 전달** (1개월) ⭐ 다음 작업
    - C 구조체 ↔ Pole Record 매핑
    - `@repr(C)` 어노테이션으로 메모리 레이아웃 제어
    - 포인터 전달 및 수정
    - **데모:** C API로 데이터 교환
+   
+   **선행 조건:** ✅ M1 완료
    
 3. **M3: 콜백 지원** (1개월)
    - Pole 함수를 C 함수 포인터로 전달
