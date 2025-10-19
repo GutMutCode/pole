@@ -1,0 +1,16 @@
+@source("examples/08-simple-record.pole")
+
+type Point = {
+  x: Int,
+  y: Int
+}
+
+@test_case(input={x=3, y=4}, expected=5)
+func distance_from_origin (p: Point) -> Int :
+  let x_sq = p.x * p.x in
+  let y_sq = p.y * p.y in
+  x_sq + y_sq
+
+@test_case(input=({x=1, y=2}, {x=4, y=6}), expected={x=5, y=8})
+func add_points (p1: Point, p2: Point) -> Point :
+  { x = p1.x + p2.x, y = p1.y + p2.y }

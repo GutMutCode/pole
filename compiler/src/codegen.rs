@@ -11,14 +11,20 @@ use inkwell::IntPredicate;
 use std::path::Path;
 
 use crate::ast::{
-    Application, BasicType as AstBasicType, BinaryOp, Expr, FunctionDef, IfExpr, Literal,
-    LiteralValue, MatchExpr, Pattern, Program, Type, Variable,
+    Application, BasicType as AstBasicType, BinaryOp, Expr, FieldAccess, FunctionDef, IfExpr,
+    LetExpr, Literal, LiteralValue, MatchExpr, Pattern, Program, RecordType, Type, TypeDefKind,
+    Variable,
 };
+
+use std::collections::HashMap;
 
 pub struct CodeGen<'ctx> {
     context: &'ctx Context,
     module: Module<'ctx>,
     builder: Builder<'ctx>,
+    type_defs: HashMap<String, RecordType>,
+    local_vars: HashMap<String, BasicValueEnum<'ctx>>,
+    var_types: HashMap<String, Type>,
 }
 
 impl<'ctx> CodeGen<'ctx> {
@@ -30,10 +36,19 @@ impl<'ctx> CodeGen<'ctx> {
             context,
             module,
             builder,
+            type_defs: HashMap::new(),
+            local_vars: HashMap::new(),
+            var_types: HashMap::new(),
         }
     }
 
     pub fn compile_program(&mut self, program: &Program) -> Result<(), String> {
+        for type_def in &program.type_defs {
+            if let TypeDefKind::Record(record_type) = &type_def.definition {
+                self.type_defs.insert(type_def.name.clone(), record_type.clone());
+            }
+        }
+        
         for function in &program.func_defs {
             self.compile_function(function)?;
         }
@@ -41,6 +56,13 @@ impl<'ctx> CodeGen<'ctx> {
     }
 
     fn compile_function(&mut self, function: &FunctionDef) -> Result<FunctionValue<'ctx>, String> {
+        self.var_types.clear();
+        self.local_vars.clear();
+        
+        for (param_name, param_type) in &function.params {
+            self.var_types.insert(param_name.clone(), param_type.clone());
+        }
+        
         let param_types: Vec<BasicMetadataTypeEnum> = function
             .params
             .iter()
@@ -81,6 +103,8 @@ impl<'ctx> CodeGen<'ctx> {
             Expr::BinaryOp(binop) => self.compile_binary_op(binop, function),
             Expr::If(if_expr) => self.compile_if(if_expr, function),
             Expr::Match(match_expr) => self.compile_match(match_expr, function),
+            Expr::Let(let_expr) => self.compile_let(let_expr, function),
+            Expr::FieldAccess(field_access) => self.compile_field_access(field_access, function),
             Expr::Application(app) => {
                 // Collect all args from nested Applications
                 let (func_name, args) = self.flatten_application(app)?;
@@ -134,6 +158,10 @@ impl<'ctx> CodeGen<'ctx> {
         name: &str,
         function: FunctionValue<'ctx>,
     ) -> Result<BasicValueEnum<'ctx>, String> {
+        if let Some(&value) = self.local_vars.get(name) {
+            return Ok(value);
+        }
+        
         for (i, param) in function.get_param_iter().enumerate() {
             if let Ok(param_name) = function.get_nth_param(i as u32).unwrap().get_name().to_str() {
                 if param_name == name {
@@ -333,10 +361,124 @@ impl<'ctx> CodeGen<'ctx> {
                 "Int" | "Nat" => self.context.i64_type().into(),
                 "Bool" => self.context.bool_type().into(),
                 "Float64" => self.context.f64_type().into(),
-                _ => panic!("Unsupported basic type: {}", name),
+                type_name => {
+                    if let Some(record_type) = self.type_defs.get(type_name) {
+                        let field_types: Vec<BasicTypeEnum> = record_type
+                            .fields
+                            .iter()
+                            .map(|(_, field_ty)| self.compile_type(field_ty))
+                            .collect();
+                        self.context.struct_type(&field_types, false).into()
+                    } else {
+                        panic!("Unsupported basic type: {}", name)
+                    }
+                }
             },
             _ => panic!("Unsupported type: {:?}", ty),
         }
+    }
+    
+    fn compile_let(
+        &mut self,
+        let_expr: &LetExpr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        let value = self.compile_expr(&let_expr.value, function)?;
+        
+        let value_type = self.infer_expr_type(&let_expr.value)?;
+        
+        let old_value = self.local_vars.insert(let_expr.var_name.clone(), value);
+        let old_type = self.var_types.insert(let_expr.var_name.clone(), value_type);
+        
+        let body_result = self.compile_expr(&let_expr.body, function)?;
+        
+        if let Some(old) = old_value {
+            self.local_vars.insert(let_expr.var_name.clone(), old);
+        } else {
+            self.local_vars.remove(&let_expr.var_name);
+        }
+        
+        if let Some(old_ty) = old_type {
+            self.var_types.insert(let_expr.var_name.clone(), old_ty);
+        } else {
+            self.var_types.remove(&let_expr.var_name);
+        }
+        
+        Ok(body_result)
+    }
+    
+    fn infer_expr_type(&self, expr: &Expr) -> Result<Type, String> {
+        match expr {
+            Expr::Literal(lit) => match &lit.value {
+                LiteralValue::Int(_) => Ok(Type::Basic(AstBasicType { name: "Int".to_string() })),
+                LiteralValue::Bool(_) => Ok(Type::Basic(AstBasicType { name: "Bool".to_string() })),
+                LiteralValue::Float(_) => Ok(Type::Basic(AstBasicType { name: "Float64".to_string() })),
+                _ => Err("Cannot infer type for literal".to_string()),
+            },
+            Expr::Variable(var) => self.var_types.get(&var.name)
+                .cloned()
+                .ok_or_else(|| format!("Cannot find type for variable '{}'", var.name)),
+            Expr::BinaryOp(binop) => self.infer_expr_type(&binop.left),
+            Expr::FieldAccess(field_access) => {
+                let record_type = self.infer_expr_type(&field_access.record)?;
+                let type_name = if let Type::Basic(AstBasicType { name }) = record_type {
+                    name
+                } else {
+                    return Err("Expected basic type for record".to_string());
+                };
+                
+                let record_def = self.type_defs.get(&type_name)
+                    .ok_or_else(|| format!("Record type '{}' not found", type_name))?;
+                
+                record_def.fields.iter()
+                    .find(|(name, _)| name == &field_access.field)
+                    .map(|(_, ty)| ty.clone())
+                    .ok_or_else(|| format!("Field '{}' not found", field_access.field))
+            },
+            _ => Err(format!("Cannot infer type for expression: {:?}", expr)),
+        }
+    }
+    
+    fn compile_field_access(
+        &mut self,
+        field_access: &FieldAccess,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        let record_value = self.compile_expr(&field_access.record, function)?;
+        
+        let record_type = if let Expr::Variable(var) = &*field_access.record {
+            self.var_types.get(&var.name).ok_or_else(|| {
+                format!("Cannot find type for variable '{}'", var.name)
+            })?
+        } else {
+            return Err("Field access only supported on variables for now".to_string());
+        };
+        
+        let type_name = if let Type::Basic(AstBasicType { name }) = record_type {
+            name
+        } else {
+            return Err(format!("Expected basic type for record, got {:?}", record_type));
+        };
+        
+        let record_def = self.type_defs.get(type_name).ok_or_else(|| {
+            format!("Record type '{}' not found", type_name)
+        })?;
+        
+        let field_index = record_def
+            .fields
+            .iter()
+            .position(|(name, _)| name == &field_access.field)
+            .ok_or_else(|| {
+                format!("Field '{}' not found in record '{}'", field_access.field, type_name)
+            })?;
+        
+        let struct_value = record_value.into_struct_value();
+        let field_value = self
+            .builder
+            .build_extract_value(struct_value, field_index as u32, &field_access.field)
+            .unwrap();
+        
+        Ok(field_value)
     }
 
     pub fn get_module(&self) -> &Module<'ctx> {
