@@ -18,9 +18,8 @@ crate-type = ["cdylib", "rlib"]  # cdylib for Python bindings, rlib for Rust
 # Parser combinators (for IR Parser)
 nom = "7.1"
 
-# LLVM bindings (Phase 5 M1+)
-# llvm-sys = "170"
-# Alternative: inkwell = { version = "0.4", features = ["llvm17-0"] }
+# LLVM bindings (Phase 5 M2+) - Using inkwell for type-safe LLVM API
+inkwell = { version = "0.5", features = ["llvm17-0"] }
 
 # Python bindings
 pyo3 = { version = "0.20", features = ["extension-module"] }

@@ -22,7 +22,7 @@ Pole is an LLM-optimized programming language system with two distinct layers:
 - **Build**: `cd compiler && cargo build --release`
 - **Test**: `cargo test`
 - **Benchmark**: `cargo bench`
-- **Components**: IR Parser, Type Checker (25.6x faster than Python)
+- **Components**: IR Parser (23.4x faster), Type Checker (25.6x faster)
 
 ### Pole CLI Commands
 - **Run IR**: `pole run examples/01-factorial.pole-ir factorial 5`
@@ -73,6 +73,11 @@ Pole is an LLM-optimized programming language system with two distinct layers:
 - 같은 Phase 내에서 P0 → P1 → P2 순서
 
 **Never assume priority** - always verify against the roadmap and ask the user.
+
+### Current Phase Status
+- **Completed**: Phase 0-4 (프로토타입) ✅
+- **Current**: Phase 5 (네이티브 컴파일러) - M1.5 완료, M2 준비 중
+- **Next Major Milestone**: LLVM 백엔드 개발 (2025-11 시작 예정)
 
 ### Task Status Verification
 
@@ -366,5 +371,29 @@ Complete task 1.4: Add verification system requirements
 - Task partially complete
 - User explicitly said they'll commit manually
 - Changes are experimental/temporary
+
+---
+
+## Quick Reference for Current Work
+
+### Phase 5 Current Status (2025-10-19)
+- ✅ **M0**: Rust IR Parser/Type Checker 완료
+- ✅ **M0.5**: 시스템 안정화 완료  
+- ✅ **M1**: Rust IR Parser 완성 (6/6 예제)
+- ✅ **M1.5**: Python-Rust 통합 완성
+- ⏳ **M2**: LLVM 백엔드 개발 (2025-11 시작)
+
+### Key Performance Metrics
+- Rust IR Parser: **23.4x** faster than Python
+- Rust Type Checker: **25.6x** faster than Python
+- All 6 examples passing end-to-end tests
+
+### LLVM Development Checklist (M2 시작 시)
+When starting LLVM backend development:
+1. [ ] Review llvm-sys vs inkwell documentation
+2. [ ] Set up LLVM development environment
+3. [ ] Create simple "Hello World" LLVM example
+4. [ ] Design IR → LLVM IR mapping strategy
+5. [ ] Start with factorial example
 
 ---
