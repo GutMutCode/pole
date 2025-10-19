@@ -1,0 +1,8 @@
+@extern("printf")
+@variadic
+func c_printf(format: String) -> Int
+
+func test_printf() -> Int :
+  c_printf("Hello from C!\n")
+
+@test_case(expected=14)

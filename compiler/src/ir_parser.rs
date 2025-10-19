@@ -163,12 +163,19 @@ fn parse_annotation(input: &str) -> ParseResult<Annotation> {
 }
 
 fn parse_annotation_args(input: &str) -> Vec<(String, String)> {
-    // Simplified: just parse key=value pairs
     input.split(',')
-        .filter_map(|s| {
+        .enumerate()
+        .filter_map(|(idx, s)| {
+            let s = s.trim();
             let parts: Vec<&str> = s.splitn(2, '=').collect();
             if parts.len() == 2 {
+                // key=value format
                 Some((parts[0].trim().to_string(), parts[1].trim().to_string()))
+            } else if !s.is_empty() {
+                // Positional argument (e.g., @extern("printf"))
+                // Strip quotes if present
+                let value = s.trim_matches('"').to_string();
+                Some((idx.to_string(), value))
             } else {
                 None
             }
@@ -673,33 +680,39 @@ fn parse_function_def(input: &str) -> ParseResult<FunctionDef> {
     }))
 }
 
-fn parse_extern_function_decl(input: &str) -> ParseResult<ExternFunctionDecl> {
-    let (input, annotations) = many0(terminated(parse_annotation, multispace0))(input)?;
-    
-    // Find @extern annotation to get C name
-    let c_name = annotations.iter()
-        .find(|ann| ann.name == "extern")
-        .and_then(|ann| ann.args.first())
-        .map(|(_, val)| val.clone())
-        .unwrap_or_else(|| "unknown".to_string());
-    
-    let (input, _) = ws(tag("func"))(input)?;
-    let (input, name) = ws(identifier)(input)?;
-    let (input, params) = delimited(
-        char('('),
-        separated_list0(ws(char(',')), parse_function_param),
-        char(')'),
-    )(input)?;
-    let (input, _) = ws(tag("->"))(input)?;
-    let (input, return_type) = ws(parse_type)(input)?;
-    
-    Ok((input, ExternFunctionDecl {
-        name,
-        c_name,
-        params,
-        return_type,
-        annotations,
-    }))
+fn parse_extern_function_decl(annotations: Vec<Annotation>) -> impl FnMut(&str) -> ParseResult<ExternFunctionDecl> {
+    move |input: &str| {
+        // Find @extern annotation to get C name
+        // Can be either @extern("printf") or @extern(name="printf")
+        let extern_ann = annotations.iter().find(|ann| ann.name == "extern");
+        let c_name = if let Some(ann) = extern_ann {
+            if !ann.args.is_empty() {
+                ann.args[0].1.clone()
+            } else {
+                "unknown_noargs".to_string()
+            }
+        } else {
+            "unknown_noextern".to_string()
+        };
+        
+        let (input, _) = ws(tag("func"))(input)?;
+        let (input, name) = ws(identifier)(input)?;
+        let (input, params) = delimited(
+            char('('),
+            separated_list0(ws(char(',')), parse_function_param),
+            char(')'),
+        )(input)?;
+        let (input, _) = ws(tag("->"))(input)?;
+        let (input, return_type) = ws(parse_type)(input)?;
+        
+        Ok((input, ExternFunctionDecl {
+            name,
+            c_name,
+            params,
+            return_type,
+            annotations: annotations.clone(),
+        }))
+    }
 }
 
 // ============================================================================
@@ -758,8 +771,7 @@ pub fn parse_ir(input: &str) -> Result<Program, String> {
         if new_input.starts_with("func ") {
             if has_extern {
                 // Parse as extern function declaration (no body)
-                if let Ok((new_input, mut extern_func)) = parse_extern_function_decl(new_input) {
-                    extern_func.annotations = [annotations, extern_func.annotations].concat();
+                if let Ok((new_input, extern_func)) = parse_extern_function_decl(annotations)(new_input) {
                     extern_funcs.push(extern_func);
                     remaining = new_input;
                     continue;

@@ -11,9 +11,9 @@ use inkwell::IntPredicate;
 use std::path::Path;
 
 use crate::ast::{
-    Application, BasicType as AstBasicType, BinaryOp, Constructor, Expr, FieldAccess, FunctionDef,
-    IfExpr, LetExpr, Literal, LiteralValue, MatchExpr, Pattern, Program, RecordExpr, RecordType,
-    Type, TypeDefKind, Variable,
+    Application, BasicType as AstBasicType, BinaryOp, Constructor, Expr, ExternFunctionDecl,
+    FieldAccess, FunctionDef, IfExpr, LetExpr, Literal, LiteralValue, MatchExpr, Pattern,
+    Program, RecordExpr, RecordType, Type, TypeDefKind,
 };
 
 use std::collections::HashMap;
@@ -29,6 +29,7 @@ pub struct CodeGen<'ctx, 'arena> {
     local_vars: HashMap<String, BasicValueEnum<'ctx>>,
     var_types: HashMap<String, Type>,
     current_function_return_type: Option<Type>,
+    extern_func_mapping: HashMap<String, String>,
 }
 
 impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
@@ -46,6 +47,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
             local_vars: HashMap::new(),
             var_types: HashMap::new(),
             current_function_return_type: None,
+            extern_func_mapping: HashMap::new(),
         }
     }
     
@@ -54,8 +56,10 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
     }
 
     pub fn compile_program(&mut self, program: &Program) -> Result<(), String> {
-        // Declare external C functions (libc)
-        self.declare_libc_functions();
+        // Declare external functions from @extern declarations
+        for extern_func in &program.extern_funcs {
+            self.declare_extern_function(extern_func)?;
+        }
         
         for type_def in &program.type_defs {
             match &type_def.definition {
@@ -75,33 +79,30 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         Ok(())
     }
     
-    fn declare_libc_functions(&self) {
-        let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
-        let i32_type = self.context.i32_type();
-        let i64_type = self.context.i64_type();
+    fn declare_extern_function(&mut self, extern_func: &ExternFunctionDecl) -> Result<(), String> {
+        // Check if @variadic annotation is present
+        let is_variadic = extern_func.annotations.iter()
+            .any(|ann| ann.name == "variadic");
         
-        // char* strstr(const char* haystack, const char* needle)
-        let strstr_type = i8_ptr_type.fn_type(&[i8_ptr_type.into(), i8_ptr_type.into()], false);
-        self.module.add_function("strstr", strstr_type, None);
+        // Map parameter types
+        let param_types: Vec<BasicMetadataTypeEnum> = extern_func.params
+            .iter()
+            .map(|(_, ty)| self.compile_type(ty).into())
+            .collect();
         
-        // int printf(const char* format, ...)
-        let printf_type = i32_type.fn_type(&[i8_ptr_type.into()], true);
-        self.module.add_function("printf", printf_type, None);
+        // Map return type
+        let return_type = self.compile_type(&extern_func.return_type);
         
-        // int puts(const char* s)
-        let puts_type = i32_type.fn_type(&[i8_ptr_type.into()], false);
-        self.module.add_function("puts", puts_type, None);
+        // Create function type
+        let fn_type = return_type.fn_type(&param_types, is_variadic);
         
-        // void* malloc(size_t size)
-        let malloc_type = i8_ptr_type.fn_type(&[i64_type.into()], false);
-        self.module.add_function("malloc", malloc_type, None);
+        // Declare external function with C name
+        self.module.add_function(&extern_func.c_name, fn_type, None);
         
-        // void* memcpy(void* dest, const void* src, size_t n)
-        let memcpy_type = i8_ptr_type.fn_type(
-            &[i8_ptr_type.into(), i8_ptr_type.into(), i64_type.into()],
-            false
-        );
-        self.module.add_function("memcpy", memcpy_type, None);
+        // Store mapping from Pole name to C name
+        self.extern_func_mapping.insert(extern_func.name.clone(), extern_func.c_name.clone());
+        
+        Ok(())
     }
 
     fn compile_function(&mut self, function: &FunctionDef) -> Result<FunctionValue<'ctx>, String> {
@@ -263,9 +264,15 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     .map(|arg_expr| self.compile_expr(arg_expr, function))
                     .collect::<Result<Vec<_>, _>>()?;
                 
+                // Check if this is an extern function (Pole name -> C name)
+                let actual_func_name = self.extern_func_mapping
+                    .get(&func_name)
+                    .cloned()
+                    .unwrap_or_else(|| func_name.clone());
+                
                 let callee = self
                     .module
-                    .get_function(&func_name)
+                    .get_function(&actual_func_name)
                     .ok_or_else(|| format!("Function '{}' not found", func_name))?;
 
                 let arg_metadata: Vec<_> = arg_values.iter().map(|v| (*v).into()).collect();
@@ -1080,13 +1087,20 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     .ok_or_else(|| format!("Field '{}' not found", field_access.field))
             },
             Expr::Application(app) => {
-                // Check for builtin functions
+                // Check for builtin functions and extern functions
                 if let Expr::Variable(var) = &*app.func {
                     match var.name.as_str() {
                         "String_length" => return Ok(Type::Basic(AstBasicType { name: "Nat".to_string() })),
                         "String_contains" => return Ok(Type::Basic(AstBasicType { name: "Bool".to_string() })),
                         "print" | "println" => return Ok(Type::Basic(AstBasicType { name: "Unit".to_string() })),
-                        _ => {}
+                        _ => {
+                            // Check if it's an extern function we know about
+                            // For simplicity, just return Int for now (most C functions return int)
+                            // TODO: Store extern function signatures for proper type lookup
+                            if self.extern_func_mapping.contains_key(&var.name) {
+                                return Ok(Type::Basic(AstBasicType { name: "Int".to_string() }));
+                            }
+                        }
                     }
                 }
                 
