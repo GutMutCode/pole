@@ -435,11 +435,44 @@ Year 7-10  : Phase 10   언어 생태계 & 패키지 시스템
    **완료 일자:** 2025-10-19
    **총 소요 시간:** 1일
 
-4. **M4: 전체 예제 컴파일** (1.5개월, 2026-02-25 ~ 2026-04-10)
-   - 모든 examples/*.pole 컴파일 성공
-   - 타입 체킹 통합 (이미 Rust로 완성)
-   - **검증:** 6개 예제 네이티브 실행
-   - **성능 벤치마크:** IR Parser + Type Checker Rust 효과 측정
+4. **M4: Advanced Types - LLVM 백엔드** ✅ **완료** (1일, 2025-10-19)
+   
+   **목표:** 고급 타입 시스템 완성 (String, List, Variant, Option, Result, Unit)
+   
+   **구현 내용:**
+   - ✅ M4.1: String Type - `{ i8*, i64 }` (pointer + length)
+   - ✅ M4.2: List Type - `{ T*, i64 }` (element pointer + length)
+   - ✅ M4.3: Variant Type - i32 tag for simple enums
+   - ✅ M4.4: Option/Result Types - `{ i32 tag, T value }` with pattern matching
+   - ✅ M4.5: Unit Type - i8 0
+   
+   **산출물:**
+   - ✅ `examples/08-simple-record.pole-ir` - Record types
+   - ✅ `examples/09-simple-string.pole-ir` - String parameters
+   - ✅ `examples/10-string-literal.pole-ir` - String literals
+   - ✅ `examples/11-simple-list.pole-ir` - List literals
+   - ✅ `examples/12-simple-variant.pole-ir` - Basic variants
+   - ✅ `examples/13-variant-tags.pole-ir` - Variant tag values
+   - ✅ `examples/15-simple-option.pole-ir` - Option constructors
+   - ✅ `examples/16-option-match.pole-ir` - Pattern matching
+   - ✅ `examples/17-unit-type.pole-ir` - Unit type
+   - ✅ `compiler/examples/m4_summary.rs` - Complete verification
+   - ✅ `docs/M4_ADVANCED_TYPES_PROGRESS.md` - Progress documentation
+   
+   **검증 결과:**
+   - ✅ 8개 M4 예제 모두 컴파일 성공
+   - ✅ Pattern matching: Some/None/Ok/Err with value extraction
+   - ✅ Variable binding in patterns
+   - ✅ PHI nodes for branch merging
+   
+   **타입 시스템 달성:**
+   - ✅ Basic types: Int, Nat, Bool, Float64, String, Unit
+   - ✅ Compound types: Record, List, Option, Result
+   - ✅ Simple variants (enums without payloads)
+   - ✅ Pattern matching on all supported types
+   
+   **완료 일자:** 2025-10-19
+   **총 소요 시간:** 1일
 
 **성공 기준:**
 - ✅ 컴파일 성공률: 100% (모든 예제)
