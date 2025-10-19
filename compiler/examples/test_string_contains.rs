@@ -6,24 +6,26 @@ use std::process::Command;
 fn main() {
     println!("=== Testing String.contains Implementation ===\n");
 
-    // Note: Temporarily skipping String.contains test due to IR parser limitations
-    // IR parser doesn't support:
-    // - f(x)(y) curried application
-    // - f(x, y) multiple arguments
-    // Will fix parser and re-enable tests later
-    
     let ir_source = r#"
 func test_contains_true() -> Bool :
-  true
+  let haystack = "hello world" in
+  let needle = "world" in
+  String_contains(haystack, needle)
 
 func test_contains_false() -> Bool :
-  false
+  let haystack = "hello world" in
+  let needle = "xyz" in
+  String_contains(haystack, needle)
 
 func test_contains_empty() -> Bool :
-  true
+  let haystack = "hello" in
+  let needle = "" in
+  String_contains(haystack, needle)
 
 func test_contains_at_start() -> Bool :
-  true
+  let haystack = "hello world" in
+  let needle = "hello" in
+  String_contains(haystack, needle)
 "#;
 
     println!("Parsing IR...");

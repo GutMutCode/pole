@@ -488,22 +488,33 @@ fn parse_binary_op(input: &str) -> ParseResult<Expr> {
 }
 
 fn parse_application(input: &str) -> ParseResult<Expr> {
-    map(
-        pair(
-            identifier,
-            delimited(
-                ws(char('(')),
-                parse_expr,
-                ws(char(')')),
-            ),
-        ),
-        |(func_name, arg)| {
-            Expr::Application(Application {
-                func: Box::new(Expr::Variable(Variable { name: func_name })),
-                arg: Box::new(arg),
-            })
-        },
-    )(input)
+    let (input, func_name) = identifier(input)?;
+    let (input, _) = ws(char('('))(input)?;
+    
+    // Parse comma-separated arguments
+    let (input, args) = separated_list0(
+        ws(char(',')),
+        parse_expr,
+    )(input)?;
+    
+    let (input, _) = ws(char(')'))(input)?;
+    
+    // If no arguments, this is invalid
+    if args.is_empty() {
+        return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
+    }
+    
+    // Build nested Application for curried form
+    // f(x, y) becomes Application(Application(f, x), y)
+    let mut expr = Expr::Variable(Variable { name: func_name });
+    for arg in args {
+        expr = Expr::Application(Application {
+            func: Box::new(expr),
+            arg: Box::new(arg),
+        });
+    }
+    
+    Ok((input, expr))
 }
 
 fn parse_match_expr(input: &str) -> ParseResult<Expr> {
