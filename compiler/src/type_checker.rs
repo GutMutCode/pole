@@ -454,6 +454,10 @@ impl TypeChecker {
                     self.type_to_string(&func.param_type),
                     self.type_to_string(&func.return_type))
             }
+            
+            Type::Pointer(ptr) => {
+                format!("Ptr<{}>", self.type_to_string(&ptr.pointee_type))
+            }
         }
     }
 }

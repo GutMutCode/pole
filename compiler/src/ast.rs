@@ -16,6 +16,7 @@ pub enum Type {
     Tuple(TupleType),
     Record(RecordType),
     Function(FunctionType),
+    Pointer(PointerType),
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -37,6 +38,11 @@ pub struct ResultType {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ListType {
     pub element_type: Box<Type>,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PointerType {
+    pub pointee_type: Box<Type>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

@@ -1029,6 +1029,11 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                 
                 self.context.struct_type(&[i32_type.into(), value_type], false).into()
             }
+            Type::Pointer(pointer_type) => {
+                // Ptr<T> = T* (LLVM pointer)
+                let pointee_type = self.compile_type(&pointer_type.pointee_type);
+                pointee_type.ptr_type(inkwell::AddressSpace::default()).into()
+            }
             _ => panic!("Unsupported type: {:?}", ty),
         }
     }

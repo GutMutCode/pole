@@ -113,6 +113,17 @@ fn parse_list_type(input: &str) -> ParseResult<Type> {
     )(input)
 }
 
+fn parse_pointer_type(input: &str) -> ParseResult<Type> {
+    map(
+        delimited(
+            tag("Ptr<"),
+            parse_type,
+            char('>'),
+        ),
+        |pointee| Type::Pointer(PointerType { pointee_type: Box::new(pointee) }),
+    )(input)
+}
+
 fn parse_tuple_type(input: &str) -> ParseResult<Type> {
     map(
         delimited(
@@ -129,6 +140,7 @@ fn parse_type(input: &str) -> ParseResult<Type> {
         parse_option_type,
         parse_result_type,
         parse_list_type,
+        parse_pointer_type,
         parse_tuple_type,
         parse_basic_type,
     ))(input)
