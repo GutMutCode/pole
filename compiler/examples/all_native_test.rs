@@ -1,5 +1,5 @@
 use inkwell::context::Context;
-use pole_compiler::{parse_ir, CodeGen};
+use pole_compiler::{parse_ir, CodeGen, CompilerArenas};
 use std::fs;
 use std::process::Command;
 
@@ -79,8 +79,9 @@ fn run_test(test: &TestCase) -> Result<i64, String> {
     let program = parse_ir(&ir_source)
         .map_err(|e| format!("Failed to parse IR: {}", e))?;
 
+    let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, test.name);
+    let mut codegen = CodeGen::new(&context, test.name, &arenas.codegen_arena);
 
     codegen
         .compile_program(&program)

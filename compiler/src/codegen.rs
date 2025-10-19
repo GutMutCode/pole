@@ -17,11 +17,13 @@ use crate::ast::{
 };
 
 use std::collections::HashMap;
+use bumpalo::Bump;
 
-pub struct CodeGen<'ctx> {
+pub struct CodeGen<'ctx, 'arena> {
     context: &'ctx Context,
     module: Module<'ctx>,
     builder: Builder<'ctx>,
+    arena: &'arena Bump,
     type_defs: HashMap<String, RecordType>,
     variant_defs: HashMap<String, Vec<(String, Vec<Type>)>>,
     local_vars: HashMap<String, BasicValueEnum<'ctx>>,
@@ -29,8 +31,8 @@ pub struct CodeGen<'ctx> {
     current_function_return_type: Option<Type>,
 }
 
-impl<'ctx> CodeGen<'ctx> {
-    pub fn new(context: &'ctx Context, module_name: &str) -> Self {
+impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
+    pub fn new(context: &'ctx Context, module_name: &str, arena: &'arena Bump) -> Self {
         let module = context.create_module(module_name);
         let builder = context.create_builder();
 
@@ -38,12 +40,17 @@ impl<'ctx> CodeGen<'ctx> {
             context,
             module,
             builder,
+            arena,
             type_defs: HashMap::new(),
             variant_defs: HashMap::new(),
             local_vars: HashMap::new(),
             var_types: HashMap::new(),
             current_function_return_type: None,
         }
+    }
+    
+    fn alloc_temp<T>(&self, value: T) -> &'arena T {
+        self.arena.alloc(value)
     }
 
     pub fn compile_program(&mut self, program: &Program) -> Result<(), String> {

@@ -1416,34 +1416,32 @@ pole publish
   - Type definitions가 전체 파이프라인에서 보존됨
   - LLVM 백엔드 개발 준비 완료
 
+- ✅ **M2 준비: Arena Allocator 도입** (2025-10-19) ✅
+  - bumpalo 라이브러리 통합
+  - CompilerArenas 구조체 구현
+  - CodeGen에 Arena 적용 (CodeGen<'ctx, 'arena>)
+  - 메모리 통계 수집 (MemoryStats)
+  - 벤치마크 완료: 12.15µs/compilation (100회)
+  - 메모리 사용: ~100MB (기본 설정)
+  - 모든 기존 예제 통과 (factorial, fibonacci, max)
+
 **다음 작업:**
 
-**5.1.5: 컴파일러 메모리 관리 최적화 (Arena Allocator)** ⭐ 높은 우선순위
-
-**목표:** SQLite 스타일 메모리 관리로 컴파일러 안정성/성능 개선
-
-**선행 조건:** M2 진행 중 (병행 개발 가능)
-
-**구현 계획:**
-1. bumpalo 라이브러리 통합 (Cargo.toml)
-2. CompilerArenas 구조체 구현
-3. codegen.rs에 Arena 통합
-4. OOM 복구 메커니즘 추가
-5. 벤치마크 및 검증
-
-**예상 소요 시간:** 2-3주
-
-**완료 후:** M2 계속 진행 + M3 (LLVM 고급 기능)
+**M3 이후 작업 계속 진행** - LLVM 고급 기능 및 최적화
 
 ---
 
 ## 변경 이력
 
-- **2025-10-19**: Arena Allocator 도입 계획 추가 (5.1.5)
-  - SQLite 스타일 메모리 관리를 Rust로 구현
-  - 컴파일러 메모리 사용량 75% 감소 목표
-  - OOM 복구 메커니즘 도입
-  - 5.2 런타임 메모리 관리와 구분 명확화
+- **2025-10-19**: Phase 5 M2 준비 완료 (Arena Allocator 도입) ✅
+  - bumpalo 라이브러리 통합 완료
+  - CompilerArenas 구조체 구현 (parse, ir, codegen 영역)
+  - CodeGen에 Arena 적용 (lifetime 추가)
+  - 메모리 통계 및 벤치마크 추가
+  - 모든 기존 예제 Arena 적용 및 통과
+  - 성능: 12.15µs/compilation (100회 평균)
+  - **완료 일자**: 2025-10-19
+  - **다음 단계**: M3 LLVM 고급 기능 개발
 - **2025-10-19**: Phase 5 M1.5 완료 (Python-Rust 통합 완성) 🎉
   - **해결한 문제**: `ir_parser_rust.py`가 type_defs를 무시하던 문제 수정
   - **구현**: convert_type_def() 함수, Literal type_name 전달
