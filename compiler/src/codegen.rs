@@ -31,6 +31,7 @@ pub struct CodeGen<'ctx, 'arena> {
     current_function_return_type: Option<Type>,
     extern_func_mapping: HashMap<String, String>,
     extern_func_types: HashMap<String, Type>,
+    func_return_types: HashMap<String, Type>,
 }
 
 impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
@@ -50,6 +51,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
             current_function_return_type: None,
             extern_func_mapping: HashMap::new(),
             extern_func_types: HashMap::new(),
+            func_return_types: HashMap::new(),
         }
     }
     
@@ -123,6 +125,9 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
     fn compile_function(&mut self, function: &FunctionDef) -> Result<FunctionValue<'ctx>, String> {
         self.var_types.clear();
         self.local_vars.clear();
+        
+        // Store function return type for type inference
+        self.func_return_types.insert(function.name.clone(), function.return_type.clone());
         
         for (param_name, param_type) in &function.params {
             self.var_types.insert(param_name.clone(), param_type.clone());
@@ -1167,7 +1172,12 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     return Ok(return_type.clone());
                 }
                 
-                // Check if it's a regular function call
+                // Check if it's a regular function call (user-defined)
+                if let Some(return_type) = self.func_return_types.get(&func_name) {
+                    return Ok(return_type.clone());
+                }
+                
+                // Fallback: Check if it's a regular function call
                 // Get the function from LLVM module and extract return type
                 if let Some(llvm_func) = self.module.get_function(&func_name) {
                     // We need to map LLVM type back to AST type

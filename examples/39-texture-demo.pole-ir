@@ -1,0 +1,139 @@
+// Week 2 Day 7: Texture Rendering Demo
+// Render filled rectangles as simple "texture" demonstration
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_RenderFillRect")
+func SDL_RenderFillRect(renderer: Ptr<Unit>, rect: Ptr<Unit>) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("malloc")
+func malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_write_i32_at")
+func pole_write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+// Create SDL_Rect: { x: i32, y: i32, w: i32, h: i32 }
+func create_rect(x: Int, y: Int, w: Int, h: Int) -> Ptr<Unit>:
+  let rect = malloc(16) in
+  let _ = pole_write_i32_at(rect, 0, x) in
+  let _ = pole_write_i32_at(rect, 4, y) in
+  let _ = pole_write_i32_at(rect, 8, w) in
+  let _ = pole_write_i32_at(rect, 12, h) in
+  rect
+
+// Draw filled tile at isometric position
+func draw_filled_tile(renderer: Ptr<Unit>, tx: Int, ty: Int, tile_type: Int, cam_x: Int, cam_y: Int) -> Unit:
+  let base_x = (tx - ty) * 32 + 400 in
+  let base_y = (tx + ty) * 16 + 100 in
+  let sx = base_x + cam_x in
+  let sy = base_y + cam_y in
+  
+  let r = if tile_type == 0 then 100 else if tile_type == 1 then 150 else 180 in
+  let g = if tile_type == 0 then 200 else if tile_type == 1 then 150 else 160 in
+  let b = if tile_type == 0 then 100 else if tile_type == 1 then 150 else 140 in
+  
+  let rect = create_rect(sx - 32, sy - 16, 64, 32) in
+  let _ = SDL_SetRenderDrawColor(renderer, r, g, b, 255) in
+  let _ = SDL_RenderFillRect(renderer, rect) in
+  let _ = free(rect) in
+  ()
+
+// Get tile type for demo pattern
+func get_tile_type(x: Int, y: Int) -> Int:
+  if x == 2 then
+    1
+  else
+    if x >= 3 then
+      if x <= 4 then
+        if y >= 2 then
+          if y <= 3 then
+            2
+          else
+            0
+        else
+          0
+      else
+        0
+    else
+      0
+
+// Render row recursively
+func render_row(renderer: Ptr<Unit>, row: Int, col: Int, max_col: Int, cam_x: Int, cam_y: Int) -> Unit:
+  if col >= max_col then
+    ()
+  else
+    let tile_type = get_tile_type(col, row) in
+    let _ = draw_filled_tile(renderer, col, row, tile_type, cam_x, cam_y) in
+    render_row(renderer, row, col + 1, max_col, cam_x, cam_y)
+
+// Render grid recursively
+func render_grid(renderer: Ptr<Unit>, row: Int, max_row: Int, max_col: Int, cam_x: Int, cam_y: Int) -> Unit:
+  if row >= max_row then
+    ()
+  else
+    let _ = render_row(renderer, row, 0, max_col, cam_x, cam_y) in
+    render_grid(renderer, row + 1, max_row, max_col, cam_x, cam_y)
+
+// Main demo
+func main() -> Int :
+  let _ = c_puts("=== Week 2 Day 7: Texture Demo ===") in
+  let _ = c_puts("Filled rectangles as tile sprites") in
+  let _ = c_puts("5x5 isometric grid") in
+  let _ = c_puts("") in
+  
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Pole Week 2 - Texture Demo", 805240832, 805240832, 800, 600, 4) in
+  let renderer = SDL_CreateRenderer(window, -1, 2) in
+  
+  let _ = c_puts("Rendering with filled rectangles...") in
+  let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = render_grid(renderer, 0, 5, 5, 0, 0) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(5000) in
+  
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = c_puts("") in
+  let _ = c_puts("Texture demo complete!") in
+  let _ = c_puts("  - Filled rectangles instead of lines") in
+  let _ = c_puts("  - Foundation for real textures") in
+  let _ = c_puts("  - Ready for SDL_LoadBMP integration") in
+  0
+
+@test_case(expected=0)
