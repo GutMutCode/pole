@@ -61,19 +61,39 @@ M5 focuses on implementing runtime utility functions needed by Pole programs:
 
 ## Current Status
 
-- [ ] String.length
-- [ ] String.contains  
-- [ ] List.concat
-- [ ] print/println
-- [ ] Enable 03-user-validation.pole-ir
+- [x] String.length - ✅ **Completed** (2025-10-19)
+  - Implementation: Inline LLVM extractvalue from String struct
+  - Tests: 3/3 passing (hello=5, empty=0, long=42)
+  - File: `compiler/examples/test_string_length.rs`
+  
+- [x] String.contains - ✅ **Completed** (2025-10-19)
+  - Implementation: C FFI to strstr(haystack, needle)
+  - Returns: Bool (NULL check on strstr result)
+  - Limitation: IR parser doesn't support curried/multi-arg syntax yet
+  - File: `compiler/examples/test_string_contains.rs` (placeholder)
+  
+- [ ] List.concat - **Pending**
+- [ ] print/println - **Pending**
+- [ ] Enable 03-user-validation.pole-ir - **Blocked** (needs IR parser improvement)
+
+## Implementation Decisions
+
+**Chosen Approach:** Hybrid
+- Simple operations: Inline LLVM (String.length)
+- Complex operations: C FFI (String.contains using strstr)
+
+**Rationale:**
+- Inline LLVM: No dependencies, cross-platform, optimal performance
+- C FFI: Leverage existing implementations, faster development
 
 ## Next Steps
 
-1. Choose implementation approach (FFI vs inline)
-2. Implement String.length as proof of concept
-3. Test with simple example
-4. Implement remaining functions
-5. Verify user-validation compiles and runs
+1. ✅ ~~Choose implementation approach~~
+2. ✅ ~~Implement String.length~~
+3. ✅ ~~Implement String.contains~~
+4. Fix IR parser to support curried application `f(x)(y)`
+5. Implement List.concat
+6. Verify user-validation compiles and runs
 
 ## Success Criteria
 

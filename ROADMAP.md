@@ -474,7 +474,37 @@ Year 7-10  : Phase 10   언어 생태계 & 패키지 시스템
    **완료 일자:** 2025-10-19
    **총 소요 시간:** 1일
 
-**성공 기준:**
+5. **M5: Runtime Functions** ⏳ **진행 중** (시작: 2025-10-19)
+   
+   **목표:** 실용적인 프로그램 작성을 위한 runtime 함수 구현
+   
+   **구현 내용:**
+   - ✅ String.length - Inline LLVM (extractvalue)
+   - ✅ String.contains - C FFI (strstr)
+   - ⏸️ List.concat - 대기 중
+   - ⏸️ print/println - 대기 중
+   
+   **산출물:**
+   - ✅ `compiler/examples/test_string_length.rs` - 3/3 테스트 통과
+   - ✅ `compiler/examples/test_string_contains.rs` - 구현 완료
+   - ✅ `docs/M5_RUNTIME_FUNCTIONS.md` - 진행 문서
+   
+   **검증 결과:**
+   - ✅ String.length("hello") = 5
+   - ✅ String.length("") = 0
+   - ✅ String.contains 구현 완료 (테스트는 IR 파서 개선 필요)
+   
+   **제한사항:**
+   - IR 파서가 curried application `f(x)(y)` 미지원
+   - multi-argument `f(x, y)` 미지원
+   - user-validation 예제 활성화 대기 중
+   
+   **다음 단계:**
+   - IR 파서 개선 (curried/multi-arg 지원)
+   - List.concat 구현
+   - user-validation 테스트
+
+**5.1 성공 기준 (M0-M4):**
 - ✅ 컴파일 성공률: 100% (모든 예제)
 - ✅ 컴파일 성능: factorial(20) < 0.001ms (인터프리터: ~0.06ms)
 - ✅ IR 파싱 성능: <0.5ms (Python 대비 10배+)
@@ -1425,14 +1455,32 @@ pole publish
   - 메모리 사용: ~100MB (기본 설정)
   - 모든 기존 예제 통과 (factorial, fibonacci, max)
 
+- ⏳ **M5: Runtime Functions** (진행 중, 2025-10-19 시작)
+  - ✅ String.length 구현 (inline LLVM extractvalue)
+  - ✅ String.contains 구현 (C FFI strstr)
+  - ⏸️ IR 파서 개선 필요 (curried application 지원)
+  - ⏸️ List.concat 구현 대기
+  - ⏸️ user-validation 예제 활성화 대기
+
 **다음 작업:**
 
-**M3 이후 작업 계속 진행** - LLVM 고급 기능 및 최적화
+**IR 파서 개선 또는 추가 Runtime 함수 구현**
+- Option 1: IR 파서에 curried/multi-arg 지원 추가
+- Option 2: List.concat, print/println 구현 계속
+- 목표: user-validation 예제 활성화
 
 ---
 
 ## 변경 이력
 
+- **2025-10-19**: Phase 5 M5 시작 (Runtime Functions) ⏳
+  - String.length 구현 (inline LLVM extractvalue)
+    - 테스트: 3/3 통과 (hello=5, empty=0, long=42)
+  - String.contains 구현 (C FFI strstr)
+    - declare_libc_functions() 추가
+    - compile_string_contains() 구현
+  - 발견: IR 파서가 curried/multi-arg 미지원
+  - **다음 단계**: IR 파서 개선 또는 추가 runtime 함수 구현
 - **2025-10-19**: Phase 5 M2 준비 완료 (Arena Allocator 도입) ✅
   - bumpalo 라이브러리 통합 완료
   - CompilerArenas 구조체 구현 (parse, ir, codegen 영역)
