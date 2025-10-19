@@ -1,0 +1,16 @@
+type Point = {
+  x: Int,
+  y: Int
+}
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+func sum_point(p: Point) -> Int :
+  p.x + p.y
+
+func test_struct() -> Int :
+  let _ = c_puts("Test completed") in
+  0
+
+@test_case(expected=0)
