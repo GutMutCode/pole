@@ -1,0 +1,154 @@
+// Week 2 Day 1: Real-time Keyboard Input
+// Interactive camera control with WASD keys
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_RenderDrawLine")
+func SDL_RenderDrawLine(renderer: Ptr<Unit>, x1: Int, y1: Int, x2: Int, y2: Int) -> Int
+
+@extern("SDL_PollEvent")
+func SDL_PollEvent(event: Ptr<Unit>) -> Int
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("malloc")
+func malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func free(ptr: Ptr<Unit>) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("pole_read_i32")
+func pole_read_i32(ptr: Ptr<Unit>) -> Int
+
+@extern("pole_read_i32_at")
+func pole_read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+// Draw single tile
+func draw_tile(renderer: Ptr<Unit>, tx: Int, ty: Int, cam_x: Int, cam_y: Int) -> Unit:
+  let base_x = (tx - ty) * 32 + 400 in
+  let base_y = (tx + ty) * 16 + 100 in
+  let sx = base_x + cam_x in
+  let sy = base_y + cam_y in
+  
+  let _ = SDL_SetRenderDrawColor(renderer, 100, 200, 100, 255) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy - 16, sx + 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx + 32, sy, sx, sy + 16) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy + 16, sx - 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx - 32, sy, sx, sy - 16) in
+  ()
+
+// Draw 3x3 grid
+func draw_grid(renderer: Ptr<Unit>, cam_x: Int, cam_y: Int) -> Unit:
+  let _ = draw_tile(renderer, 0, 0, cam_x, cam_y) in
+  let _ = draw_tile(renderer, 1, 0, cam_x, cam_y) in
+  let _ = draw_tile(renderer, 2, 0, cam_x, cam_y) in
+  let _ = draw_tile(renderer, 0, 1, cam_x, cam_y) in
+  let _ = draw_tile(renderer, 1, 1, cam_x, cam_y) in
+  let _ = draw_tile(renderer, 2, 1, cam_x, cam_y) in
+  let _ = draw_tile(renderer, 0, 2, cam_x, cam_y) in
+  let _ = draw_tile(renderer, 1, 2, cam_x, cam_y) in
+  let _ = draw_tile(renderer, 2, 2, cam_x, cam_y) in
+  ()
+
+// Process keyboard event and update camera
+// Returns: action code (0=exit, 1=W, 2=A, 3=S, 4=D, 5=continue)
+// Event type: 768 = SDL_KEYDOWN, Keycode offset: 16
+func check_keycode(keycode: Int) -> Int:
+  if keycode == 27 then
+    0
+  else
+    if keycode == 119 then
+      1
+    else
+      if keycode == 97 then
+        2
+      else
+        if keycode == 115 then
+          3
+        else
+          if keycode == 100 then
+            4
+          else
+            5
+
+func process_event(event: Ptr<Unit>, cam_x: Int, cam_y: Int) -> Int:
+  let event_type = pole_read_i32(event) in
+  let keycode = pole_read_i32_at(event, 16) in
+  if event_type == 768 then
+    check_keycode(keycode)
+  else
+    5
+
+// Game loop (recursive)
+// Returns: 0 when should exit
+func game_loop(renderer: Ptr<Unit>, event: Ptr<Unit>, cam_x: Int, cam_y: Int, frame_count: Int) -> Int:
+  let has_event = SDL_PollEvent(event) in
+  let result = if has_event == 1 then process_event(event, cam_x, cam_y) else 5 in
+  
+  if result == 0 then
+    0
+  else
+    let new_cam_x = if result == 2 then cam_x - 16 else if result == 4 then cam_x + 16 else cam_x in
+    let new_cam_y = if result == 1 then cam_y - 8 else if result == 3 then cam_y + 8 else cam_y in
+    
+    let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
+    let _ = SDL_RenderClear(renderer) in
+    let _ = draw_grid(renderer, new_cam_x, new_cam_y) in
+    let _ = SDL_RenderPresent(renderer) in
+    
+    if frame_count > 1000 then
+      0
+    else
+      game_loop(renderer, event, new_cam_x, new_cam_y, frame_count + 1)
+
+// Main entry point
+func main() -> Int :
+  let _ = c_puts("=== Week 2: Keyboard Camera Control ===") in
+  let _ = c_puts("WASD: Move camera") in
+  let _ = c_puts("ESC: Exit") in
+  let _ = c_puts("Max frames: 1000 (safety limit)") in
+  let _ = c_puts("") in
+  
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Pole Week 2 - Keyboard Input", 805240832, 805240832, 800, 600, 4) in
+  let renderer = SDL_CreateRenderer(window, -1, 2) in
+  
+  let event = malloc(56) in
+  
+  let _ = game_loop(renderer, event, 0, 0, 0) in
+  
+  let _ = free(event) in
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = c_puts("") in
+  let _ = c_puts("Game loop exited successfully!") in
+  0
+
+@test_case(expected=0)

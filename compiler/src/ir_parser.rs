@@ -618,9 +618,13 @@ fn parse_postfix_expr(input: &str) -> ParseResult<Expr> {
     Ok((input, expr))
 }
 
-// Non-control expressions (no if/match/let but includes records/lists)
+// Non-control expressions (includes if/match but not let, to avoid infinite recursion)
 fn parse_non_control_expr(input: &str) -> ParseResult<Expr> {
-    parse_binary_op(input)
+    alt((
+        parse_match_expr,
+        parse_if_expr,
+        parse_binary_op,
+    ))(input)
 }
 
 // Simple expressions (no complex control flow)

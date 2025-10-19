@@ -1221,6 +1221,18 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                 // If no exact match, return error
                 Err(format!("Cannot find type definition for record with fields: {:?}", field_names))
             },
+            Expr::If(if_expr) => {
+                // Infer type from then branch (both branches must have same type)
+                self.infer_expr_type(&if_expr.then_branch)
+            },
+            Expr::Match(match_expr) => {
+                // Infer type from first arm
+                if let Some((_, first_expr)) = match_expr.arms.first() {
+                    self.infer_expr_type(first_expr)
+                } else {
+                    Err("Cannot infer type from empty match expression".to_string())
+                }
+            },
             _ => Err(format!("Cannot infer type for expression: {:?}", expr)),
         }
     }
