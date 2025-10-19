@@ -1,0 +1,51 @@
+// Tile Collision Detection - Ultra Simplified
+// Demonstrates collision check for isometric tiles
+
+// Simple collision check: is point within rectangular bounds?
+// For tile (0,0): center at (400, 100), width/height = 64x32
+func test_point_in_tile_00() -> Int:
+  let px = 400 in
+  let py = 100 in
+  let center_x = 400 in
+  let center_y = 100 in
+  let diff_x = px - center_x in
+  let diff_y = py - center_y in
+  
+  if diff_x < 0 then
+    0
+  else
+    if diff_x > 32 then
+      0
+    else
+      if diff_y < 0 then
+        0
+      else
+        if diff_y > 16 then
+          0
+        else
+          1
+
+// Test point outside tile
+func test_point_outside() -> Int:
+  let px = 500 in
+  let center_x = 400 in
+  let diff = px - center_x in
+  
+  if diff > 64 then
+    1
+  else
+    0
+
+func main() -> Int:
+  let t1 = test_point_in_tile_00() in
+  let t2 = test_point_outside() in
+  
+  if t1 == 1 then
+    if t2 == 1 then
+      0
+    else
+      2
+  else
+    1
+
+@test_case(expected=0)

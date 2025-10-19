@@ -1,0 +1,147 @@
+// Week 1 Final Demo - Isometric Grid with Camera
+// 5x5 tile grid with varied colors and camera panning
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_RenderDrawLine")
+func SDL_RenderDrawLine(renderer: Ptr<Unit>, x1: Int, y1: Int, x2: Int, y2: Int) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+// Draw single tile with color
+func draw_tile(renderer: Ptr<Unit>, tx: Int, ty: Int, cam_x: Int, cam_y: Int, r: Int, g: Int, b: Int) -> Unit:
+  let base_x = (tx - ty) * 32 + 400 in
+  let base_y = (tx + ty) * 16 + 100 in
+  let sx = base_x + cam_x in
+  let sy = base_y + cam_y in
+  
+  let _ = SDL_SetRenderDrawColor(renderer, r, g, b, 255) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy - 16, sx + 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx + 32, sy, sx, sy + 16) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy + 16, sx - 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx - 32, sy, sx, sy - 16) in
+  ()
+
+// Grass tile (green)
+func draw_grass(renderer: Ptr<Unit>, tx: Int, ty: Int, cx: Int, cy: Int) -> Unit:
+  draw_tile(renderer, tx, ty, cx, cy, 100, 200, 100)
+
+// Road tile (gray)
+func draw_road(renderer: Ptr<Unit>, tx: Int, ty: Int, cx: Int, cy: Int) -> Unit:
+  draw_tile(renderer, tx, ty, cx, cy, 150, 150, 150)
+
+// Building tile (brown)
+func draw_building(renderer: Ptr<Unit>, tx: Int, ty: Int, cx: Int, cy: Int) -> Unit:
+  draw_tile(renderer, tx, ty, cx, cy, 180, 160, 140)
+
+// Draw 5x5 grid with varied tiles
+func draw_grid(renderer: Ptr<Unit>, cam_x: Int, cam_y: Int) -> Unit:
+  let _ = draw_grass(renderer, 0, 0, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 1, 0, cam_x, cam_y) in
+  let _ = draw_road(renderer, 2, 0, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 3, 0, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 4, 0, cam_x, cam_y) in
+  
+  let _ = draw_grass(renderer, 0, 1, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 1, 1, cam_x, cam_y) in
+  let _ = draw_road(renderer, 2, 1, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 3, 1, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 4, 1, cam_x, cam_y) in
+  
+  let _ = draw_grass(renderer, 0, 2, cam_x, cam_y) in
+  let _ = draw_building(renderer, 1, 2, cam_x, cam_y) in
+  let _ = draw_building(renderer, 2, 2, cam_x, cam_y) in
+  let _ = draw_building(renderer, 3, 2, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 4, 2, cam_x, cam_y) in
+  
+  let _ = draw_grass(renderer, 0, 3, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 1, 3, cam_x, cam_y) in
+  let _ = draw_road(renderer, 2, 3, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 3, 3, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 4, 3, cam_x, cam_y) in
+  
+  let _ = draw_grass(renderer, 0, 4, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 1, 4, cam_x, cam_y) in
+  let _ = draw_road(renderer, 2, 4, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 3, 4, cam_x, cam_y) in
+  let _ = draw_grass(renderer, 4, 4, cam_x, cam_y) in
+  ()
+
+// Main demo - 12 second showcase
+func main() -> Int :
+  let _ = c_puts("=== Week 1 Final Demo ===") in
+  let _ = c_puts("Isometric Grid: 5x5 tiles") in
+  let _ = c_puts("Features: Camera panning, varied tile types") in
+  let _ = c_puts("") in
+  
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Pole Week 1 Demo - Isometric + Camera", 805240832, 805240832, 800, 600, 4) in
+  let renderer = SDL_CreateRenderer(window, -1, 2) in
+  
+  let _ = c_puts("Scene 1: Overview (cam 0,0)") in
+  let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = draw_grid(renderer, 0, 0) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(3000) in
+  
+  let _ = c_puts("Scene 2: Pan up (cam 0,-32)") in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = draw_grid(renderer, 0, -32) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(3000) in
+  
+  let _ = c_puts("Scene 3: Pan left (cam -64,-32)") in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = draw_grid(renderer, -64, -32) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(3000) in
+  
+  let _ = c_puts("Scene 4: Pan right (cam 64,0)") in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = draw_grid(renderer, 64, 0) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(3000) in
+  
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = c_puts("") in
+  let _ = c_puts("Demo complete!") in
+  let _ = c_puts("Week 1 achievements:") in
+  let _ = c_puts("  - Isometric rendering") in
+  let _ = c_puts("  - SDL2 integration") in
+  let _ = c_puts("  - Camera system") in
+  let _ = c_puts("  - Event handling") in
+  0
+
+@test_case(expected=0)
