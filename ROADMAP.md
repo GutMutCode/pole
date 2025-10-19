@@ -880,10 +880,25 @@ Rust (성능 critical 레이어)
 **마일스톤:**
 
 1. **M1: 간단한 C 함수 호출** (1개월) ⭐ 다음 작업
-   - printf, malloc, strlen 같은 기본 libc 함수
-   - Pole에서 `@extern` 어노테이션으로 C 함수 선언
-   - 기본 타입 매핑 (i32, i64, bool, string)
-   - **데모:** "Hello from C!" 출력
+   
+   **작업 목록:**
+   - [ ] `specs/ffi.md` 설계 문서 작성
+     - FFI 문법 정의 (`@extern` 어노테이션)
+     - Pole 타입 → C ABI 타입 매핑 규칙
+     - Rust/Zig/Swift FFI 패턴 참고
+   - [ ] Pole IR 문법 확장 (`specs/ir-syntax.md`)
+     - 외부 함수 선언 구문 추가
+     - 어노테이션 파싱 규칙
+   - [ ] IR Parser 확장 (`compiler/src/ir_parser.rs`)
+     - `@extern` 어노테이션 파싱
+     - 외부 함수 선언 AST 노드 추가
+   - [ ] CodeGen 리팩토링 (`compiler/src/codegen.rs`)
+     - 하드코딩된 `declare_libc_functions()` 제거
+     - IR에서 `@extern` 선언 읽어서 동적 생성
+   - [ ] 테스트 예제 작성
+     - `examples/19-ffi-printf.pole-ir` - printf 호출
+     - `examples/20-ffi-malloc.pole-ir` - 동적 메모리 할당
+   - [ ] 데모 검증: "Hello from C!" 출력 성공
    
 2. **M2: 구조체 전달** (1개월)
    - C 구조체 ↔ Pole Record 매핑
