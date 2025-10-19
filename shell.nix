@@ -29,6 +29,11 @@ pkgs.mkShell {
     libffi
     libxml2
     zlib
+    
+    # SDL2 for FFI testing (Phase 6.1 M4)
+    SDL2
+    SDL2.dev
+    pkg-config
   ];
 
   shellHook = ''
