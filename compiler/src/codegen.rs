@@ -23,6 +23,7 @@ pub struct CodeGen<'ctx> {
     module: Module<'ctx>,
     builder: Builder<'ctx>,
     type_defs: HashMap<String, RecordType>,
+    variant_defs: HashMap<String, Vec<(String, Vec<Type>)>>,
     local_vars: HashMap<String, BasicValueEnum<'ctx>>,
     var_types: HashMap<String, Type>,
 }
@@ -37,6 +38,7 @@ impl<'ctx> CodeGen<'ctx> {
             module,
             builder,
             type_defs: HashMap::new(),
+            variant_defs: HashMap::new(),
             local_vars: HashMap::new(),
             var_types: HashMap::new(),
         }
@@ -44,8 +46,14 @@ impl<'ctx> CodeGen<'ctx> {
 
     pub fn compile_program(&mut self, program: &Program) -> Result<(), String> {
         for type_def in &program.type_defs {
-            if let TypeDefKind::Record(record_type) = &type_def.definition {
-                self.type_defs.insert(type_def.name.clone(), record_type.clone());
+            match &type_def.definition {
+                TypeDefKind::Record(record_type) => {
+                    self.type_defs.insert(type_def.name.clone(), record_type.clone());
+                }
+                TypeDefKind::Variant(variants) => {
+                    self.variant_defs.insert(type_def.name.clone(), variants.clone());
+                }
+                _ => {}
             }
         }
         
@@ -182,6 +190,19 @@ impl<'ctx> CodeGen<'ctx> {
             if let Ok(param_name) = function.get_nth_param(i as u32).unwrap().get_name().to_str() {
                 if param_name == name {
                     return Ok(param);
+                }
+            }
+        }
+        
+        // Check if it's a variant constructor
+        for (variant_name, constructors) in &self.variant_defs {
+            for (idx, (ctor_name, ctor_args)) in constructors.iter().enumerate() {
+                if ctor_name == name && ctor_args.is_empty() {
+                    // Simple enum constructor (no arguments)
+                    // Represent as i32 tag
+                    let i32_type = self.context.i32_type();
+                    let tag_value = i32_type.const_int(idx as u64, false);
+                    return Ok(tag_value.into());
                 }
             }
         }
@@ -391,6 +412,9 @@ impl<'ctx> CodeGen<'ctx> {
                             .map(|(_, field_ty)| self.compile_type(field_ty))
                             .collect();
                         self.context.struct_type(&field_types, false).into()
+                    } else if self.variant_defs.contains_key(type_name) {
+                        // Variant types are represented as i32 tag (for simple enums)
+                        self.context.i32_type().into()
                     } else {
                         panic!("Unsupported basic type: {}", name)
                     }

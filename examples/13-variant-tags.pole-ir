@@ -1,0 +1,22 @@
+@source("examples/13-variant-tags.pole")
+
+type Color =
+  | Red
+  | Green
+  | Blue
+
+func get_red() -> Color :
+  Red
+
+func get_green() -> Color :
+  Green
+
+func get_blue() -> Color :
+  Blue
+
+func is_red(c: Color) -> Bool :
+  c == Red
+
+@test(is_red(get_red()) == true)
+@test(is_red(get_green()) == false)
+@test(is_red(get_blue()) == false)

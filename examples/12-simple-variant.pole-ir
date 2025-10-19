@@ -1,0 +1,16 @@
+@source("examples/12-simple-variant.pole")
+
+type Color =
+  | Red
+  | Green
+  | Blue
+
+type Shape =
+  | Circle
+  | Rectangle
+
+func get_red() -> Color :
+  Red
+
+func get_circle() -> Shape :
+  Circle
