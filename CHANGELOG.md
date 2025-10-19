@@ -5,6 +5,44 @@ All notable changes to the Pole project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### 🚀 Phase 5-6: Native Compiler & FFI System
+
+#### Phase 5.1: LLVM Backend (M0-M5 Complete)
+- **Rust IR Parser** - 23.4x faster than Python implementation
+- **Rust Type Checker** - 25.6x faster than Python implementation
+- **LLVM Code Generation** - Native compilation via inkwell
+  - Basic types: Int, Bool, Nat, Float64, String, Unit
+  - Compound types: Record, List, Option, Result
+  - Pattern matching with tag-based variants
+  - Recursive functions and closures
+- **Runtime Functions**
+  - String.length, String.contains
+  - List.concat with malloc/memcpy
+  - print/println via C FFI
+- **Performance** - 100x+ faster than interpreter (~20ns/call)
+
+#### Phase 6.1: FFI System (M1-M4 Complete)
+- **@extern Annotation** - Declare C functions
+- **@variadic Support** - Variable argument functions (printf)
+- **Ptr<T> Type** - Opaque pointer type for C interop
+- **String Marshalling** - Automatic Pole String → C char* conversion
+- **SDL2 Integration** - Working window creation and management
+  - SDL_Init, SDL_Quit
+  - SDL_CreateWindow, SDL_DestroyWindow
+  - Headless testing with dummy video driver
+
+#### Documentation & Examples
+- **FFI Tutorial** - Comprehensive guide for C library integration
+- **Examples README** - 24 working examples with difficulty ratings
+- **QUICKSTART Updates** - Native compilation instructions
+- **Completion Reports** - Detailed progress documentation
+
+#### Bug Fixes
+- **IR Parser** - Fixed if-then-else to support let expressions in branches
+- **Type Inference** - Multi-argument extern functions now infer correctly
+
 ## [0.1.0] - 2025-10-19
 
 ### 🎉 First Prototype Release

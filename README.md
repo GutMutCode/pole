@@ -32,23 +32,34 @@ Pole → 게임 엔진을 만들 수 있는 언어 (LLM 네이티브)
 
 **Phase 0-4 완료** ✅ - 프로토타입 언어 시스템 완성
 
-- ✅ Phase 0: 기획 및 문서화
-- ✅ Phase 1: 언어 설계 (명세 언어, IR, 검증 시스템)
-- ✅ Phase 2: 프로토타입 구현 (파서, 변환기, 인터프리터, 타입 체커, CLI)
-- ✅ Phase 3: 완성도 향상 (에러 시스템, 성능, 계약 검증)
-- ✅ Phase 4: LLM 통합 개선 (Prompt 최적화, IR 후처리)
+- ✅ Phase 0-4: 언어 기초 (명세 언어, IR, 인터프리터, LLM 통합)
 
-**Phase 5 시작** 🚀 - 네이티브 컴파일러 개발
+**Phase 5-6 진행 중** 🚀 - 네이티브 컴파일러 & FFI
 
-- 🔨 **네이티브 컴파일러** (LLVM 백엔드)
-- 🎯 **Phase 5-6**: 컴파일러 및 시스템 프로그래밍 기능
-- 🎯 **Phase 7-8**: 게임 개발용 표준 라이브러리 (`pole_graphics`, `pole_ecs` 등)
-- 🎯 **Phase 9-10**: 개발 도구 및 생태계
+- ✅ **Phase 5.1**: LLVM 백엔드 (M0-M5 완료)
+  - Rust IR Parser/Type Checker (**23.4x/25.6x** 성능 향상)
+  - LLVM 코드 생성 (factorial, fibonacci, pattern matching)
+  - 고급 타입 (Record, List, Option, String, Unit)
+  - Runtime 함수 (String.length, List.concat, print)
+  
+- ✅ **Phase 6.1**: FFI System (M1-M4 완료)
+  - C 함수 호출 (`@extern` 어노테이션)
+  - 포인터 타입 (`Ptr<T>`)
+  - SDL2 윈도우 생성 및 관리
+  - 가변 인자 함수 지원 (`@variadic`)
+
+**실용적 성과:**
+- 🎮 SDL2 윈도우 생성 가능
+- 🚀 네이티브 컴파일 (인터프리터 대비 **100x+** 빠름)
+- 🔗 C 라이브러리 통합 (SDL2, OpenGL 등)
+- 📦 24개 예제 프로그램 작동
+
+**다음 목표:**
+- 🎯 **Phase 6.2**: 저수준 메모리 제어 (`@repr(C)`, unsafe 블록)
+- 🎯 **Phase 7-8**: 게임 개발용 표준 라이브러리
 - 📅 **타임라인**: 7-10년
 
-**작동하는 프로토타입** - 명세 작성부터 실행까지 전체 파이프라인 구현 완료
-
-**장기 비전** 🎮 - Pole 언어로 Unity/Unreal 수준의 게임 엔진 제작 가능 (별도 프로젝트)
+**장기 비전** 🎮 - Pole 언어로 Unity/Unreal 수준의 게임 엔진 제작 가능
 
 ---
 

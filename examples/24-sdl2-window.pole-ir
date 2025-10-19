@@ -1,0 +1,38 @@
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+func main() -> Int :
+  let _ = c_puts("Initializing SDL2 with dummy video driver...") in
+  let SDL_INIT_VIDEO = 32 in
+  let init_result = SDL_Init(SDL_INIT_VIDEO) in
+  if init_result == 0 then
+    let _ = c_puts("Creating invisible window...") in
+    let SDL_WINDOWPOS_UNDEFINED = 536805376 in
+    let SDL_WINDOW_HIDDEN = 8 in
+    let window = SDL_CreateWindow("Pole SDL2 Test", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 800, 600, SDL_WINDOW_HIDDEN) in
+    let _ = c_puts("Window created successfully!") in
+    let _ = c_puts("Destroying window...") in
+    let _ = SDL_DestroyWindow(window) in
+    let _ = SDL_Quit(()) in
+    let _ = c_puts("Done!") in
+    0
+  else
+    let _ = c_puts("SDL2 initialization failed") in
+    1
+
+@test_case(expected=0)

@@ -1,0 +1,23 @@
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+func main() -> Int :
+  let _ = c_puts("Initializing SDL2...") in
+  let SDL_INIT_VIDEO = 32 in
+  let result = SDL_Init(SDL_INIT_VIDEO) in
+  if result == 0 then
+    let _ = c_puts("SDL2 initialized successfully!") in
+    let _ = SDL_Quit(()) in
+    let _ = c_puts("SDL2 quit") in
+    0
+  else
+    let _ = c_puts("SDL2 initialization failed") in
+    1
+
+@test_case(expected=0)

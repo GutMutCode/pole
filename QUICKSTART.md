@@ -73,11 +73,82 @@ cat examples/03-user-validation.pole
 pole check examples/03-user-validation.pole
 ```
 
-## 5. 전체 명령어 목록
+### SDL2 윈도우 (네이티브 컴파일)
+```bash
+# Rust 컴파일러로 SDL2 예제 실행
+cd compiler
+SDL_VIDEODRIVER=dummy cargo run --example test_sdl2_window
+
+# 출력:
+# ✓✓✓ SUCCESS: SDL2 Window works! ✓✓✓
+```
+
+## 5. 네이티브 컴파일 (고급)
+
+Pole은 Python 인터프리터 외에 Rust 기반 네이티브 컴파일러도 제공합니다 (100x+ 빠름!)
+
+### 5-1. Rust 컴파일러 빌드
+```bash
+cd compiler
+cargo build --release
+```
+
+### 5-2. 네이티브로 예제 실행
+```bash
+# Factorial (네이티브)
+cargo run --example factorial_native
+# 출력: factorial(5) = 120 (in ~20ns)
+
+# Fibonacci (네이티브)
+cargo run --example fibonacci_native
+
+# FFI printf
+cargo run --example test_ffi_printf
+# 출력: Hello from C!
+
+# SDL2 윈도우
+SDL_VIDEODRIVER=dummy cargo run --example test_sdl2_window
+```
+
+### 5-3. 모든 테스트 실행
+```bash
+cd compiler
+cargo test
+# 출력: test result: ok. 18 passed
+```
+
+## 6. 학습 리소스
+
+### 예제 탐색
+```bash
+# 모든 예제 목록 확인
+ls examples/
+
+# 예제 README 읽기
+cat examples/README.md
+```
+
+**난이도별 예제:**
+- ⭐ 초급: `01-factorial`, `02-fibonacci`, `05-is-even`
+- ⭐⭐ 중급: `08-simple-record`, `14-option-type`
+- ⭐⭐⭐ 고급: `19-ffi-printf`, `23-sdl2-init`
+
+### 튜토리얼
+- [FFI Tutorial](docs/tutorials/FFI_TUTORIAL.md) - C 라이브러리 호출하기
+- [IR 문법 레퍼런스](specs/ir-syntax.md)
+- [FFI 설계 문서](specs/ffi.md)
+
+## 7. 전체 명령어 목록
 
 ```bash
 pole --help
 ```
+
+**주요 명령어:**
+- `pole check <file>` - 명세 파일 검증
+- `pole run <ir-file> <function> [args]` - IR 함수 실행
+- `pole test <ir-file>` - 테스트 실행
+- `pole build <file> [--mock]` - 명세 → IR 변환 (LLM 필요)
 
 또는:
 

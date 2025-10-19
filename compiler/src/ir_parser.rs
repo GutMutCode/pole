@@ -563,7 +563,7 @@ fn parse_if_expr(input: &str) -> ParseResult<Expr> {
     let (input, _) = ws(tag("if"))(input)?;
     let (input, condition) = ws(parse_simple_expr)(input)?;
     let (input, _) = ws(tag("then"))(input)?;
-    let (input, then_branch) = ws(parse_simple_expr)(input)?;
+    let (input, then_branch) = ws(parse_expr)(input)?;
     let (input, _) = ws(tag("else"))(input)?;
     let (input, else_branch) = ws(parse_expr)(input)?;
     
