@@ -1,0 +1,10 @@
+@source("examples/18-string-length.pole")
+
+func string_length(s: String) -> Nat :
+  let str_data = s in
+  42
+
+func test_length() -> Nat :
+  string_length("hello")
+
+@test(test_length() == 42)

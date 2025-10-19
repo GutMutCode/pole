@@ -1,5 +1,5 @@
 use inkwell::context::Context;
-use pole_compiler::{parse_ir, codegen::CodeGen};
+use pole_compiler::{parse_ir, codegen::CodeGen, CompilerArenas};
 use std::fs;
 
 fn main() {
@@ -10,8 +10,9 @@ fn main() {
     
     println!("✓ Parsing successful\n");
     
+    let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "simple_variant");
+    let mut codegen = CodeGen::new(&context, "simple_variant", &arenas.codegen_arena);
     
     match codegen.compile_program(&program) {
         Ok(()) => {

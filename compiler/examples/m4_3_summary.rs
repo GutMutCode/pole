@@ -1,5 +1,5 @@
 use inkwell::context::Context;
-use pole_compiler::{parse_ir, codegen::CodeGen};
+use pole_compiler::{parse_ir, codegen::CodeGen, CompilerArenas};
 use std::fs;
 
 fn main() {
@@ -14,8 +14,9 @@ fn main() {
     
     // Test 2: Variant codegen
     println!("\nTest 2: Variant codegen");
+    let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "simple_variant");
+    let mut codegen = CodeGen::new(&context, "simple_variant", &arenas.codegen_arena);
     codegen.compile_program(&program).expect("Codegen failed");
     let llvm_ir = codegen.print_to_string();
     
@@ -30,8 +31,9 @@ fn main() {
         .expect("Failed to read file");
     let program2 = parse_ir(&ir2).expect("Parse failed");
     
+    let arenas2 = CompilerArenas::new_default();
     let context2 = Context::create();
-    let mut codegen2 = CodeGen::new(&context2, "variant_tags");
+    let mut codegen2 = CodeGen::new(&context2, "variant_tags", &arenas2.codegen_arena);
     codegen2.compile_program(&program2).expect("Codegen failed");
     let llvm_ir2 = codegen2.print_to_string();
     

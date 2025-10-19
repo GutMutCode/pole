@@ -77,10 +77,19 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
     
     fn declare_libc_functions(&self) {
         let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+        let i32_type = self.context.i32_type();
         
         // char* strstr(const char* haystack, const char* needle)
         let strstr_type = i8_ptr_type.fn_type(&[i8_ptr_type.into(), i8_ptr_type.into()], false);
         self.module.add_function("strstr", strstr_type, None);
+        
+        // int printf(const char* format, ...)
+        let printf_type = i32_type.fn_type(&[i8_ptr_type.into()], true);
+        self.module.add_function("printf", printf_type, None);
+        
+        // int puts(const char* s)
+        let puts_type = i32_type.fn_type(&[i8_ptr_type.into()], false);
+        self.module.add_function("puts", puts_type, None);
     }
 
     fn compile_function(&mut self, function: &FunctionDef) -> Result<FunctionValue<'ctx>, String> {
@@ -221,6 +230,14 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     return self.compile_string_contains(&args[0], &args[1], function);
                 }
                 
+                if func_name == "print" || func_name == "println" {
+                    // print/println: String -> Unit
+                    if args.len() != 1 {
+                        return Err(format!("{} expects 1 argument, got {}", func_name, args.len()));
+                    }
+                    return self.compile_print(&args[0], func_name == "println", function);
+                }
+                
                 let arg_values: Vec<BasicValueEnum> = args
                     .iter()
                     .map(|arg_expr| self.compile_expr(arg_expr, function))
@@ -334,6 +351,37 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         Ok(is_not_null.into())
     }
 
+    fn compile_print(
+        &mut self,
+        string_expr: &Expr,
+        with_newline: bool,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        let string_val = self.compile_expr(string_expr, function)?;
+        let string_struct = string_val.into_struct_value();
+        
+        let string_ptr = self.builder
+            .build_extract_value(string_struct, 0, "string_ptr")
+            .unwrap()
+            .into_pointer_value();
+        
+        if with_newline {
+            let puts_fn = self.module.get_function("puts").unwrap();
+            self.builder
+                .build_call(puts_fn, &[string_ptr.into()], "puts_result")
+                .unwrap();
+        } else {
+            let printf_fn = self.module.get_function("printf").unwrap();
+            let format_string = self.builder.build_global_string_ptr("%s", "fmt").unwrap();
+            self.builder
+                .build_call(printf_fn, &[format_string.as_pointer_value().into(), string_ptr.into()], "printf_result")
+                .unwrap();
+        }
+        
+        let i8_type = self.context.i8_type();
+        Ok(i8_type.const_int(0, false).into())
+    }
+
     fn compile_variable(
         &self,
         name: &str,
@@ -386,7 +434,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         
         // Check if it's a builtin function
         // Builtins are handled in Application, not as standalone variables
-        if name == "String_length" || name == "String_contains" {
+        if name == "String_length" || name == "String_contains" || name == "print" || name == "println" {
             return Err(format!("Builtin function '{}' can only be used in function calls", name));
         }
 
@@ -808,6 +856,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     match var.name.as_str() {
                         "String_length" => return Ok(Type::Basic(AstBasicType { name: "Nat".to_string() })),
                         "String_contains" => return Ok(Type::Basic(AstBasicType { name: "Bool".to_string() })),
+                        "print" | "println" => return Ok(Type::Basic(AstBasicType { name: "Unit".to_string() })),
                         _ => {}
                     }
                 }

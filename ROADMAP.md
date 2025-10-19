@@ -474,35 +474,34 @@ Year 7-10  : Phase 10   언어 생태계 & 패키지 시스템
    **완료 일자:** 2025-10-19
    **총 소요 시간:** 1일
 
-5. **M5: Runtime Functions** ⏳ **진행 중** (시작: 2025-10-19)
+ 5. **M5: Runtime Functions** ⏳ **진행 중** (시작: 2025-10-19)
    
    **목표:** 실용적인 프로그램 작성을 위한 runtime 함수 구현
    
    **구현 내용:**
    - ✅ String.length - Inline LLVM (extractvalue)
    - ✅ String.contains - C FFI (strstr)
-   - ⏸️ List.concat - 대기 중
-   - ⏸️ print/println - 대기 중
+   - ✅ print/println - C FFI (printf/puts)
+   - ✅ IR Parser multi-arg support - f(x, y) 지원
+   - ✅ Type inference for builtins
+   - ⏸️ List.concat - 대기 중 (메모리 할당 필요)
    
    **산출물:**
    - ✅ `compiler/examples/test_string_length.rs` - 3/3 테스트 통과
-   - ✅ `compiler/examples/test_string_contains.rs` - 구현 완료
+   - ✅ `compiler/examples/test_string_contains.rs` - 4/4 테스트 통과
+   - ✅ `compiler/examples/test_print.rs` - 1/1 테스트 통과
+   - ✅ `compiler/examples/test_user_validation.rs` - 6/6 함수 컴파일 성공
    - ✅ `docs/M5_RUNTIME_FUNCTIONS.md` - 진행 문서
    
    **검증 결과:**
-   - ✅ String.length("hello") = 5
-   - ✅ String.length("") = 0
-   - ✅ String.contains 구현 완료 (테스트는 IR 파서 개선 필요)
-   
-   **제한사항:**
-   - IR 파서가 curried application `f(x)(y)` 미지원
-   - multi-argument `f(x, y)` 미지원
-   - user-validation 예제 활성화 대기 중
+   - ✅ String.length("hello") = 5, empty=0, long=42
+   - ✅ String.contains: 4/4 테스트 통과 (true/false/empty/at_start)
+   - ✅ print/println: "Hello, World!" 출력 성공
+   - ✅ user-validation: validate_name, validate_email 컴파일 성공
    
    **다음 단계:**
-   - IR 파서 개선 (curried/multi-arg 지원)
-   - List.concat 구현
-   - user-validation 테스트
+   - List.concat 구현 (malloc 필요)
+   - user-validation 전체 테스트 완료
 
 **5.1 성공 기준 (M0-M4):**
 - ✅ 컴파일 성공률: 100% (모든 예제)

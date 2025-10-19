@@ -1,5 +1,5 @@
 use inkwell::context::Context;
-use pole_compiler::{parse_ir, CodeGen};
+use pole_compiler::{parse_ir, CodeGen, CompilerArenas};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -13,8 +13,9 @@ fn main() {
     println!("✓ Parsed {} functions", program.func_defs.len());
 
     println!("\n=== Compiling to LLVM IR ===");
+    let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "test_add_points");
+    let mut codegen = CodeGen::new(&context, "test_add_points", &arenas.codegen_arena);
 
     codegen.compile_program(&program).expect("Compilation failed");
     println!("✓ Compilation successful");

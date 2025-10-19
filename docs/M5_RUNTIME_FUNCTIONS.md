@@ -50,14 +50,14 @@ M5 focuses on implementing runtime utility functions needed by Pole programs:
 ### 5.3 I/O Functions
 
 **Basic I/O:**
-- `print : String -> Unit` - Print to stdout
-- `println : String -> Unit` - Print with newline
-- `read_line : Unit -> String` - Read from stdin
+- ✅ `print : String -> Unit` - Print to stdout (using printf "%s")
+- ✅ `println : String -> Unit` - Print with newline (using puts)
+- ⏸️ `read_line : Unit -> String` - Read from stdin
 
 **Implementation:**
-- FFI to C printf/puts
-- OR: LLVM IR directly
-- Proper error handling
+- ✅ FFI to C printf/puts
+- ✅ Declared in declare_libc_functions()
+- ✅ Implemented in compile_print()
 
 ## Current Status
 
@@ -69,12 +69,33 @@ M5 focuses on implementing runtime utility functions needed by Pole programs:
 - [x] String.contains - ✅ **Completed** (2025-10-19)
   - Implementation: C FFI to strstr(haystack, needle)
   - Returns: Bool (NULL check on strstr result)
-  - Limitation: IR parser doesn't support curried/multi-arg syntax yet
-  - File: `compiler/examples/test_string_contains.rs` (placeholder)
+  - Tests: 4/4 passing ✓
+  - File: `compiler/examples/test_string_contains.rs`
   
-- [ ] List.concat - **Pending**
-- [ ] print/println - **Pending**
-- [ ] Enable 03-user-validation.pole-ir - **Blocked** (needs IR parser improvement)
+- [x] IR Parser Multi-arg Support - ✅ **Completed** (2025-10-19)
+  - Added f(x, y) syntax support
+  - Builds nested Application for curried form
+  - Unblocked String.contains and user-validation
+  
+- [x] Type Inference for Builtins - ✅ **Completed** (2025-10-19)
+  - Added Application case to infer_expr_type
+  - Supports String_length -> Nat, String_contains -> Bool, print/println -> Unit
+  - Enables let bindings with builtin functions
+  
+- [x] user-validation Partial Test - ✅ **Completed** (2025-10-19)
+  - validate_name and validate_email compile successfully
+  - 6/6 functions parsed and compiled
+  - File: `compiler/examples/test_user_validation.rs`
+  
+- [x] print/println - ✅ **Completed** (2025-10-19)
+  - Implementation: C FFI to printf/puts
+  - println uses puts (adds newline), print uses printf "%s"
+  - Returns: Unit (i8 0)
+  - Tests: 1/1 passing ✓ ("Hello, World!")
+  - File: `compiler/examples/test_print.rs`
+  
+- [ ] List.concat - **Pending** (requires memory allocation)
+- [ ] Full user-validation test - **Blocked** (needs List.concat)
 
 ## Implementation Decisions
 
@@ -91,13 +112,16 @@ M5 focuses on implementing runtime utility functions needed by Pole programs:
 1. ✅ ~~Choose implementation approach~~
 2. ✅ ~~Implement String.length~~
 3. ✅ ~~Implement String.contains~~
-4. Fix IR parser to support curried application `f(x)(y)`
-5. Implement List.concat
-6. Verify user-validation compiles and runs
+4. ✅ ~~Fix IR parser to support multi-arg `f(x, y)`~~
+5. ✅ ~~Implement print/println~~
+6. Implement List.concat (requires malloc/memory allocation)
+7. Verify user-validation compiles and runs with List.concat
 
 ## Success Criteria
 
-- All String/List functions work correctly
-- 03-user-validation.pole-ir compiles successfully
-- Runtime performance is acceptable
-- 15/15 examples pass (14 current + user-validation)
+- ✅ String functions: String.length, String.contains work correctly
+- ✅ I/O functions: print, println work correctly
+- ⏸️ List functions: List.concat pending (requires memory allocation)
+- ⏸️ 03-user-validation.pole-ir compiles successfully (blocked on List.concat)
+- ✅ Runtime performance is acceptable (native LLVM compiled code)
+- 14/15 examples pass (14 current, user-validation blocked on List.concat)

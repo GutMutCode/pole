@@ -1,5 +1,5 @@
 use inkwell::context::Context;
-use pole_compiler::{parse_ir, codegen::CodeGen};
+use pole_compiler::{parse_ir, codegen::CodeGen, CompilerArenas};
 use std::fs;
 
 fn main() {
@@ -29,8 +29,9 @@ fn main() {
         let ir = fs::read_to_string(&path).expect(&format!("Failed to read {}", file));
         let program = parse_ir(&ir).expect(&format!("Failed to parse {}", file));
         
+        let arenas = CompilerArenas::new_default();
         let context = Context::create();
-        let mut codegen = CodeGen::new(&context, "test");
+        let mut codegen = CodeGen::new(&context, "test", &arenas.codegen_arena);
         codegen.compile_program(&program).expect(&format!("Failed to compile {}", file));
         
         println!("  ✓ {} - {}", file, desc);

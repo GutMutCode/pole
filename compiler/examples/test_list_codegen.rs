@@ -1,5 +1,5 @@
 use inkwell::context::Context;
-use pole_compiler::{parse_ir, CodeGen};
+use pole_compiler::{parse_ir, CodeGen, CompilerArenas};
 use std::fs;
 
 fn main() {
@@ -9,8 +9,9 @@ fn main() {
     println!("=== Parsing & Compiling List Example ===");
     let program = parse_ir(&ir).expect("Failed to parse");
     
+    let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "simple_list");
+    let mut codegen = CodeGen::new(&context, "simple_list", &arenas.codegen_arena);
 
     match codegen.compile_program(&program) {
         Ok(_) => println!("✓ Compilation successful"),

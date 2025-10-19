@@ -1,5 +1,5 @@
 use inkwell::context::Context;
-use pole_compiler::{parse_ir, CodeGen};
+use pole_compiler::{parse_ir, CodeGen, CompilerArenas};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -13,8 +13,9 @@ fn main() {
 
     // Compile to native code
     let program = parse_ir(&ir_source).expect("Failed to parse IR");
+    let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "factorial");
+    let mut codegen = CodeGen::new(&context, "factorial", &arenas.codegen_arena);
     codegen
         .compile_program(&program)
         .expect("Failed to compile program");

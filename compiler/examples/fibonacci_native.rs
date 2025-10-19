@@ -1,5 +1,5 @@
 use inkwell::context::Context;
-use pole_compiler::{parse_ir, CodeGen};
+use pole_compiler::{parse_ir, CodeGen, CompilerArenas};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -13,8 +13,9 @@ fn main() {
     println!("✓ Parsed successfully");
 
     println!("\n=== Compiling to LLVM IR ===");
+    let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "fibonacci");
+    let mut codegen = CodeGen::new(&context, "fibonacci", &arenas.codegen_arena);
 
     codegen
         .compile_program(&program)

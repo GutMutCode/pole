@@ -1,5 +1,5 @@
 use inkwell::context::Context;
-use pole_compiler::{parse_ir, CodeGen};
+use pole_compiler::{parse_ir, CodeGen, CompilerArenas};
 use std::fs;
 
 fn main() {
@@ -11,8 +11,9 @@ fn main() {
     println!("✓ Parsed {} functions", program.func_defs.len());
 
     println!("\n=== Compiling to LLVM IR ===");
+    let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "simple_string");
+    let mut codegen = CodeGen::new(&context, "simple_string", &arenas.codegen_arena);
 
     match codegen.compile_program(&program) {
         Ok(_) => println!("✓ Compilation successful"),

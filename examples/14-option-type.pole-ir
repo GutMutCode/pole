@@ -1,0 +1,15 @@
+@source("examples/14-option-type.pole")
+
+func safe_divide(a: Int, b: Int) -> Option<Int> :
+  if b == 0 then
+    None
+  else
+    Some(a / b)
+
+func get_value_or_default(opt: Option<Int>, default: Int) -> Int :
+  match opt with
+  | Some(x) -> x
+  | None -> default
+
+@test(get_value_or_default(safe_divide(10, 2), 0) == 5)
+@test(get_value_or_default(safe_divide(10, 0), 42) == 42)

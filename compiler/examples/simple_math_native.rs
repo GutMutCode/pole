@@ -1,5 +1,5 @@
 use inkwell::context::Context;
-use pole_compiler::{parse_ir, CodeGen};
+use pole_compiler::{parse_ir, CodeGen, CompilerArenas};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -14,8 +14,9 @@ fn main() {
     println!("  Functions: abs, max, sum_to_n");
 
     println!("\n=== Compiling to LLVM IR ===");
+    let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "simple_math");
+    let mut codegen = CodeGen::new(&context, "simple_math", &arenas.codegen_arena);
 
     codegen
         .compile_program(&program)

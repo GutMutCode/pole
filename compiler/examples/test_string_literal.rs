@@ -1,5 +1,5 @@
 use inkwell::context::Context;
-use pole_compiler::{parse_ir, CodeGen};
+use pole_compiler::{parse_ir, CodeGen, CompilerArenas};
 use std::fs;
 use std::path::Path;
 
@@ -10,8 +10,9 @@ fn main() {
     println!("=== Parsing & Compiling String Literal ===");
     let program = parse_ir(&ir_source).expect("Failed to parse IR");
     
+    let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "string_literal");
+    let mut codegen = CodeGen::new(&context, "string_literal", &arenas.codegen_arena);
 
     codegen.compile_program(&program).expect("Compilation failed");
     println!("✓ Compilation successful");

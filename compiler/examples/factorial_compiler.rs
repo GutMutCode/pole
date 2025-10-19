@@ -1,6 +1,6 @@
 use inkwell::context::Context;
 use inkwell::OptimizationLevel;
-use pole_compiler::{parse_ir, CodeGen};
+use pole_compiler::{parse_ir, CodeGen, CompilerArenas};
 use std::fs;
 
 fn main() {
@@ -13,8 +13,9 @@ fn main() {
     println!("Functions: {:?}", program.func_defs.iter().map(|f| &f.name).collect::<Vec<_>>());
 
     println!("\n=== Compiling to LLVM IR ===");
+    let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "factorial");
+    let mut codegen = CodeGen::new(&context, "factorial", &arenas.codegen_arena);
 
     codegen
         .compile_program(&program)
