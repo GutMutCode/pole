@@ -86,10 +86,20 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         let is_variadic = extern_func.annotations.iter()
             .any(|ann| ann.name == "variadic");
         
-        // Map parameter types
+        // Map parameter types - for extern functions, String becomes i8* not {i8*, i64}
         let param_types: Vec<BasicMetadataTypeEnum> = extern_func.params
             .iter()
-            .map(|(_, ty)| self.compile_type(ty).into())
+            .map(|(_, ty)| {
+                if let Type::Basic(AstBasicType { name }) = ty {
+                    if name == "String" {
+                        // For C FFI, String is just i8* (null-terminated)
+                        return self.context.i8_type()
+                            .ptr_type(inkwell::AddressSpace::default())
+                            .into();
+                    }
+                }
+                self.compile_type(ty).into()
+            })
             .collect();
         
         // Map return type
@@ -280,6 +290,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     .collect::<Result<Vec<_>, _>>()?;
                 
                 // Check if this is an extern function (Pole name -> C name)
+                let is_extern = self.extern_func_mapping.contains_key(&func_name);
                 let actual_func_name = self.extern_func_mapping
                     .get(&func_name)
                     .cloned()
@@ -290,7 +301,27 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     .get_function(&actual_func_name)
                     .ok_or_else(|| format!("Function '{}' not found", func_name))?;
 
-                let arg_metadata: Vec<_> = arg_values.iter().map(|v| (*v).into()).collect();
+                // For extern functions, convert String arguments from {i8*, i64} to i8*
+                let arg_metadata: Vec<_> = if is_extern {
+                    arg_values.iter().enumerate().map(|(i, v)| {
+                        // Check if this argument is a String type (struct with 2 fields)
+                        if v.get_type().is_struct_type() {
+                            let struct_type = v.get_type().into_struct_type();
+                            if struct_type.count_fields() == 2 {
+                                // Extract the first field (i8* pointer)
+                                let ptr = self.builder.build_extract_value(
+                                    v.into_struct_value(),
+                                    0,
+                                    &format!("str_ptr_{}", i)
+                                ).unwrap();
+                                return ptr.into();
+                            }
+                        }
+                        (*v).into()
+                    }).collect()
+                } else {
+                    arg_values.iter().map(|v| (*v).into()).collect()
+                };
 
                 let call_site = self
                     .builder
