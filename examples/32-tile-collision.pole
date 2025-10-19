@@ -1,0 +1,46 @@
+# Tile Collision Detection for Isometric Game
+# Purpose: Check if a point collides with an isometric tile
+
+## Types
+
+A Point has x and y coordinates (integers).
+A Tile has tile_x and tile_y coordinates (integers).
+
+## Functions
+
+### is_point_in_tile
+
+Takes a point and a tile.
+Returns true if the point is inside the tile's diamond shape, false otherwise.
+
+Isometric tile diamond bounds:
+- Center: screen_x = (tile_x - tile_y) * 32 + 400, screen_y = (tile_x + tile_y) * 16 + 100
+- Width: 64 pixels (32 pixels each side from center)
+- Height: 32 pixels (16 pixels each side from center)
+
+The tile forms a diamond shape.
+Use Manhattan distance for approximate collision:
+- dx = absolute value of (point.x - center_x)
+- dy = absolute value of (point.y - center_y)
+- Point is inside if: dx / 32 + dy / 16 <= 1
+
+### find_tile_at_point
+
+Takes a point and searches tiles in a 3x3 grid (tile coordinates 0-2).
+Returns the first tile that contains the point, or returns tile (-1, -1) if no tile found.
+
+## Examples
+
+Example 1:
+  point = (400, 100) (center of tile 0,0)
+  tile = (0, 0)
+  is_point_in_tile should return true
+
+Example 2:
+  point = (500, 200) (outside any tile)
+  tile = (0, 0)
+  is_point_in_tile should return false
+
+Example 3:
+  point = (432, 116) (center of tile 1,0)
+  find_tile_at_point should return tile (1, 0)

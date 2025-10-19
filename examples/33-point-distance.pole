@@ -1,0 +1,30 @@
+# Point Distance Calculator
+# Purpose: Calculate Manhattan distance between two points
+
+## Functions
+
+### manhattan_distance
+
+Takes four integers: x1, y1, x2, y2.
+Returns the Manhattan distance between points (x1, y1) and (x2, y2).
+
+Manhattan distance formula: |x2 - x1| + |y2 - y1|
+
+### is_points_close
+
+Takes four integers: x1, y1, x2, y2.
+Returns 1 if Manhattan distance is less than or equal to 50, otherwise 0.
+
+## Examples
+
+Example 1:
+  x1=0, y1=0, x2=10, y2=10
+  manhattan_distance should return 20
+
+Example 2:
+  x1=0, y1=0, x2=30, y2=40
+  manhattan_distance should return 70
+  
+Example 3:
+  x1=0, y1=0, x2=20, y2=20
+  is_points_close should return 1 (distance = 40 <= 50)
