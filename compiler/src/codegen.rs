@@ -1,9 +1,14 @@
 use inkwell::builder::Builder;
 use inkwell::context::Context;
 use inkwell::module::Module;
+use inkwell::targets::{
+    CodeModel, FileType, InitializationConfig, RelocMode, Target, TargetMachine,
+};
 use inkwell::types::{BasicMetadataTypeEnum, BasicType as LLVMBasicType, BasicTypeEnum};
 use inkwell::values::{BasicValueEnum, FunctionValue};
+use inkwell::OptimizationLevel;
 use inkwell::IntPredicate;
+use std::path::Path;
 
 use crate::ast::{
     Application, BasicType as AstBasicType, BinaryOp, Expr, FunctionDef, IfExpr, Literal,
@@ -340,5 +345,43 @@ impl<'ctx> CodeGen<'ctx> {
 
     pub fn print_to_string(&self) -> String {
         self.module.print_to_string().to_string()
+    }
+
+    /// Write LLVM IR to file (.ll)
+    pub fn write_ir_to_file(&self, path: &Path) -> Result<(), String> {
+        self.module
+            .print_to_file(path)
+            .map_err(|e| format!("Failed to write LLVM IR: {}", e))
+    }
+
+    /// Write bitcode to file (.bc)
+    pub fn write_bitcode_to_file(&self, path: &Path) -> Result<(), String> {
+        self.module.write_bitcode_to_path(path);
+        Ok(())
+    }
+
+    /// Write object file (.o)
+    pub fn write_object_file(&self, path: &Path) -> Result<(), String> {
+        Target::initialize_native(&InitializationConfig::default())
+            .map_err(|e| format!("Failed to initialize native target: {}", e))?;
+
+        let target_triple = TargetMachine::get_default_triple();
+        let target = Target::from_triple(&target_triple)
+            .map_err(|e| format!("Failed to create target: {}", e))?;
+
+        let target_machine = target
+            .create_target_machine(
+                &target_triple,
+                "generic",
+                "",
+                OptimizationLevel::Default,
+                RelocMode::PIC,
+                CodeModel::Default,
+            )
+            .ok_or_else(|| "Failed to create target machine".to_string())?;
+
+        target_machine
+            .write_to_file(&self.module, FileType::Object, path)
+            .map_err(|e| format!("Failed to write object file: {}", e))
     }
 }

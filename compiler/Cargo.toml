@@ -19,7 +19,7 @@ crate-type = ["cdylib", "rlib"]  # cdylib for Python bindings, rlib for Rust
 nom = "7.1"
 
 # LLVM bindings (Phase 5 M2+) - Using inkwell for type-safe LLVM API
-inkwell = { version = "0.5", features = ["llvm17-0"] }
+inkwell = { version = "0.5", features = ["llvm17-0", "target-all"] }
 
 # Python bindings
 pyo3 = { version = "0.20", features = ["extension-module"] }
