@@ -1420,7 +1420,9 @@ pole publish
 
 **현재 Phase:** Phase 5 (네이티브 컴파일러)
 
-**현재 마일스톤:** ⭐ **5.1 M2 - LLVM 백엔드 개발 준비**
+**Phase 5.1 상태:** ✅ **완료** (2025-10-19)
+
+**다음 Phase:** Phase 5.2 (런타임 메모리 관리) 준비 중
 
 **완료된 작업:**
 - ✅ M0: Rust 학습 & 핵심 인프라 전환 (2025-10-19)
@@ -1455,19 +1457,46 @@ pole publish
   - 메모리 사용: ~100MB (기본 설정)
   - 모든 기존 예제 통과 (factorial, fibonacci, max)
 
-- ⏳ **M5: Runtime Functions** (진행 중, 2025-10-19 시작)
-  - ✅ String.length 구현 (inline LLVM extractvalue)
-  - ✅ String.contains 구현 (C FFI strstr)
-  - ⏸️ IR 파서 개선 필요 (curried application 지원)
-  - ⏸️ List.concat 구현 대기
-  - ⏸️ user-validation 예제 활성화 대기
+- ✅ **M2: LLVM 백엔드 - 기본 함수 컴파일** (2025-10-19) ✅
+  - factorial, fibonacci, max 네이티브 컴파일 성공
+  - Record types, String, List, Variant, Option 지원 완료
+  - Pattern matching 구현
+  - 5개 예제 네이티브 실행 성공
 
-**다음 작업:**
+- ✅ **M3: LLVM 백엔드 - 고급 기능** (2025-10-19) ✅
+  - Record type 완전 지원 (field access, construction)
+  - Let expressions
+  - Field access 및 타입 추론
 
-**IR 파서 개선 또는 추가 Runtime 함수 구현**
-- Option 1: IR 파서에 curried/multi-arg 지원 추가
-- Option 2: List.concat, print/println 구현 계속
-- 목표: user-validation 예제 활성화
+- ✅ **M4: Advanced Types - LLVM 백엔드** (2025-10-19) ✅
+  - String, List, Variant, Option, Result, Unit 타입 완성
+  - 8개 M4 예제 모두 컴파일 성공
+
+- ✅ **M5: Runtime Functions** (2025-10-19 완료) ✅
+  - ✅ String.length (inline LLVM extractvalue)
+  - ✅ String.contains (C FFI strstr)
+  - ✅ print/println (C FFI printf/puts)
+  - ✅ List.concat (malloc/memcpy)
+  - ✅ IR 파서 multi-arg 지원
+  - ✅ Type inference for builtins
+  - ✅ user-validation 예제 완전 활성화
+
+**다음 마일스톤 옵션:**
+
+**Option 1: 5.1.5 Arena Allocator 최적화** (높은 우선순위)
+- 목표: 메모리 사용량 75% 감소 (110MB → 30MB)
+- 컴파일 속도 3x 향상
+- OOM 복구 메커니즘
+
+**Option 2: 5.2 런타임 메모리 관리 시스템**
+- 가비지 컬렉션 (참조 카운팅)
+- 게임 엔진용 커스텀 할당자
+- 메모리 프로파일러
+
+**Option 3: 5.3 성능 최적화 시스템**
+- LLVM 최적화 파이프라인
+- SIMD 벡터화
+- LTO (Link-Time Optimization)
 
 ---
 
