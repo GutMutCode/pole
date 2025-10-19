@@ -1,0 +1,91 @@
+// SDL2 Event Handling - Simplified (no conditional)
+// Day 3-4: Event polling structure
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_PollEvent")
+func SDL_PollEvent(event: Ptr<Unit>) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit() -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+// Main event loop demo
+func main() -> Int:
+  let _ = c_puts("=== SDL2 Event Handling Demo ===") in
+  let _ = c_puts("Initializing SDL2...") in
+  
+  let _ = SDL_Init(32) in
+  
+  let _ = c_puts("Creating window...") in
+  let window = SDL_CreateWindow("Event Demo", 805240832, 805240832, 800, 600, 4) in
+  
+  let _ = c_puts("Creating renderer...") in
+  let renderer = SDL_CreateRenderer(window, -1, 2) in
+  
+  let _ = c_puts("") in
+  let _ = c_puts("Window created!") in
+  let _ = c_puts("Allocating event buffer (56 bytes)...") in
+  let _ = c_puts("") in
+  
+  // Allocate SDL_Event (56 bytes)
+  let event = c_malloc(56) in
+  
+  // Set background color (dark blue)
+  let _ = SDL_SetRenderDrawColor(renderer, 40, 40, 80, 255) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = SDL_RenderPresent(renderer) in
+  
+  // Test SDL_PollEvent - it should return 0 when no events
+  let _ = c_puts("Testing SDL_PollEvent...") in
+  let poll_result = SDL_PollEvent(event) in
+  let _ = c_puts("SDL_PollEvent returned (0 = no events)") in
+  
+  // Display for 5 seconds
+  let _ = c_puts("Window displayed for 5 seconds...") in
+  let _ = SDL_Delay(5000) in
+  
+  // Cleanup
+  let _ = c_free(event) in
+  let _ = c_puts("") in
+  let _ = c_puts("Cleaning up...") in
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit() in
+  let _ = c_puts("Done!") in
+  0
+
+@test_case(expected=0)

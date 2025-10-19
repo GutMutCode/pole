@@ -1,0 +1,93 @@
+// SDL2 Event Handling - Basic keyboard input
+// Day 3-4: Read event type (simplified without if-let nesting)
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_PollEvent")
+func SDL_PollEvent(event: Ptr<Unit>) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+// Pole runtime helpers for reading from pointers
+@extern("pole_read_i32")
+func read_i32(ptr: Ptr<Unit>) -> Int
+
+@extern("pole_read_i32_at")
+func read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+// Helper to check if we got an event
+func check_event(poll_result: Int) -> Int:
+  if poll_result == 1 then
+    let _ = c_puts("Event received!") in
+    1
+  else
+    let _ = c_puts("No events") in
+    0
+
+// Main event loop
+func main() -> Int :
+  let _ = c_puts("=== SDL2 Event Handling Demo ===") in
+  let _ = c_puts("Testing SDL_PollEvent...") in
+  let _ = c_puts("") in
+  
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Event Demo", 805240832, 805240832, 800, 600, 4) in
+  let renderer = SDL_CreateRenderer(window, -1, 2) in
+  
+  let event = c_malloc(56) in
+  
+  let _ = SDL_SetRenderDrawColor(renderer, 50, 50, 100, 255) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = SDL_RenderPresent(renderer) in
+  
+  let _ = c_puts("Waiting 3 seconds...") in
+  let _ = SDL_Delay(3000) in
+  
+  let _ = c_puts("Polling events...") in
+  let poll_result = SDL_PollEvent(event) in
+  let _ = check_event(poll_result) in
+  
+  let _ = c_free(event) in
+  let _ = c_puts("Cleaning up...") in
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = c_puts("Done!") in
+  0
+
+@test_case(expected=0)

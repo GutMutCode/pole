@@ -1,0 +1,69 @@
+// SDL2 Event Handling - Works around if-let limitations
+// Day 3-4: Event reading demonstration
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("SDL_PollEvent")
+func SDL_PollEvent(event: Ptr<Unit>) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_read_i32")
+func read_i32(ptr: Ptr<Unit>) -> Int
+
+@extern("pole_read_i32_at")
+func read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+// Main function
+func main() -> Int :
+  let _ = c_puts("=== SDL2 Event Reading Demo ===") in
+  let _ = c_puts("Testing pole_read_i32 and pole_read_i32_at") in
+  let _ = c_puts("") in
+  
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Event Test", 805240832, 805240832, 800, 600, 4) in
+  let event = c_malloc(56) in
+  
+  let _ = c_puts("Waiting 3 seconds...") in
+  let _ = SDL_Delay(3000) in
+  
+  let _ = c_puts("Polling event...") in
+  let poll_result = SDL_PollEvent(event) in
+  let _ = c_puts("Reading event data...") in
+  let event_type = read_i32(event) in
+  let keycode = read_i32_at(event, 24) in
+  
+  let _ = c_puts("Event poll result:") in
+  let _ = c_puts("  (1 = event, 0 = no event)") in
+  let _ = c_puts("") in
+  let _ = c_puts("Event data read successfully!") in
+  let _ = c_puts("  Event type offset 0: read") in
+  let _ = c_puts("  Keycode offset 24: read") in
+  
+  let _ = c_free(event) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = c_puts("Done!") in
+  0
+
+@test_case(expected=0)

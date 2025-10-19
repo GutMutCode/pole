@@ -1,0 +1,35 @@
+// SDL2 Event Polling Demo
+// Demonstrates SDL_PollEvent without actual event processing yet
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+func main() -> Int :
+  let _ = c_puts("=== SDL2 Event Polling Test ===") in
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Event Test", 805240832, 805240832, 800, 600, 4) in
+  
+  let _ = c_puts("Window created - displaying for 3 seconds") in
+  let _ = SDL_Delay(3000) in
+  
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = c_puts("Done!") in
+  0
+
+@test_case(expected=0)
