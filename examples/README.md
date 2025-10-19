@@ -327,6 +327,41 @@ SDL_VIDEODRIVER=dummy cargo run --example test_sdl2_window
 
 ---
 
+### 25-sdl2-rendering.pole-ir
+**난이도:** ⭐⭐⭐⭐ 전문가  
+**개념:** SDL2 Renderer, 그래픽 렌더링
+
+SDL2 Renderer로 화면에 픽셀 그리기:
+
+```pole-ir
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderDrawPoint")
+func SDL_RenderDrawPoint(renderer: Ptr<Unit>, x: Int, y: Int) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+```
+
+**렌더링 내용:**
+- 🟥 빨간색 패턴 (100, 100)
+- 🟦 파란색 패턴 (200, 200)
+- 🟩 녹색 패턴 (300, 300)
+
+**실행:**
+```bash
+cd compiler
+SDL_VIDEODRIVER=dummy cargo run --example test_sdl2_rendering
+```
+
+**참고:** [SDL2 Rendering Demo](../docs/SDL2_RENDERING_DEMO.md)
+
+---
+
 ## 실행 방법
 
 ### Python 인터프리터로 실행
