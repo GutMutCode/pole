@@ -140,7 +140,17 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         let body_value = self.compile_expr(&function.body, fn_value)?;
         self.current_function_return_type = None;
 
-        self.builder.build_return(Some(&body_value)).unwrap();
+        // Check if return type is Unit
+        let is_unit_return = matches!(&function.return_type, 
+            Type::Basic(AstBasicType { name }) if name == "Unit");
+        
+        if is_unit_return {
+            // For Unit return type, ignore the body value and return a dummy i8
+            let unit_val = self.context.i8_type().const_int(0, false);
+            self.builder.build_return(Some(&unit_val)).unwrap();
+        } else {
+            self.builder.build_return(Some(&body_value)).unwrap();
+        }
 
         if fn_value.verify(true) {
             Ok(fn_value)
@@ -1045,23 +1055,30 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
     ) -> Result<BasicValueEnum<'ctx>, String> {
         let value = self.compile_expr(&let_expr.value, function)?;
         
-        let value_type = self.infer_expr_type(&let_expr.value)?;
-        
-        let old_value = self.local_vars.insert(let_expr.var_name.clone(), value);
-        let old_type = self.var_types.insert(let_expr.var_name.clone(), value_type);
+        // Skip type inference for _ (unused variable)
+        let (old_value, old_type) = if let_expr.var_name == "_" {
+            (None, None)
+        } else {
+            let value_type = self.infer_expr_type(&let_expr.value)?;
+            let old_value = self.local_vars.insert(let_expr.var_name.clone(), value);
+            let old_type = self.var_types.insert(let_expr.var_name.clone(), value_type);
+            (old_value, old_type)
+        };
         
         let body_result = self.compile_expr(&let_expr.body, function)?;
         
-        if let Some(old) = old_value {
-            self.local_vars.insert(let_expr.var_name.clone(), old);
-        } else {
-            self.local_vars.remove(&let_expr.var_name);
-        }
-        
-        if let Some(old_ty) = old_type {
-            self.var_types.insert(let_expr.var_name.clone(), old_ty);
-        } else {
-            self.var_types.remove(&let_expr.var_name);
+        if let_expr.var_name != "_" {
+            if let Some(old) = old_value {
+                self.local_vars.insert(let_expr.var_name.clone(), old);
+            } else {
+                self.local_vars.remove(&let_expr.var_name);
+            }
+            
+            if let Some(old_ty) = old_type {
+                self.var_types.insert(let_expr.var_name.clone(), old_ty);
+            } else {
+                self.var_types.remove(&let_expr.var_name);
+            }
         }
         
         Ok(body_result)

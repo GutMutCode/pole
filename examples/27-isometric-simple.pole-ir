@@ -1,11 +1,8 @@
-// Project Zomboid - Simple Isometric Demo
-// Day 1-2: Basic coordinate transformation proof
-
 @extern("SDL_Init")
 func SDL_Init(flags: Int) -> Int
 
 @extern("SDL_CreateWindow") 
-func SDL_CreateWindow(title: Ptr<Unit>, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
 
 @extern("SDL_CreateRenderer")
 func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
@@ -32,70 +29,25 @@ func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
 func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
 
 @extern("SDL_Quit")
-func SDL_Quit() -> Unit
+func SDL_Quit(dummy: Unit) -> Unit
 
-// Draw a single isometric tile at position (0, 0)
-func draw_test_tile(renderer: Ptr<Unit>) -> Unit:
-  SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-  SDL_RenderDrawLine(renderer, 400, 284, 432, 300);
-  SDL_RenderDrawLine(renderer, 432, 300, 400, 316);
-  SDL_RenderDrawLine(renderer, 400, 316, 368, 300);
+func draw_one_tile(renderer: Ptr<Unit>) -> Unit :
+  let _ = SDL_SetRenderDrawColor(renderer, 100, 200, 100, 255) in
+  let _ = SDL_RenderDrawLine(renderer, 400, 284, 432, 300) in
+  let _ = SDL_RenderDrawLine(renderer, 432, 300, 400, 316) in
+  let _ = SDL_RenderDrawLine(renderer, 400, 316, 368, 300) in
   SDL_RenderDrawLine(renderer, 368, 300, 400, 284)
 
-// Draw a 3x3 grid of isometric tiles
-func draw_grid(renderer: Ptr<Unit>) -> Unit:
-  // Green color for grass tiles
-  SDL_SetRenderDrawColor(renderer, 100, 200, 100, 255);
-  
-  // Tile (0,0)
-  SDL_RenderDrawLine(renderer, 400, 284, 432, 300);
-  SDL_RenderDrawLine(renderer, 432, 300, 400, 316);
-  SDL_RenderDrawLine(renderer, 400, 316, 368, 300);
-  SDL_RenderDrawLine(renderer, 368, 300, 400, 284);
-  
-  // Tile (1,0) - shifted right
-  SDL_RenderDrawLine(renderer, 432, 300, 464, 316);
-  SDL_RenderDrawLine(renderer, 464, 316, 432, 332);
-  SDL_RenderDrawLine(renderer, 432, 332, 400, 316);
-  SDL_RenderDrawLine(renderer, 400, 316, 432, 300);
-  
-  // Tile (0,1) - shifted left and down
-  SDL_RenderDrawLine(renderer, 368, 300, 400, 316);
-  SDL_RenderDrawLine(renderer, 400, 316, 368, 332);
-  SDL_RenderDrawLine(renderer, 368, 332, 336, 316);
-  SDL_RenderDrawLine(renderer, 336, 316, 368, 300);
-  
-  // Tile (1,1) - center bottom
-  SDL_RenderDrawLine(renderer, 400, 316, 432, 332);
-  SDL_RenderDrawLine(renderer, 432, 332, 400, 348);
-  SDL_RenderDrawLine(renderer, 400, 348, 368, 332);
-  SDL_RenderDrawLine(renderer, 368, 332, 400, 316);
-  
-  // Add a road tile in gray
-  SDL_SetRenderDrawColor(renderer, 150, 150, 150, 255);
-  SDL_RenderDrawLine(renderer, 432, 332, 464, 348);
-  SDL_RenderDrawLine(renderer, 464, 348, 432, 364);
-  SDL_RenderDrawLine(renderer, 432, 364, 400, 348);
-  SDL_RenderDrawLine(renderer, 400, 348, 432, 332)
-
-func main() -> Int:
-  SDL_Init(32);
-  
-  let window = SDL_CreateWindow(0, 100, 100, 800, 600, 4) in
+func main() -> Int :
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Pole Isometric Demo", 100, 100, 800, 600, 4) in
   let renderer = SDL_CreateRenderer(window, -1, 2) in
-  
-  // Dark green background
-  SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255);
-  SDL_RenderClear(renderer);
-  
-  // Draw the isometric grid
-  draw_grid(renderer);
-  
-  SDL_RenderPresent(renderer);
-  SDL_Delay(10000);
-  
-  SDL_DestroyRenderer(renderer);
-  SDL_DestroyWindow(window);
-  SDL_Quit();
-  
+  let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = draw_one_tile(renderer) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(10000) in
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
   0
