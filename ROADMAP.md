@@ -907,6 +907,12 @@ Rust (성능 critical 레이어)
    - ✅ 외부 함수 동적 선언 시스템 구현
    - ✅ Pole 코드에서 C 함수 호출 가능
    
+   **M1.5: 추가 개선** (2025-10-19)
+   - ✅ 다중 인자 extern 함수 타입 추론
+   - ✅ extern 함수 반환 타입 저장 (`extern_func_types`)
+   - ✅ puts, putchar 등 다양한 C 함수 호출 검증
+   - ✅ `examples/20-ffi-malloc.pole-ir` 예제
+   
 2. **M2: 구조체 전달** (1개월) ⭐ 다음 작업
    - C 구조체 ↔ Pole Record 매핑
    - `@repr(C)` 어노테이션으로 메모리 레이아웃 제어
