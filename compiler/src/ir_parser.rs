@@ -450,7 +450,7 @@ fn parse_pattern(input: &str) -> ParseResult<Pattern> {
 
 fn parse_binary_op(input: &str) -> ParseResult<Expr> {
     // Simple binary op parser - can be improved with precedence
-    let (input, left) = parse_primary_expr(input)?;
+    let (input, left) = parse_postfix_expr(input)?;
     
     let (input, op_and_right) = opt(tuple((
         ws(alt((
@@ -551,11 +551,28 @@ fn parse_let_expr(input: &str) -> ParseResult<Expr> {
 // Primary expressions (literals, variables, parenthesized)
 fn parse_primary_expr(input: &str) -> ParseResult<Expr> {
     alt((
+        parse_record_expr,
         parse_literal,
         parse_application,
         parse_variable,
         delimited(char('('), parse_expr, char(')')),
     ))(input)
+}
+
+// Postfix expressions (field access)
+fn parse_postfix_expr(input: &str) -> ParseResult<Expr> {
+    let (input, mut expr) = parse_primary_expr(input)?;
+    
+    let (input, fields) = many0(preceded(char('.'), identifier))(input)?;
+    
+    for field in fields {
+        expr = Expr::FieldAccess(FieldAccess {
+            record: Box::new(expr),
+            field,
+        });
+    }
+    
+    Ok((input, expr))
 }
 
 // Simple expressions (no complex control flow)
@@ -839,3 +856,22 @@ func factorial (n: Nat) -> Nat
         let program = result.unwrap();
         assert_eq!(program.func_defs.len(), 1);
     }
+
+fn parse_record_expr(input: &str) -> ParseResult<Expr> {
+    let (input, _) = char('{')(input)?;
+    let (input, _) = multispace0(input)?;
+    
+    let (input, fields) = separated_list0(
+        ws(char(',')),
+        separated_pair(
+            ws(identifier),
+            ws(char('=')),
+            ws(parse_expr),
+        ),
+    )(input)?;
+    
+    let (input, _) = multispace0(input)?;
+    let (input, _) = char('}')(input)?;
+    
+    Ok((input, Expr::Record(RecordExpr { fields })))
+}

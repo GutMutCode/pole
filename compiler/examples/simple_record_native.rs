@@ -26,17 +26,87 @@ fn main() {
         }
     }
 
+    println!("\n=== Adding main function ===");
+    let i32_type = context.i32_type();
+    let i64_type = context.i64_type();
+    let point_type = context.struct_type(&[i64_type.into(), i64_type.into()], false);
+    
+    let main_fn_type = i32_type.fn_type(&[], false);
+    let main_fn = codegen.get_module().add_function("main", main_fn_type, None);
+
+    let entry_bb = context.append_basic_block(main_fn, "entry");
+    let builder = context.create_builder();
+    builder.position_at_end(entry_bb);
+
+    // Create Point { x: 3, y: 4 }
+    let x_val = i64_type.const_int(3, false);
+    let y_val = i64_type.const_int(4, false);
+    let point = point_type.const_named_struct(&[x_val.into(), y_val.into()]);
+
+    // Call distance_from_origin(point)
+    let distance_fn = codegen
+        .get_module()
+        .get_function("distance_from_origin")
+        .expect("distance_from_origin not found");
+    
+    let result = builder
+        .build_call(distance_fn, &[point.into()], "result")
+        .unwrap()
+        .try_as_basic_value()
+        .left()
+        .unwrap()
+        .into_int_value();
+
+    // Return result as exit code
+    let result_i32 = builder
+        .build_int_truncate(result, i32_type, "result_i32")
+        .unwrap();
+    builder.build_return(Some(&result_i32)).unwrap();
+
+    println!("✓ Main function added: distance_from_origin({{x: 3, y: 4}})");
+
     let ir_path = Path::new("simple_record.ll");
     codegen
         .write_ir_to_file(ir_path)
         .expect("Failed to write LLVM IR");
-    println!("✓ Written LLVM IR to simple_record.ll");
+    println!("\n✓ Written LLVM IR to simple_record.ll");
 
-    println!("\n=== Generated LLVM IR (first 30 lines) ===");
-    let ir_content = fs::read_to_string("simple_record.ll").unwrap();
-    for (i, line) in ir_content.lines().take(30).enumerate() {
-        println!("{:3}: {}", i + 1, line);
+    let obj_path = Path::new("simple_record.o");
+    codegen
+        .write_object_file(obj_path)
+        .expect("Failed to write object file");
+    println!("✓ Written object file to simple_record.o");
+
+    println!("\n=== Linking executable ===");
+    let link_status = Command::new("cc")
+        .args(&["-o", "simple_record", "simple_record.o"])
+        .status()
+        .expect("Failed to execute linker");
+
+    if !link_status.success() {
+        eprintln!("✗ Linking failed");
+        return;
+    }
+    println!("✓ Linked executable: simple_record");
+
+    println!("\n=== Running native executable ===");
+    let output = Command::new("./simple_record")
+        .output()
+        .expect("Failed to execute simple_record");
+
+    let exit_code = output.status.code().unwrap_or(-1);
+    println!("distance_from_origin({{x: 3, y: 4}}) = {} (exit code)", exit_code);
+    println!("Expected: 3*3 + 4*4 = 25");
+
+    if exit_code == 25 {
+        println!("\n✓ Native compilation and execution successful!");
+    } else {
+        println!("\n✗ Unexpected result");
     }
 
+    println!("\n=== Cleanup ===");
     let _ = fs::remove_file("simple_record.ll");
+    let _ = fs::remove_file("simple_record.o");
+    let _ = fs::remove_file("simple_record");
+    println!("✓ Cleaned up generated files");
 }

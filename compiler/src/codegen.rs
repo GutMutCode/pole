@@ -12,8 +12,8 @@ use std::path::Path;
 
 use crate::ast::{
     Application, BasicType as AstBasicType, BinaryOp, Expr, FieldAccess, FunctionDef, IfExpr,
-    LetExpr, Literal, LiteralValue, MatchExpr, Pattern, Program, RecordType, Type, TypeDefKind,
-    Variable,
+    LetExpr, Literal, LiteralValue, MatchExpr, Pattern, Program, RecordExpr, RecordType, Type,
+    TypeDefKind, Variable,
 };
 
 use std::collections::HashMap;
@@ -105,6 +105,7 @@ impl<'ctx> CodeGen<'ctx> {
             Expr::Match(match_expr) => self.compile_match(match_expr, function),
             Expr::Let(let_expr) => self.compile_let(let_expr, function),
             Expr::FieldAccess(field_access) => self.compile_field_access(field_access, function),
+            Expr::Record(record_expr) => self.compile_record(record_expr, function),
             Expr::Application(app) => {
                 // Collect all args from nested Applications
                 let (func_name, args) = self.flatten_application(app)?;
@@ -479,6 +480,37 @@ impl<'ctx> CodeGen<'ctx> {
             .unwrap();
         
         Ok(field_value)
+    }
+    
+    fn compile_record(
+        &mut self,
+        record_expr: &RecordExpr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        let field_values: Vec<BasicValueEnum> = record_expr
+            .fields
+            .iter()
+            .map(|(_, expr)| self.compile_expr(expr, function))
+            .collect::<Result<Vec<_>, _>>()?;
+        
+        let struct_type = if let Some(first_field) = record_expr.fields.first() {
+            let first_value_type = field_values[0].get_type();
+            let field_types: Vec<_> = field_values.iter().map(|v| v.get_type()).collect();
+            self.context.struct_type(&field_types, false)
+        } else {
+            return Err("Empty record construction not supported".to_string());
+        };
+        
+        let mut struct_val = struct_type.get_undef();
+        for (i, field_value) in field_values.iter().enumerate() {
+            struct_val = self
+                .builder
+                .build_insert_value(struct_val, *field_value, i as u32, "field")
+                .unwrap()
+                .into_struct_value();
+        }
+        
+        Ok(struct_val.into())
     }
 
     pub fn get_module(&self) -> &Module<'ctx> {
