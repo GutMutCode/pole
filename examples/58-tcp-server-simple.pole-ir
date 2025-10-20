@@ -1,0 +1,60 @@
+// TCP Echo Server Example
+// Listens on port 8080 and echoes back received messages
+
+@extern("socket")
+func c_socket(domain: Int, type: Int, protocol: Int) -> Int
+
+@extern("bind")
+func c_bind(sockfd: Int, addr: Ptr<Unit>, addrlen: Int) -> Int
+
+@extern("listen")
+func c_listen(sockfd: Int, backlog: Int) -> Int
+
+@extern("accept")
+func c_accept(sockfd: Int, addr: Ptr<Unit>, addrlen: Ptr<Unit>) -> Int
+
+@extern("recv")
+func c_recv(sockfd: Int, buf: Ptr<Unit>, len: Int, flags: Int) -> Int
+
+@extern("send")
+func c_send(sockfd: Int, buf: Ptr<Unit>, len: Int, flags: Int) -> Int
+
+@extern("close")
+func c_close(fd: Int) -> Int
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("printf")
+@variadic
+func c_printf(format: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_write_i16_at")
+func write_i16_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_write_i32_at")
+func write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_ptr_to_string")
+func ptr_to_string(ptr: Ptr<Unit>) -> String
+
+@extern("htons")
+func htons(hostshort: Int) -> Int
+
+// Create sockaddr_in for 0.0.0.0:port (listen on all interfaces)
+func create_server_addr(port: Int) -> Ptr<Unit>:
+let addr = c_malloc(16) in let _ = write_i16_at(addr, 0, 2) in let port_network = htons(port) in let _ = write_i16_at(addr, 2, port_network) in let _ = write_i32_at(addr, 4, 0) in addr
+
+func tcp_echo_server(dummy: Unit) -> Int:
+let _ = c_puts("Creating TCP socket...") in let sockfd = c_socket(2, 1, 0) in if sockfd < 0 then let _ = c_puts("ERROR: Socket creation failed") in 1 else let _ = c_puts("Binding to port 8080...") in let addr = create_server_addr(8080) in let bind_result = c_bind(sockfd, addr, 16) in if bind_result < 0 then let _ = c_puts("ERROR: Bind failed") in let _ = c_close(sockfd) in let _ = c_free(addr) in 1 else let _ = c_puts("Listening for connections...") in let listen_result = c_listen(sockfd, 5) in if listen_result < 0 then let _ = c_puts("ERROR: Listen failed") in let _ = c_close(sockfd) in let _ = c_free(addr) in 1 else let _ = c_puts("Server ready on port 8080") in let _ = c_puts("Waiting for client... (will handle 1 connection then exit)") in let client_addr = c_malloc(16) in let addrlen = c_malloc(4) in let _ = write_i32_at(addrlen, 0, 16) in let client_fd = c_accept(sockfd, client_addr, addrlen) in if client_fd < 0 then let _ = c_puts("ERROR: Accept failed") in let _ = c_free(client_addr) in let _ = c_free(addrlen) in let _ = c_free(addr) in let _ = c_close(sockfd) in 1 else let _ = c_puts("Client connected!") in let buffer = c_malloc(1024) in let bytes_recv = c_recv(client_fd, buffer, 1024, 0) in if bytes_recv > 0 then let msg = ptr_to_string(buffer) in let _ = c_puts("Received:") in let _ = c_puts(msg) in let _ = c_puts("Echoing back...") in let _ = c_send(client_fd, buffer, bytes_recv, 0) in let _ = c_free(buffer) in let _ = c_close(client_fd) in let _ = c_free(client_addr) in let _ = c_free(addrlen) in let _ = c_free(addr) in let _ = c_close(sockfd) in let _ = c_puts("Connection closed") in 0 else let _ = c_puts("No data received") in let _ = c_free(buffer) in let _ = c_close(client_fd) in let _ = c_free(client_addr) in let _ = c_free(addrlen) in let _ = c_free(addr) in let _ = c_close(sockfd) in 0
+
+func main() -> Int:
+let _ = c_puts("=== TCP Echo Server ===") in let _ = c_puts("") in tcp_echo_server(())
+
+@test_case(expected=0)

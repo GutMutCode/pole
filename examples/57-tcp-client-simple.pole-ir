@@ -1,0 +1,57 @@
+// TCP Client Example
+// Connects to localhost:8080 and sends a message
+
+@extern("socket")
+func c_socket(domain: Int, type: Int, protocol: Int) -> Int
+
+@extern("connect")
+func c_connect(sockfd: Int, addr: Ptr<Unit>, addrlen: Int) -> Int
+
+@extern("send")
+func c_send(sockfd: Int, buf: Ptr<Unit>, len: Int, flags: Int) -> Int
+
+@extern("recv")
+func c_recv(sockfd: Int, buf: Ptr<Unit>, len: Int, flags: Int) -> Int
+
+@extern("close")
+func c_close(fd: Int) -> Int
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("printf")
+@variadic
+func c_printf(format: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_write_i16_at")
+func write_i16_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_write_i32_at")
+func write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_ptr_to_string")
+func ptr_to_string(ptr: Ptr<Unit>) -> String
+
+@extern("htons")
+func htons(hostshort: Int) -> Int
+
+// Constants - not used anymore, hardcoded in functions
+
+// Create sockaddr_in for localhost:port
+// struct sockaddr_in { sa_family_t sin_family; in_port_t sin_port; struct in_addr sin_addr; }
+func create_sockaddr(port: Int) -> Ptr<Unit>:
+let addr = c_malloc(16) in let _ = write_i16_at(addr, 0, 2) in let port_network = htons(port) in let _ = write_i16_at(addr, 2, port_network) in let _ = write_i32_at(addr, 4, 16777343) in addr
+
+func tcp_client_send(message: String) -> Int:
+let _ = c_puts("Creating TCP socket...") in let sockfd = c_socket(2, 1, 0) in if sockfd < 0 then let _ = c_puts("ERROR: Socket creation failed") in 1 else let _ = c_puts("Connecting to localhost:8080...") in let addr = create_sockaddr(8080) in let conn_result = c_connect(sockfd, addr, 16) in if conn_result < 0 then let _ = c_puts("ERROR: Connection failed") in let _ = c_puts("Make sure server is running: nc -l 8080") in let _ = c_close(sockfd) in let _ = c_free(addr) in 1 else let _ = c_puts("Connected! Sending message...") in let bytes_sent = c_send(sockfd, message, 13, 0) in let _ = c_printf("Sent %d bytes\n") in let _ = c_puts("Receiving response...") in let buffer = c_malloc(1024) in let bytes_recv = c_recv(sockfd, buffer, 1024, 0) in if bytes_recv > 0 then let response = ptr_to_string(buffer) in let _ = c_puts("Received:") in let _ = c_puts(response) in let _ = c_free(buffer) in let _ = c_free(addr) in let _ = c_close(sockfd) in 0 else let _ = c_puts("No response received") in let _ = c_free(buffer) in let _ = c_free(addr) in let _ = c_close(sockfd) in 0
+
+func main() -> Int:
+let _ = c_puts("=== TCP Client Example ===") in let _ = c_puts("") in tcp_client_send("Hello TCP!\n")
+
+@test_case(expected=0)
