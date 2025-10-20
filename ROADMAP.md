@@ -62,14 +62,14 @@ Year 5+    : 지속적 개선 및 확장
   - 26개 예제 프로그램
   - FFI Tutorial 및 문서화 완료
 
-**즉시 목표:** 🎮 **게임 프로토타입 (Pong)**
-- 3-5일 내 완성 목표
-- SDL2 이벤트 폴링 추가
-- 실용성 검증 및 YouTube 데모
+**즉시 목표:** 🔧 **LLM 변환 시스템 수정 (Critical!)**
+- ⚠️ **현재 문제**: LLM이 빈 IR 생성 중 (.pole → .pole-ir 실패)
+- 🎯 **목표**: Pole 핵심 원칙 복원 (사람=명세, LLM=구현)
+- 📅 **기간**: 1-2주
 
 **다음 단계:**
+- 🎮 게임 프로토타입 (명세 기반 개발로 재시작)
 - 📋 Phase 7 설계 (표준 라이브러리)
-- 🔧 핵심 언어 기능 개선
 - 🌟 OpenGL 통합 (중기)
 
 ---
@@ -2007,3 +2007,130 @@ func game_loop(window: *Window, ctx: *GLContext) -> Unit :
 - **2025-10-19**: Phase 4.4 완료 (IR 후처리 자동화)
 - **2025-10-19**: Phase 4.3 완료 (LLM Prompt 개선)
 - 이전 변경 이력: [ROADMAP-v1-prototype.md](ROADMAP-v1-prototype.md)
+
+---
+
+## 🚨 긴급 작업: LLM 변환 시스템 수정
+
+**발견 시점**: 2025-10-20  
+**우선순위**: P0 (Critical) - Pole 핵심 가치 훼손 중
+
+### 문제 상황
+
+**Pole 원칙 위반**:
+```
+[사람] .pole (명세) → [LLM] .pole-ir (구현) → [컴파일러] 실행 파일
+         ✅                  ❌ 빈 파일 생성        ✅
+```
+
+**현재 우회책**:
+- 사람이 직접 .pole-ir 작성 (72개 파일, 6,151 lines)
+- LLM 변환 단계 생략
+- **Pole의 존재 이유 상실**
+
+**영향**:
+- Pole 언어의 핵심 가치 미검증
+- LLM 기반 개발 워크플로우 작동 안 함
+- 사람이 구현 언어(IR) 직접 작성 = 일반 프로그래밍 언어와 동일
+
+### 원인 분석
+
+**증상**:
+```bash
+$ pole build games/zomboid/specs/inventory.pole
+Building games/zomboid/specs/inventory.pole...
+✓ IR generated: games/zomboid/specs/inventory.pole-ir
+
+$ cat games/zomboid/specs/inventory.pole-ir
+(빈 파일)
+```
+
+**가능한 원인**:
+1. **SpecificationTransformer 버그**
+   - `transform_to_ir()` 메서드가 빈 문자열 반환
+   - LLM API 응답 파싱 실패
+   
+2. **OpenRouter API 문제**
+   - 타임아웃 또는 rate limit
+   - 응답 형식 변경
+   - 에러 메시지가 로깅 안 됨
+
+3. **Prompt 문제**
+   - LLM이 응답을 생성하지만 형식이 맞지 않음
+   - IR 추출 정규식 실패
+
+### 수정 계획 (1-2주)
+
+#### Week 1: 디버깅 및 수정
+
+**Day 1-2: 문제 재현 및 로깅**
+- [ ] Transformer에 상세 로깅 추가
+  - API 요청 전체 출력
+  - API 응답 전체 출력
+  - 파싱 단계별 출력
+- [ ] 간단한 명세로 테스트
+  ```pole
+  function add:
+    input: a (Int), b (Int)
+    output: Int
+    examples:
+      - (1, 2) → 3
+  ```
+- [ ] 에러 메시지 확인
+
+**Day 3-4: 근본 원인 파악**
+- [ ] API 응답이 정상인지 확인
+- [ ] Prompt가 올바른지 검증
+- [ ] IR 추출 로직 점검
+- [ ] 타임아웃 설정 확인
+
+**Day 5-7: 수정 및 테스트**
+- [ ] Transformer 수정
+- [ ] 단순 예제 변환 성공
+- [ ] 복잡한 예제 (inventory) 변환 테스트
+- [ ] 생성된 IR과 수작업 IR 품질 비교
+
+#### Week 2: 검증 및 통합
+
+**Day 8-10: 품질 검증**
+- [ ] 3개 zomboid 명세 변환 성공
+  - inventory.pole → inventory.pole-ir
+  - combat.pole → combat.pole-ir
+  - survival.pole → survival.pole-ir
+- [ ] 생성된 IR 컴파일 성공
+- [ ] 테스트 실행 성공
+- [ ] 기존 수작업 IR과 비교 분석
+
+**Day 11-12: 문서화 및 워크플로우**
+- [ ] LLM 변환 가이드 작성
+- [ ] 트러블슈팅 문서
+- [ ] AGENTS.md 업데이트
+  - 앞으로 IR 직접 작성 금지
+  - 항상 .pole → LLM → .pole-ir 경로
+
+**Day 13-14: 기존 코드 정리**
+- [ ] 수작업 IR 72개를 명세로 역변환 (선택)
+- [ ] 또는 검증 데이터셋으로 보관
+
+### 성공 기준
+
+**필수 (P0)**:
+- ✅ 간단한 명세 → IR 변환 성공
+- ✅ 3개 zomboid 명세 → IR 변환 성공
+- ✅ 생성된 IR이 컴파일되고 실행됨
+- ✅ 워크플로우 문서화
+
+**선택 (P1)**:
+- 생성된 IR 품질이 수작업 IR과 동등
+- 변환 속도 최적화 (캐싱)
+- 여러 LLM 모델 테스트
+
+### 이후 작업
+
+수정 완료 후:
+1. 게임 개발을 **명세 중심**으로 재시작
+2. PZ Clone을 .pole 파일로 작성
+3. 실제 LLM 기반 워크플로우 검증
+
+---
+
