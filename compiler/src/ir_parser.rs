@@ -698,7 +698,7 @@ fn parse_match_expr(input: &str) -> ParseResult<Expr> {
         map(
             tuple((
                 preceded(ws(char('|')), ws(parse_pattern)),
-                preceded(ws(tag("->")), ws(parse_simple_expr)),
+                preceded(ws(tag("->")), ws(parse_expr)),
             )),
             |(pattern, expr)| (pattern, expr),
         ),

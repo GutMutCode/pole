@@ -1738,7 +1738,58 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                         
                         Ok(phi.as_basic_value())
                     }
-                    _ => Err(format!("Unsupported constructor pattern: {}", ctor_pattern.name))
+                    _ => {
+                        // Check if it's a variant constructor (like North, South, etc.)
+                        let mut found_variant = None;
+                        for (variant_name, constructors) in &self.variant_defs {
+                            for (idx, (ctor_name, ctor_args)) in constructors.iter().enumerate() {
+                                if ctor_name == &ctor_pattern.name && ctor_args.is_empty() {
+                                    found_variant = Some((variant_name.clone(), idx));
+                                    break;
+                                }
+                            }
+                            if found_variant.is_some() {
+                                break;
+                            }
+                        }
+                        
+                        if let Some((_variant_name, tag_idx)) = found_variant {
+                            // Variant constructor: scrutinee is i32 tag value
+                            let scrutinee_int = scrutinee_value.into_int_value();
+                            let expected_tag = self.context.i32_type().const_int(tag_idx as u64, false);
+                            let is_match = self.builder.build_int_compare(
+                                IntPredicate::EQ, scrutinee_int, expected_tag, "is_variant_match"
+                            ).unwrap();
+                            
+                            let match_bb = self.context.append_basic_block(function, "match_variant");
+                            let next_bb = self.context.append_basic_block(function, "match_next");
+                            
+                            self.builder.build_conditional_branch(is_match, match_bb, next_bb).unwrap();
+                            
+                            self.builder.position_at_end(match_bb);
+                            let match_value = self.compile_expr(first_expr, function)?;
+                            let merge_bb = self.context.append_basic_block(function, "match_merge");
+                            self.builder.build_unconditional_branch(merge_bb).unwrap();
+                            let match_bb_end = self.builder.get_insert_block().unwrap();
+                            
+                            self.builder.position_at_end(next_bb);
+                            let rest_match = MatchExpr {
+                                scrutinee: match_expr.scrutinee.clone(),
+                                arms: rest_arms.to_vec(),
+                            };
+                            let next_value = self.compile_match(&rest_match, function)?;
+                            self.builder.build_unconditional_branch(merge_bb).unwrap();
+                            let next_bb_end = self.builder.get_insert_block().unwrap();
+                            
+                            self.builder.position_at_end(merge_bb);
+                            let phi = self.builder.build_phi(match_value.get_type(), "match_result").unwrap();
+                            phi.add_incoming(&[(&match_value, match_bb_end), (&next_value, next_bb_end)]);
+                            
+                            Ok(phi.as_basic_value())
+                        } else {
+                            Err(format!("Unsupported constructor pattern: {}", ctor_pattern.name))
+                        }
+                    }
                 }
             }
             _ => Err(format!("Unsupported pattern: {:?}", first_pattern)),
