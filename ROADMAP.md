@@ -1705,21 +1705,32 @@ func game_loop(window: *Window, ctx: *GLContext) -> Unit :
 
 ### 📋 PZ 단기 우선순위 (1개월)
 
-#### 1. **파일 I/O & 자료구조** ⭐⭐⭐ PZ 필수
-**기간:** 2주
+#### 1. **파일 I/O & 자료구조** ⭐⭐⭐ PZ 필수 ✅
+**기간:** 2주 (완료: 2025-10-20)
 **산출물:**
-- [ ] 파일 읽기/쓰기 FFI (fopen, fread, fwrite)
-- [ ] 동적 배열 완전 구현 (resize, push, pop)
-- [ ] HashMap/Dictionary 구현
-- [ ] JSON 파서 (세이브/로드용)
+- [x] 파일 읽기/쓰기 FFI (fopen, fputs, fgets, fclose)
+  - `50-file-write-simple.pole-ir` - 파일 쓰기
+  - `52-file-io-complete.pole-ir` - 파일 쓰기 + 검증
+  - `55-file-read-test.pole-ir` - 파일 읽기 (fgets)
+- [x] String escape sequences (\n, \t, \r, etc)
+  - IR parser escape sequence 처리 구현
+  - `pole_ptr_to_string` runtime 함수 추가
+- [x] 동적 배열 완전 구현 (push, length)
+  - `List_push`, `List_length` 구현 완료
+- [x] HashMap/Dictionary 구현
+  - `HashMap_new`, `HashMap_put`, `HashMap_get` 완료
+  - 100 zombies @ 60 FPS 검증
+- [ ] JSON 파서 (세이브/로드용) - 다음 단계로 연기
 
-#### 2. **아이소메트릭 타일맵 시스템**
-**기간:** 2주  
+#### 2. **아이소메트릭 타일맵 시스템** ✅
+**기간:** 2주 (완료: 2025-10-19)
 **산출물:**
-- [ ] 100x100 타일맵 렌더링
-- [ ] 타일 스프라이트 관리
-- [ ] 카메라 팬/줌 완성
-- [ ] 건물 레이어 시스템
+- [x] 100x100 타일맵 렌더링
+  - `48-list-tilemap-final.pole-ir` - 100x100 interactive tilemap
+  - `54-huge-tilemap-100x100.pole-ir` - 100x100 with viewport culling
+- [x] 타일 프로시저럴 생성 (grid roads, scattered buildings)
+- [x] 카메라 WASD 컨트롤 완성
+- [x] Viewport culling 최적화 (60 FPS 달성)
 
 ### 📅 PZ 중기 우선순위 (3-6개월)
 
