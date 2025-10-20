@@ -61,34 +61,81 @@ def create_checklist(spec_file: str) -> List[DevelopmentStep]:
     ]
 
 
-def execute_step(step: DevelopmentStep) -> Tuple[bool, str]:
+def execute_step(step: DevelopmentStep, auto_fix: bool = False) -> Tuple[bool, str]:
     """Execute a development step and return (success, output)"""
 
     print(f"⏳ {step.name}...")
     print(f"   Command: {step.command}")
 
-    try:
-        result = subprocess.run(
-            step.command, shell=True, capture_output=True, text=True, timeout=60
-        )
+    max_retries = 3 if auto_fix else 1
 
-        step.output = result.stdout + result.stderr
+    for attempt in range(max_retries):
+        if attempt > 0:
+            print(f"   🔄 Retry attempt {attempt}/{max_retries - 1}")
 
-        if result.returncode == 0:
-            step.completed = True
-            print(f"✅ {step.name} - SUCCESS")
-            return True, step.output
-        else:
-            print(f"❌ {step.name} - FAILED")
-            print(f"   Error: {step.output[:200]}")
-            return False, step.output
+        try:
+            result = subprocess.run(
+                step.command, shell=True, capture_output=True, text=True, timeout=60
+            )
 
-    except subprocess.TimeoutExpired:
-        print(f"⏰ {step.name} - TIMEOUT")
-        return False, "Command timed out"
-    except Exception as e:
-        print(f"💥 {step.name} - ERROR: {e}")
-        return False, str(e)
+            step.output = result.stdout + result.stderr
+
+            if result.returncode == 0:
+                step.completed = True
+                print(f"✅ {step.name} - SUCCESS")
+                if attempt > 0:
+                    print(f"   ✨ Auto-fixed on attempt {attempt + 1}")
+                return True, step.output
+            else:
+                print(f"❌ {step.name} - FAILED")
+                print(f"   Error: {step.output[:200]}")
+
+                # Auto-fix logic
+                if auto_fix and attempt < max_retries - 1:
+                    print(f"   🔧 Attempting auto-fix...")
+                    fix_success = attempt_auto_fix(step)
+                    if fix_success:
+                        print(f"   ✅ Auto-fix applied")
+                        continue
+                    else:
+                        print(f"   ⚠️ Auto-fix failed, retrying...")
+                        continue
+
+                return False, step.output
+
+        except subprocess.TimeoutExpired:
+            print(f"⏰ {step.name} - TIMEOUT")
+            return False, "Command timed out"
+        except Exception as e:
+            print(f"💥 {step.name} - ERROR: {e}")
+            return False, str(e)
+
+    return False, "Max retries exceeded"
+
+
+def attempt_auto_fix(step: DevelopmentStep) -> bool:
+    """Attempt to automatically fix common errors"""
+
+    error_output = step.output.lower()
+
+    # Fix 1: pole check syntax errors
+    if "pole check" in step.command and "invalid type definition" in error_output:
+        print("   📖 Reading syntax examples for reference...")
+        # Could invoke LLM here to fix syntax
+        return False  # Placeholder
+
+    # Fix 2: IR generation failures
+    if "pole build" in step.command and "failed" in error_output:
+        print("   📝 Attempting manual IR generation...")
+        # Could write IR manually based on examples
+        return False  # Placeholder
+
+    # Fix 3: Common typos
+    if "file not found" in error_output or "no such file" in error_output:
+        print("   🔍 Checking for file existence...")
+        return False  # Placeholder
+
+    return False
 
 
 def run_workflow(spec_file: str, auto_fix: bool = False) -> bool:
