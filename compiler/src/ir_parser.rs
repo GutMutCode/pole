@@ -315,6 +315,42 @@ fn parse_inline_type_def(annotations: Vec<Annotation>) -> impl FnMut(&str) -> Pa
                 annotations: annotations.clone(),
             }))
         } else {
+            // Check if it's an inline variant: North | South | East | West
+            // Try to parse as variant constructors separated by |
+            if let Ok((new_input, first_cons)) = identifier(input) {
+                // Look ahead for |
+                if let Ok((lookahead, _)) = ws(char::<_, nom::error::Error<&str>>('|'))(new_input) {
+                    // It's an inline variant!
+                    let mut constructors = vec![(first_cons, vec![])];
+                    let mut remaining = lookahead;
+                    
+                    // Parse remaining constructors
+                    loop {
+                        let (new_input, cons_name) = match identifier(remaining) {
+                            Ok(result) => result,
+                            Err(_) => break,
+                        };
+                        
+                        constructors.push((cons_name, vec![]));
+                        
+                        // Check for more |
+                        match ws(char::<_, nom::error::Error<&str>>('|'))(new_input) {
+                            Ok((new_remaining, _)) => remaining = new_remaining,
+                            Err(_) => {
+                                remaining = new_input;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    return Ok((remaining, TypeDef {
+                        name,
+                        definition: TypeDefKind::Variant(constructors),
+                        annotations: annotations.clone(),
+                    }));
+                }
+            }
+            
             // Type alias
             let (input, aliased_type) = parse_type(input)?;
             

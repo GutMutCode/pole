@@ -151,6 +151,46 @@ impl TypeChecker {
     fn collect_type_definitions(&mut self) {
         for type_def in &self.program.type_defs {
             self.custom_types.insert(type_def.name.clone(), type_def.clone());
+            
+            // Register variant constructors
+            if let TypeDefKind::Variant(variants) = &type_def.definition {
+                for (variant_name, param_types) in variants {
+                    if param_types.is_empty() {
+                        // Nullary constructor: South is a value of type Direction
+                        // Register it in type_env as a constant value
+                        self.type_env.insert(
+                            variant_name.clone(),
+                            Type::Basic(BasicType {
+                                name: type_def.name.clone(),
+                            }),
+                        );
+                    } else {
+                        // Constructor with parameters: Some(T) -> T -> Option<T>
+                        // Build curried function type
+                        let mut result_type = Type::Basic(BasicType {
+                            name: type_def.name.clone(),
+                        });
+                        
+                        // Build curried type from right to left
+                        for param_type in param_types.iter().skip(1).rev() {
+                            result_type = Type::Function(FunctionType {
+                                param_type: Box::new(param_type.clone()),
+                                return_type: Box::new(result_type),
+                                effect: None,
+                            });
+                        }
+                        
+                        // Wrap with first parameter
+                        let constructor_type = FunctionType {
+                            param_type: Box::new(param_types[0].clone()),
+                            return_type: Box::new(result_type),
+                            effect: None,
+                        };
+                        
+                        self.function_types.insert(variant_name.clone(), constructor_type);
+                    }
+                }
+            }
         }
     }
     
@@ -222,7 +262,8 @@ impl TypeChecker {
         
         let old_env = std::mem::replace(&mut self.type_env, local_env);
         
-        let body_type = self.infer_type(&func_def.body);
+        // Pass expected type to help with record literal inference
+        let body_type = self.infer_type_with_hint(&func_def.body, Some(&func_def.return_type));
         
         if !self.types_compatible(&body_type, &func_def.return_type) {
             self.errors.push(TypeError::with_location(
@@ -237,6 +278,66 @@ impl TypeChecker {
         }
         
         self.type_env = old_env;
+    }
+    
+    fn infer_type_with_hint(&mut self, expr: &Expr, expected: Option<&Type>) -> Type {
+        // Special handling for record literals with expected type
+        if let Expr::Record(record) = expr {
+            if let Some(expected_type) = expected {
+                // Resolve expected type to actual definition
+                let resolved = self.resolve_type(expected_type);
+                
+                if let Type::Record(expected_record) = resolved {
+                    // Check if record fields match expected type
+                    if self.record_fields_match(record, &expected_record) {
+                        // Return the expected type (not the inferred anonymous type)
+                        return expected_type.clone();
+                    }
+                }
+            }
+        }
+        
+        // For all other cases, use regular inference
+        self.infer_type(expr)
+    }
+    
+    fn record_fields_match(&mut self, record: &RecordExpr, expected: &RecordType) -> bool {
+        // Check if all expected fields are present with compatible types
+        if record.fields.len() != expected.fields.len() {
+            return false;
+        }
+        
+        for (expected_name, expected_type) in &expected.fields {
+            let mut found = false;
+            for (actual_name, actual_expr) in &record.fields {
+                if actual_name == expected_name {
+                    // Resolve expected type to handle custom types
+                    let resolved_expected = self.resolve_type(expected_type);
+                    
+                    // Recursively pass expected type for nested records
+                    let actual_type = self.infer_type_with_hint(actual_expr, Some(&resolved_expected));
+                    
+                    // For compatibility check, use resolved types
+                    if !self.types_compatible_resolved(&actual_type, expected_type) {
+                        return false;
+                    }
+                    found = true;
+                    break;
+                }
+            }
+            if !found {
+                return false;
+            }
+        }
+        
+        true
+    }
+    
+    fn types_compatible_resolved(&self, t1: &Type, t2: &Type) -> bool {
+        // Resolve both types and check compatibility
+        let resolved1 = self.resolve_type(t1);
+        let resolved2 = self.resolve_type(t2);
+        self.types_compatible(&resolved1, &resolved2)
     }
     
     fn infer_type(&mut self, expr: &Expr) -> Type {
@@ -652,3 +753,16 @@ func test_it() -> Int:
         assert!(result.success, "Type check failed: {:?}", result.errors);
     }
 }
+
+    #[test]
+    fn test_variant_constructor() {
+        let ir = r#"
+type Direction = North | South | East | West
+
+func test() -> Direction:
+  South
+"#;
+        let program = parse_ir(ir).unwrap();
+        let result = check_types(program);
+        assert!(result.success, "Type check failed: {:?}", result.errors);
+    }
