@@ -545,20 +545,61 @@ fn parse_pattern(input: &str) -> ParseResult<Pattern> {
 // ============================================================================
 
 fn parse_binary_op(input: &str) -> ParseResult<Expr> {
-    // Simple binary op parser - can be improved with precedence
-    let (input, left) = parse_postfix_expr(input)?;
+    // Left-associative binary operator parser with precedence
+    parse_logical_or(input)
+}
+
+// Precedence levels (lowest to highest):
+// 1. || (logical or)
+// 2. && (logical and)  
+// 3. ==, !=, <, >, <=, >= (comparison)
+// 4. +, - (additive)
+// 5. *, /, % (multiplicative)
+
+fn parse_logical_or(input: &str) -> ParseResult<Expr> {
+    let (input, mut left) = parse_logical_and(input)?;
+    
+    let mut current_input = input;
+    while let Ok((input2, _)) = ws(tag("||"))(current_input) {
+        let (input3, right) = parse_logical_and(input2)?;
+        left = Expr::BinaryOp(BinaryOp {
+            op: "||".to_string(),
+            left: Box::new(left),
+            right: Box::new(right),
+        });
+        current_input = input3;
+    }
+    
+    Ok((current_input, left))
+}
+
+fn parse_logical_and(input: &str) -> ParseResult<Expr> {
+    let (input, mut left) = parse_comparison(input)?;
+    
+    let mut current_input = input;
+    while let Ok((input2, _)) = ws(tag("&&"))(current_input) {
+        let (input3, right) = parse_comparison(input2)?;
+        left = Expr::BinaryOp(BinaryOp {
+            op: "&&".to_string(),
+            left: Box::new(left),
+            right: Box::new(right),
+        });
+        current_input = input3;
+    }
+    
+    Ok((current_input, left))
+}
+
+fn parse_comparison(input: &str) -> ParseResult<Expr> {
+    let (input, left) = parse_additive(input)?;
     
     let (input, op_and_right) = opt(tuple((
         ws(alt((
-            tag("&&"), tag("||"),  // Logical operators (must be before single &, |)
-            tag("=="), tag("!="), 
-            tag("<="), tag(">="), 
+            tag("=="), tag("!="),
+            tag("<="), tag(">="),
             tag("<"), tag(">"),
-            tag("*"), tag("/"), tag("%"),
-            tag("+"), tag("-"),
-            tag("=>"),
         ))),
-        parse_expr,
+        parse_additive,
     )))(input)?;
     
     if let Some((op, right)) = op_and_right {
@@ -570,6 +611,40 @@ fn parse_binary_op(input: &str) -> ParseResult<Expr> {
     } else {
         Ok((input, left))
     }
+}
+
+fn parse_additive(input: &str) -> ParseResult<Expr> {
+    let (input, mut left) = parse_multiplicative(input)?;
+    
+    let mut current_input = input;
+    while let Ok((input2, op)) = ws(alt((tag("+"), tag("-"))))(current_input) {
+        let (input3, right) = parse_multiplicative(input2)?;
+        left = Expr::BinaryOp(BinaryOp {
+            op: op.to_string(),
+            left: Box::new(left),
+            right: Box::new(right),
+        });
+        current_input = input3;
+    }
+    
+    Ok((current_input, left))
+}
+
+fn parse_multiplicative(input: &str) -> ParseResult<Expr> {
+    let (input, mut left) = parse_postfix_expr(input)?;
+    
+    let mut current_input = input;
+    while let Ok((input2, op)) = ws(alt((tag("*"), tag("/"), tag("%"))))(current_input) {
+        let (input3, right) = parse_postfix_expr(input2)?;
+        left = Expr::BinaryOp(BinaryOp {
+            op: op.to_string(),
+            left: Box::new(left),
+            right: Box::new(right),
+        });
+        current_input = input3;
+    }
+    
+    Ok((current_input, left))
 }
 
 fn parse_application(input: &str) -> ParseResult<Expr> {
