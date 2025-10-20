@@ -28,6 +28,14 @@ fn main() {
         .expect("Failed to compile program");
 
     println!("✓ Compilation successful");
+    
+    // Print memory statistics
+    let stats = pole_compiler::MemoryStats::new(
+        arenas.parse_allocated(),
+        arenas.ir_allocated(),
+        arenas.codegen_allocated()
+    );
+    println!("Memory usage: {}", stats.format_human_readable());
 
     let ll_path = "/home/gmc/Devs/pole/test_list_push.ll";
     codegen.get_module()

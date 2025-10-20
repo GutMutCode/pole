@@ -1756,7 +1756,18 @@ func game_loop(window: *Window, ctx: *GLContext) -> Unit :
     - `60-coop-client.pole-ir` - Client (connect, recv state, send position)
   - **Protocol**: Text-based "WELCOME P1/P2", "P1:x,y P2:x,y", "POS x y"
   - **Tested**: 2 clients simultaneously, state broadcast working
-- [ ] **메모리 최적화** (Arena allocator)
+- [~] **메모리 최적화** (Arena allocator) 🔶 부분 완료 (2025-10-20)
+  - **완료**:
+    - ✅ Arena 인프라 구현 (`CompilerArenas`, 100MB capacity)
+    - ✅ 메모리 통계 추적 (parse/ir/codegen별)
+    - ✅ Human-readable 출력 (KB/MB 단위)
+    - ✅ OOM 에러 타입 정의
+  - **미완료** (대규모 리팩토링 필요):
+    - ❌ AST를 참조 기반으로 변경 (Box/Vec → &'arena)
+    - ❌ 실제 arena allocation 사용
+    - ❌ 75% 메모리 감소 목표 (110MB → 30MB)
+  - **결정**: 게임 기능 우선, 컴파일러 최적화는 필요시 재개
+  - **문서**: `docs/ARENA_ALLOCATOR_STATUS.md`
 
 #### Q2 (Month 4-6): PZ 게임플레이
 - [ ] **인벤토리 시스템**
