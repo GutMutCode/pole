@@ -1,0 +1,42 @@
+# Tilemap Rendering
+#
+# Functions for working with grid-based tilemaps
+
+function get_tile(tilemap: Tilemap, x: Int, y: Int) -> Int:
+  purpose: "Get tile value at position"
+  input: "Tilemap, x and y coordinates"
+  output: "Tile ID (0 for out of bounds)"
+  constraints:
+    - "Returns 0 if position out of bounds"
+    - "Converts 2D coords to 1D index: y * width + x"
+  examples:
+    - get_tile(map_5x5, 2, 1) → tiles[7]
+
+function is_walkable(tilemap: Tilemap, x: Int, y: Int) -> Bool:
+  purpose: "Check if tile position is walkable"
+  input: "Tilemap, x and y coordinates"
+  output: "True if walkable, false otherwise"
+  constraints:
+    - "Out of bounds = not walkable"
+    - "Tile 0 = walkable"
+    - "Tile 1+ = obstacle"
+  examples:
+    - is_walkable(map, 0, 0) → true  (if tile is 0)
+    - is_walkable(map, -1, 0) → false (out of bounds)
+
+function world_to_tile(world_x: Int, world_y: Int, tile_size: Int) -> Position:
+  purpose: "Convert world coordinates to tile coordinates"
+  input: "World position (pixels), tile size"
+  output: "Tile position"
+  constraints:
+    - "tile_x = world_x / tile_size"
+    - "tile_y = world_y / tile_size"
+  examples:
+    - world_to_tile(64, 96, 32) → {x: 2, y: 3}
+
+function is_tile_visible(tile_x: Int, tile_y: Int, camera_x: Int, camera_y: Int, viewport_width: Int, viewport_height: Int) -> Bool:
+  purpose: "Check if tile is visible in viewport"
+  input: "Tile coordinates, camera position, viewport size"
+  output: "True if tile should be rendered"
+  constraints:
+    - "Used for culling off-screen tiles"

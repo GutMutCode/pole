@@ -73,12 +73,12 @@ function main() -> Int:
 
 ## 📊 개발 상태
 
-### Week 1 (2025-10-20)
-- [ ] render/sprite.pole
-- [ ] render/tilemap.pole
-- [ ] input/keyboard.pole
-- [ ] core/types.pole
-- [ ] core/math.pole
+### Week 1 (2025-10-20 ~ 2025-10-26)
+- [x] **core/types.pole** - Position, Direction, Tilemap, Color
+- [x] **core/math.pole** - abs, distance, clamp
+- [x] **render/sprite.pole** - 스프라이트 기본 렌더링
+- [x] **render/tilemap.pole** - 타일맵 유틸리티
+- [ ] input/keyboard.pole (Day 6-7 예정)
 
 ### 향후 계획
 - Week 2: physics, camera

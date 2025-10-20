@@ -1,0 +1,23 @@
+# Core Types - Common types used across the Pole Engine
+
+type Position:
+  fields:
+    x: Int
+    y: Int
+
+type Direction:
+  # Cardinal directions: North, South, East, West
+  # Implement as variant in IR
+
+type Tilemap:
+  fields:
+    width: Int
+    height: Int
+    tiles: List<Int>
+
+type Color:
+  fields:
+    r: Int
+    g: Int
+    b: Int
+    a: Int

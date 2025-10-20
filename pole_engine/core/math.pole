@@ -1,0 +1,36 @@
+# Math Utilities
+#
+# Common mathematical functions for game development
+
+function abs(n: Int) -> Int:
+  purpose: "Absolute value of integer"
+  input: "Any integer (positive or negative)"
+  output: "Non-negative integer"
+  examples:
+    - abs(-5) → 5
+    - abs(3) → 3
+    - abs(0) → 0
+
+function distance(pos1: Position, pos2: Position) -> Int:
+  purpose: "Manhattan distance between two positions"
+  input: "Two positions in tile coordinates"
+  output: "Distance in tiles (non-negative)"
+  constraints:
+    - "Returns |x1-x2| + |y1-y2|"
+    - "Suitable for grid-based movement"
+  examples:
+    - distance({x: 0, y: 0}, {x: 3, y: 4}) → 7
+    - distance({x: 5, y: 5}, {x: 5, y: 5}) → 0
+
+function clamp(value: Int, min: Int, max: Int) -> Int:
+  purpose: "Clamp value between min and max"
+  input: "Value to clamp, minimum, maximum"
+  output: "Clamped value"
+  constraints:
+    - "If value < min, returns min"
+    - "If value > max, returns max"
+    - "Otherwise returns value"
+  examples:
+    - clamp(5, 0, 10) → 5
+    - clamp(-5, 0, 10) → 0
+    - clamp(15, 0, 10) → 10
