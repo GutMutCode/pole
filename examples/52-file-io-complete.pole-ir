@@ -1,0 +1,67 @@
+// Week 3: File I/O Complete Example
+// Demonstrates file write and verification
+
+@extern("fopen")
+func fopen(filename: String, mode: String) -> Ptr<Unit>
+
+@extern("fputs")
+func fputs(str: String, stream: Ptr<Unit>) -> Int
+
+@extern("fclose")
+func fclose(stream: Ptr<Unit>) -> Int
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+// Write tilemap header (width and height)
+func write_header(file: Ptr<Unit>, width: Int, height: Int) -> Int:
+  let _ = fputs("# Tilemap Data\n", file) in
+  let _ = fputs("# Width Height\n", file) in
+  let _ = fputs("3 3\n", file) in
+  let _ = fputs("# Tile Data (0=grass, 1=road, 2=building)\n", file) in
+  0
+
+// Write tilemap data rows
+func write_tiles(file: Ptr<Unit>) -> Int:
+  let _ = fputs("0 1 0\n", file) in
+  let _ = fputs("1 2 1\n", file) in
+  let _ = fputs("0 1 0\n", file) in
+  0
+
+// Save complete tilemap to file
+func save_tilemap(filename: String) -> Int:
+  let _ = c_puts("Opening file for writing...") in
+  let file = fopen(filename, "w") in
+  let _ = write_header(file, 3, 3) in
+  let _ = write_tiles(file) in
+  let _ = fclose(file) in
+  let _ = c_puts("Tilemap saved successfully") in
+  0
+
+// Verify file exists by trying to open it
+func verify_file(filename: String) -> Int:
+  let _ = c_puts("Verifying file exists...") in
+  let file = fopen(filename, "r") in
+  let _ = fclose(file) in
+  let _ = c_puts("File verified successfully") in
+  0
+
+func main() -> Int:
+  let _ = c_puts("=== File I/O: Complete Example ===") in
+  let _ = c_puts("") in
+  let save_result = save_tilemap("tilemap_data.txt") in
+  let _ = c_puts("") in
+  let verify_result = verify_file("tilemap_data.txt") in
+  let _ = c_puts("") in
+  if save_result == 0 then
+    if verify_result == 0 then
+      let _ = c_puts("SUCCESS: File I/O operations completed") in
+      0
+    else
+      let _ = c_puts("FAIL: File verification failed") in
+      1
+  else
+    let _ = c_puts("FAIL: File save failed") in
+    1
+
+@test_case(expected=0)

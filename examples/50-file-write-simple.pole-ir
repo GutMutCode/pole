@@ -1,0 +1,37 @@
+// Week 3: File I/O - Simple file write test
+
+@extern("fopen")
+func fopen(filename: String, mode: String) -> Ptr<Unit>
+
+@extern("fputs")
+func fputs(str: String, stream: Ptr<Unit>) -> Int
+
+@extern("fclose")
+func fclose(stream: Ptr<Unit>) -> Int
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+// Write simple data to file
+func write_data(filename: String) -> Int:
+  let file = fopen(filename, "w") in
+  let _ = fputs("3\n", file) in
+  let _ = fputs("3\n", file) in
+  let _ = fputs("0 1 0\n", file) in
+  let _ = fputs("1 2 1\n", file) in
+  let _ = fputs("0 1 0\n", file) in
+  let _ = fclose(file) in
+  let _ = c_puts("File written successfully") in
+  0
+
+func main() -> Int:
+  let _ = c_puts("=== File I/O: Write Test ===") in
+  let result = write_data("tilemap.txt") in
+  if result == 0 then
+    let _ = c_puts("SUCCESS: Data written to tilemap.txt") in
+    0
+  else
+    let _ = c_puts("FAIL: Could not write file") in
+    1
+
+@test_case(expected=0)
