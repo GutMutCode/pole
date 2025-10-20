@@ -1,0 +1,12 @@
+extern printf: (String, ...) -> Int;
+
+func simple_test(dummy: Unit) -> Int
+:
+  let x = 1 in
+  let y = 2 in
+  let z = x + y in
+  z
+
+func main(dummy: Unit) -> Int
+:
+  simple_test(())

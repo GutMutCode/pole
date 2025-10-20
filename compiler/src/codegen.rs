@@ -305,6 +305,22 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     return self.compile_list_set(&args[0], &args[1], &args[2], function);
                 }
                 
+                if func_name == "List_push" || func_name == "List.push" {
+                    // List.push: List<T> -> T -> List<T>
+                    if args.len() != 2 {
+                        return Err(format!("List.push expects 2 arguments, got {}", args.len()));
+                    }
+                    return self.compile_list_push(&args[0], &args[1], function);
+                }
+                
+                if func_name == "List_length" || func_name == "List.length" {
+                    // List.length: List<T> -> Nat
+                    if args.len() != 1 {
+                        return Err(format!("List.length expects 1 argument, got {}", args.len()));
+                    }
+                    return self.compile_list_length(&args[0], function);
+                }
+                
                 let arg_values: Vec<BasicValueEnum> = args
                     .iter()
                     .map(|arg_expr| self.compile_expr(arg_expr, function))
@@ -904,6 +920,116 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         Ok(result.into())
     }
 
+    fn compile_list_push(
+        &mut self,
+        list_expr: &Expr,
+        value_expr: &Expr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // List.push: List<T> -> T -> List<T>
+        // Creates a new list with element appended
+        
+        self.ensure_malloc_memcpy();
+        
+        let list_val = self.compile_expr(list_expr, function)?;
+        let list_struct = list_val.into_struct_value();
+        
+        let old_ptr = self.builder
+            .build_extract_value(list_struct, 0, "old_ptr")
+            .unwrap()
+            .into_pointer_value();
+        let old_len = self.builder
+            .build_extract_value(list_struct, 1, "old_len")
+            .unwrap()
+            .into_int_value();
+        
+        let new_value = self.compile_expr(value_expr, function)?;
+        
+        // Infer element type
+        let list_type = self.infer_expr_type(list_expr)?;
+        let element_type = match list_type {
+            Type::List(list_type) => self.compile_type(&list_type.element_type),
+            _ => return Err(format!("List.push expects a list, got {:?}", list_type)),
+        };
+        
+        // Calculate new length
+        let i64_type = self.context.i64_type();
+        let new_len = self.builder.build_int_add(
+            old_len,
+            i64_type.const_int(1, false),
+            "new_len"
+        ).unwrap();
+        
+        // Allocate new array
+        let element_size = element_type.size_of().unwrap();
+        let total_size = self.builder.build_int_mul(new_len, element_size, "total_size").unwrap();
+        
+        let malloc_fn = self.module.get_function("malloc").unwrap();
+        let new_ptr_i8 = self.builder
+            .build_call(malloc_fn, &[total_size.into()], "new_ptr_i8")
+            .unwrap()
+            .try_as_basic_value()
+            .left()
+            .unwrap()
+            .into_pointer_value();
+        
+        let new_ptr = self.builder.build_pointer_cast(
+            new_ptr_i8,
+            old_ptr.get_type(),
+            "new_ptr"
+        ).unwrap();
+        
+        // Copy old data
+        let old_size = self.builder.build_int_mul(old_len, element_size, "old_size").unwrap();
+        let memcpy_fn = self.module.get_function("memcpy").unwrap();
+        let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+        let dest_i8 = self.builder.build_pointer_cast(new_ptr, i8_ptr_type, "dest_i8").unwrap();
+        let src_i8 = self.builder.build_pointer_cast(old_ptr, i8_ptr_type, "src_i8").unwrap();
+        
+        self.builder.build_call(
+            memcpy_fn,
+            &[dest_i8.into(), src_i8.into(), old_size.into()],
+            ""
+        ).unwrap();
+        
+        // Append new element at end
+        let last_ptr = unsafe {
+            self.builder.build_gep(
+                element_type,
+                new_ptr,
+                &[old_len],
+                "last_ptr"
+            ).unwrap()
+        };
+        self.builder.build_store(last_ptr, new_value).unwrap();
+        
+        // Build result struct
+        let result_type = list_struct.get_type();
+        let mut result = result_type.get_undef();
+        result = self.builder.build_insert_value(result, new_ptr, 0, "ptr").unwrap().into_struct_value();
+        result = self.builder.build_insert_value(result, new_len, 1, "len").unwrap().into_struct_value();
+        
+        Ok(result.into())
+    }
+
+    fn compile_list_length(
+        &mut self,
+        list_expr: &Expr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // List.length: List<T> -> Nat
+        // Extract length field from list struct
+        
+        let list_val = self.compile_expr(list_expr, function)?;
+        let list_struct = list_val.into_struct_value();
+        
+        let len = self.builder
+            .build_extract_value(list_struct, 1, "length")
+            .unwrap();
+        
+        Ok(len)
+    }
+
     fn compile_variable(
         &self,
         name: &str,
@@ -956,7 +1082,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         
         // Check if it's a builtin function
         // Builtins are handled in Application, not as standalone variables
-        if name == "String_length" || name == "String_contains" || name == "print" || name == "println" || name == "List_concat" || name == "List.concat" || name == "List_get" || name == "List.get" || name == "List_set" || name == "List.set" {
+        if name == "String_length" || name == "String_contains" || name == "print" || name == "println" || name == "List_concat" || name == "List.concat" || name == "List_get" || name == "List.get" || name == "List_set" || name == "List.set" || name == "List_push" || name == "List.push" || name == "List_length" || name == "List.length" {
             return Err(format!("Builtin function '{}' can only be used in function calls", name));
         }
 
@@ -1416,6 +1542,15 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     // List_set: List<T> -> Nat -> T -> List<T>
                     // Returns the same list type
                     return self.infer_expr_type(&args[0]);
+                }
+                if (func_name == "List_push" || func_name == "List.push") && args.len() == 2 {
+                    // List_push: List<T> -> T -> List<T>
+                    // Returns the same list type
+                    return self.infer_expr_type(&args[0]);
+                }
+                if (func_name == "List_length" || func_name == "List.length") && args.len() == 1 {
+                    // List_length: List<T> -> Nat
+                    return Ok(Type::Basic(AstBasicType { name: "Nat".to_string() }));
                 }
                 
                 // Check if the whole application is a multi-arg extern call

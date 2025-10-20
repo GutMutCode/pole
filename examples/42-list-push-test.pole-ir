@@ -1,0 +1,38 @@
+// Test List.push and List.length
+// List.push: List<T> -> T -> List<T>  (append element, return new list)
+// List.length: List<T> -> Nat         (get list size)
+
+@extern("printf")
+@variadic
+func printf(format: String) -> Int
+
+func test_list_push(dummy: Unit) -> Unit
+:
+  let list1 = [1, 2, 3] in
+  let len1 = List_length(list1) in
+  let _ = printf("Original list length: %lld\n", len1) in
+  let list2 = List_push(list1, 4) in
+  let len2 = List_length(list2) in
+  let _ = printf("After push(4), length: %lld\n", len2) in
+  let list3 = List_push(list2, 5) in
+  let len3 = List_length(list3) in
+  let _ = printf("After push(5), length: %lld\n", len3) in
+  let elem0 = List_get(list3, 0) in
+  let elem1 = List_get(list3, 1) in
+  let elem2 = List_get(list3, 2) in
+  let elem3 = List_get(list3, 3) in
+  let elem4 = List_get(list3, 4) in
+  let _ = printf("Elements: %lld %lld %lld %lld %lld\n", elem0, elem1, elem2, elem3, elem4) in
+  let empty = [] in
+  let empty_len = List_length(empty) in
+  let _ = printf("Empty list length: %lld\n", empty_len) in
+  let single = List_push(empty, 42) in
+  let single_len = List_length(single) in
+  let elem = List_get(single, 0) in
+  let _ = printf("Single element list - length: %lld, element: %lld\n", single_len, elem) in
+  ()
+
+func main(dummy: Unit) -> Int
+:
+  let _ = test_list_push(()) in
+  0
