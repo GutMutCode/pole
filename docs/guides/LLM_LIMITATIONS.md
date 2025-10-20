@@ -45,12 +45,105 @@
 
 ## 기술적 한계
 
-### 1. 컨텍스트 윈도우 제한
+### 1. 최신 정보 부족 ⭐ 중요
 
 **문제:**
-- Claude 3.5 Sonnet: 200K tokens (~150K 단어)
-- GPT-4 Turbo: 128K tokens (~96K 단어)
-- 큰 명세는 잘려서 전달됨
+- LLM 학습 데이터는 특정 시점까지만 (cutoff date)
+- Claude 3.5 Sonnet: ~2024년 4월
+- GPT-4 Turbo: ~2023년 12월
+- 최신 라이브러리, API, 문법을 모름
+
+**증상:**
+```pole
+// LLM이 생성한 코드
+@ffi("SDL2")
+@extern("SDL_CreateWindow")
+function sdl_create_window(...) -> Ptr<SDL_Window>
+
+// 문제: SDL3 출시 (2024년 3월)
+// LLM은 SDL2만 알고 있음
+```
+
+**구체적 예시:**
+
+1. **라이브러리 버전**
+   ```
+   LLM 지식: LLVM 14 (2022)
+   현재 사용: LLVM 17 (2023)
+   → Opaque pointer 문법 변경 인식 못함
+   ```
+
+2. **언어 기능**
+   ```
+   LLM 지식: Rust 1.70
+   현재 사용: Rust 1.75+
+   → 새로운 문법 (let-else) 제안 못함
+   ```
+
+3. **Best practices**
+   ```
+   LLM이 제안: 구식 패턴
+   현재 권장: 새로운 패턴
+   → 비효율적 코드 생성
+   ```
+
+**발생 빈도:**
+- 최신 기술 (출시 1년 이내): ~80% 오류
+- 기존 기술 (출시 2년+): ~10% 오류
+
+**우회 전략:**
+
+1. **웹 검색 활용** ⭐ 핵심 해결책
+   ```bash
+   # 명세 작성 전에 먼저 검색
+   1. 공식 문서 확인
+   2. GitHub 최신 예제 확인
+   3. StackOverflow 최근 답변 확인
+   
+   # 예: SDL2 최신 API
+   https://wiki.libsdl.org/SDL2/
+   → 최신 함수 시그니처 확인
+   ```
+
+2. **명세에 버전 명시**
+   ```pole
+   @ffi("SDL2", version="2.28.0")  // 명시적 버전
+   @extern("SDL_CreateWindow")
+   function sdl_create_window(...):
+     // 공식 문서 링크 포함
+     // https://wiki.libsdl.org/SDL2/SDL_CreateWindow
+   ```
+
+3. **검증된 예제 참조**
+   ```pole
+   function sdl_init():
+     purpose: "SDL2 초기화"
+     
+     reference:
+       - "SDL2 2.28.0 공식 문서"
+       - "examples/24-sdl2-window.pole-ir 참고"
+     
+     examples:
+       - sdl_init(SDL_INIT_VIDEO) → 0  // 성공
+   ```
+
+4. **개발자 직접 확인:** 공식 문서 비교, 시그니처 검증
+
+**Pole 워크플로우:**
+```
+웹 검색 (최신 정보) → 명세 작성 → LLM 생성 → 검증
+```
+
+**실제 사례:**
+- LLVM 17 Opaque Pointers: 문서 검색 후 명세 반영
+- Rust 2024 Edition: 공식 블로그 확인 후 적용
+
+### 2. 컨텍스트 윈도우 제한
+
+**문제:**
+- Claude 3.5 Sonnet: 200K tokens
+- GPT-4 Turbo: 128K tokens
+- 큰 명세는 잘려서 전달
 
 **증상:**
 ```pole
@@ -63,21 +156,7 @@ function complex_function(...):
 // 앞부분 context 손실
 ```
 
-**우회 전략:**
-- 명세를 여러 파일로 분할
-- 핵심 예제만 포함 (3-5개)
-- System prompt를 간결하게
-
-**Pole 대응:**
-```bash
-# 나쁨: 하나의 거대한 파일
-games/zomboid/all_systems.pole  # 2000줄
-
-# 좋음: 작은 모듈
-games/zomboid/player.pole       # 200줄
-games/zomboid/zombie.pole       # 150줄
-games/zomboid/combat.pole       # 180줄
-```
+**우회:** 명세 분할 (200줄 이하), 핵심 예제만 (3-5개)
 
 ### 2. 문법 오류 빈도
 
@@ -99,90 +178,17 @@ def factorial(n: Int) -> Int =
 - GPT-4: ~10-15%
 - GPT-3.5: ~20-30%
 
-**우회 전략:**
-1. **System prompt 강조**
-   ```markdown
-   ALWAYS include 'else' branch for ALL 'if' expressions.
-   This is CRITICAL for Pole IR syntax.
-   ```
-
-2. **명세에 명시**
-   ```pole
-   constraints:
-     - "모든 if는 else 포함 (Pole IR 필수)"
-   ```
-
-3. **재생성**
-   ```bash
-   pole build player.pole --retry 3
-   # 실패 시 자동으로 3번까지 재시도
-   ```
-
-**Pole 대응:**
-- Type checker가 문법 오류 감지
-- 명확한 에러 메시지
-- `--force` 플래그로 재생성
+**우회:** System prompt 강조, 명세에 명시, 재생성 (`--retry 3`)
 
 ### 3. 다중 인자 함수 혼동
 
-**문제:**
-- Pole spec: `f(a, b, c)`
-- Pole IR: `f((a, b, c))` (tuple)
-- LLM이 혼동
-
-**증상:**
-```pole-ir
-// 잘못된 생성
-def distance(x1: Int, y1: Int, x2: Int, y2: Int) -> Int =
-  distance(x1, y1, x2, y2)  // ❌ 파싱 에러
-  
-// 올바른 형태
-def distance(x1: Int, y1: Int, x2: Int, y2: Int) -> Int =
-  distance((x1, y1, x2, y2))  // ✅
-```
-
-**발생 빈도:**
-- Claude: ~15%
-- GPT-4: ~20%
-
-**우회 전략:**
-1. **System prompt 명시**
-   ```markdown
-   Multi-arg function calls use TUPLE syntax:
-   - Wrong: f(a, b, c)
-   - Correct: f((a, b, c))
-   ```
-
-2. **명세 예제에서 강조**
-   ```pole
-   examples:
-     - distance(0, 0, 3, 4) → 7
-     # IR에서는: distance((0, 0, 3, 4))
-   ```
-
-**Pole 대응:**
-- IR parser가 에러 감지
-- 명확한 에러 메시지: "Expected tuple for multi-arg call"
+**문제:** Pole IR `f((a,b))` vs spec `f(a,b)` 혼동 (~15-20%)  
+**우회:** System prompt에 tuple 문법 명시
 
 ### 4. 타입 추론 실패
 
-**문제:**
-- LLM이 타입을 명시하지 않음
-- 타입 체커 실패
-
-**증상:**
-```pole-ir
-def foo(x) -> Int =  // ❌ x 타입 없음
-  x + 1
-```
-
-**발생 빈도:**
-- Claude: ~5%
-- GPT-4: ~8%
-
-**우회 전략:**
-- 명세에서 모든 타입 명시
-- System prompt에 타입 규칙 강조
+**문제:** LLM이 타입 명시 누락  
+**우회:** 명세에 모든 타입 명시
 
 ---
 
