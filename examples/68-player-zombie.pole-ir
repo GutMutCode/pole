@@ -1,0 +1,99 @@
+@source("examples/68-player-zombie.pole-ir")
+
+type Position = { x: Int, y: Int }
+
+type Direction = North | South | East | West
+
+type Player = {
+  position: Position,
+  health: Int,
+  hunger: Int,
+  facing: Direction
+}
+
+type ZombieState = Idle | Chase | Attack
+
+type Zombie = {
+  position: Position,
+  health: Int,
+  state: ZombieState,
+  target_player: Int
+}
+
+type Tilemap = {
+  width: Int,
+  height: Int,
+  tiles: List<Int>
+}
+
+func create_player(x: Int, y: Int) -> Player:
+  {
+    position: { x: x, y: y },
+    health: 100,
+    hunger: 100,
+    facing: South
+  }
+
+func create_zombie(x: Int, y: Int) -> Zombie:
+  {
+    position: { x: x, y: y },
+    health: 50,
+    state: Idle,
+    target_player: -1
+  }
+
+func abs(n: Int) -> Int:
+  if n < 0 then 0 - n else n
+
+func distance(pos1: Position, pos2: Position) -> Int:
+  abs(pos1.x - pos2.x) + abs(pos1.y - pos2.y)
+
+func update_zombie(zombie: Zombie, player: Player, dt: Float64) -> Zombie:
+  let dist = distance(zombie.position, player.position) in
+  let new_state = if dist > 10 then Idle else if dist > 1 then Chase else Attack in
+  {
+    position: zombie.position,
+    health: zombie.health,
+    state: new_state,
+    target_player: zombie.target_player
+  }
+
+func main() -> Int:
+  let player = create_player(10, 10) in
+  let zombie = create_zombie(5, 5) in
+  let dist = distance(player.position, zombie.position) in
+  let updated_zombie = update_zombie(zombie, player, 0.016) in
+  dist
+
+@test_case(expected=10)
+func test_player_zombie_distance() -> Int:
+  let player = create_player(10, 10) in
+  let zombie = create_zombie(5, 5) in
+  distance(player.position, zombie.position)
+
+@test_case(expected=true)
+func test_zombie_state_idle() -> Bool:
+  let player = create_player(20, 20) in
+  let zombie = create_zombie(5, 5) in
+  let updated = update_zombie(zombie, player, 0.016) in
+  match updated.state with
+  | Idle -> true
+  | _ -> false
+
+@test_case(expected=true)
+func test_zombie_state_chase() -> Bool:
+  let player = create_player(12, 10) in
+  let zombie = create_zombie(5, 5) in
+  let updated = update_zombie(zombie, player, 0.016) in
+  match updated.state with
+  | Chase -> true
+  | _ -> false
+
+@test_case(expected=true)
+func test_zombie_state_attack() -> Bool:
+  let player = create_player(5, 6) in
+  let zombie = create_zombie(5, 5) in
+  let updated = update_zombie(zombie, player, 0.016) in
+  match updated.state with
+  | Attack -> true
+  | _ -> false

@@ -1,3 +1,7 @@
+type Position = { x: Int, y: Int }
+
+type ZombieState = Idle | Chase | Attack
+
 type Zombie = {
   position: Position,
   health: Int,
@@ -5,7 +9,20 @@ type Zombie = {
   target_player: Int
 }
 
-type ZombieState = Idle | Chase | Attack
+type Player = {
+  position: Position,
+  health: Int,
+  hunger: Int,
+  facing: Direction
+}
+
+type Direction = North | South | East | West
+
+type Tilemap = {
+  width: Int,
+  height: Int,
+  tiles: List<Int>
+}
 
 @source("games/zomboid/specs/zombie.pole")
 
@@ -17,19 +34,63 @@ func create_zombie(x: Int, y: Int) -> Zombie:
     target_player: -1
   }
 
+func abs(n: Int) -> Int:
+  if n < 0 then 0 - n else n
+
 func distance(pos1: Position, pos2: Position) -> Int:
-  let dx = if pos1.x > pos2.x then pos1.x - pos2.x else pos2.x - pos1.x in
-  let dy = if pos1.y > pos2.y then pos1.y - pos2.y else pos2.y - pos1.y in
-  dx + dy
+  abs(pos1.x - pos2.x) + abs(pos1.y - pos2.y)
+
+func get_tile(tilemap: Tilemap, x: Int, y: Int) -> Int:
+  let index = y * tilemap.width + x in
+  list_get(tilemap.tiles, index, 0)
+
+func is_walkable(tilemap: Tilemap, x: Int, y: Int) -> Bool:
+  if x < 0 || y < 0 || x >= tilemap.width || y >= tilemap.height then
+    false
+  else
+    let tile = get_tile(tilemap, x, y) in
+    tile == 0
 
 func update_zombie(zombie: Zombie, player: Player, dt: Float64) -> Zombie:
   let dist = distance(zombie.position, player.position) in
-  if dist > 10 then
-    { position: zombie.position, health: zombie.health, state: Idle, target_player: -1 }
-  else if dist > 1 then
-    { position: zombie.position, health: zombie.health, state: Chase, target_player: 0 }
+  let new_state = if dist > 10 then Idle else if dist > 1 then Chase else Attack in
+  {
+    position: zombie.position,
+    health: zombie.health,
+    state: new_state,
+    target_player: zombie.target_player
+  }
+
+func move_towards(zombie: Zombie, target: Position, tilemap: Tilemap) -> Zombie:
+  let diff_x = target.x - zombie.position.x in
+  let diff_y = target.y - zombie.position.y in
+  let abs_diff_x = abs(diff_x) in
+  let abs_diff_y = abs(diff_y) in
+  if abs_diff_x > abs_diff_y then
+    let new_x = if diff_x > 0 then zombie.position.x + 1 else zombie.position.x - 1 in
+    let new_y = zombie.position.y in
+    if is_walkable(tilemap, new_x, new_y) then
+      { position: { x: new_x, y: new_y }, health: zombie.health, state: zombie.state, target_player: zombie.target_player }
+    else
+      zombie
+  else if abs_diff_y > abs_diff_x then
+    let new_x = zombie.position.x in
+    let new_y = if diff_y > 0 then zombie.position.y + 1 else zombie.position.y - 1 in
+    if is_walkable(tilemap, new_x, new_y) then
+      { position: { x: new_x, y: new_y }, health: zombie.health, state: zombie.state, target_player: zombie.target_player }
+    else
+      zombie
   else
-    { position: zombie.position, health: zombie.health, state: Attack, target_player: 0 }
+    zombie
+
+func damage_player(player: Player, damage: Int) -> Player:
+  let new_health = if player.health - damage < 0 then 0 else player.health - damage in
+  {
+    position: player.position,
+    health: new_health,
+    hunger: player.hunger,
+    facing: player.facing
+  }
 
 func is_zombie_alive(zombie: Zombie) -> Bool:
   zombie.health > 0
@@ -43,7 +104,11 @@ func test_create_zombie() -> Bool:
 func test_distance() -> Int:
   distance({ x: 0, y: 0 }, { x: 3, y: 4 })
 
+@test_case(expected=0)
+func test_distance_zero() -> Int:
+  distance({ x: 10, y: 10 }, { x: 10, y: 10 })
+
 @test_case(expected=true)
-func test_zombie_alive() -> Bool:
-  let zombie = create_zombie(10, 10) in
+func test_is_zombie_alive() -> Bool:
+  let zombie = create_zombie(5, 5) in
   is_zombie_alive(zombie)
