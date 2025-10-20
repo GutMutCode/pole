@@ -1,0 +1,108 @@
+// Pole Engine - Sprite Rendering Module
+// SDL2-based 2D sprite and tilemap rendering
+
+type Color:
+  fields:
+    - r: Int - Red component (0-255)
+    - g: Int - Green component (0-255)
+    - b: Int - Blue component (0-255)
+    - a: Int - Alpha component (0-255)
+
+type Sprite:
+  fields:
+    - x: Int - X position in pixels
+    - y: Int - Y position in pixels
+    - width: Int - Sprite width in pixels
+    - height: Int - Sprite height in pixels
+    - color: Color - Sprite color
+
+type Rect:
+  fields:
+    - x: Int - Top-left X coordinate
+    - y: Int - Top-left Y coordinate
+    - width: Int - Rectangle width
+    - height: Int - Rectangle height
+
+type Tilemap:
+  fields:
+    - width: Int - Map width in tiles
+    - height: Int - Map height in tiles
+    - tile_size: Int - Size of each tile in pixels
+    - tiles: List<Int> - Tile data (0=floor, 1=wall, etc)
+
+function create_color:
+  purpose: Create a color with RGBA values
+  input: r (Int), g (Int), b (Int), a (Int) - color components
+  output: Color with specified values
+  constraints:
+    - All values must be 0-255
+  examples:
+    - 255, 0, 0, 255 → Red (fully opaque)
+    - 0, 255, 0, 128 → Green (semi-transparent)
+    - 0, 0, 255, 255 → Blue (fully opaque)
+
+function create_sprite:
+  purpose: Create a sprite at given position
+  input: x (Int), y (Int), width (Int), height (Int), color (Color)
+  output: Sprite with specified properties
+  constraints:
+    - width and height must be positive
+    - x, y can be any integer
+  examples:
+    - 100, 100, 32, 32, red → 32x32 red sprite at (100, 100)
+    - 0, 0, 64, 64, blue → 64x64 blue sprite at origin
+
+function draw_filled_rect:
+  purpose: Draw a filled rectangle on the renderer
+  input: renderer (Ptr<Unit>), rect (Rect), color (Color)
+  output: SDL result code (0 = success)
+  constraints:
+    - renderer must be valid SDL renderer
+    - Uses SDL_SetRenderDrawColor and SDL_RenderFillRect
+  examples:
+    - renderer, Rect{x=0, y=0, w=32, h=32}, Red → draws red square
+
+function draw_sprite:
+  purpose: Draw a sprite on the renderer
+  input: renderer (Ptr<Unit>), sprite (Sprite)
+  output: SDL result code (0 = success)
+  constraints:
+    - renderer must be valid SDL renderer
+    - Draws filled rectangle with sprite color
+  examples:
+    - renderer, Sprite{x=100, y=100, w=32, h=32, color=red} → draws sprite
+
+function draw_tilemap:
+  purpose: Render a tilemap with camera offset
+  input: renderer (Ptr<Unit>), tilemap (Tilemap), camera_x (Int), camera_y (Int), screen_width (Int), screen_height (Int)
+  output: Number of tiles drawn
+  constraints:
+    - Only draws visible tiles (in camera view)
+    - camera_x, camera_y are in pixel coordinates
+    - Tile 0 = floor (gray), 1 = wall (brown)
+  examples:
+    - renderer, map, 0, 0, 800, 600 → draws tiles from top-left
+    - renderer, map, 320, 240, 800, 600 → draws tiles with offset
+
+function get_tile:
+  purpose: Get tile value at given coordinates
+  input: tilemap (Tilemap), tile_x (Int), tile_y (Int)
+  output: Tile value (Int), or 0 if out of bounds
+  constraints:
+    - Returns 0 for out-of-bounds coordinates
+    - tile_x, tile_y are in tile coordinates (not pixels)
+  examples:
+    - map, 0, 0 → tile at top-left
+    - map, -1, 0 → 0 (out of bounds)
+
+function world_to_tile:
+  purpose: Convert world pixel coordinates to tile coordinates
+  input: world_x (Int), world_y (Int), tile_size (Int)
+  output: tile_x (Int), tile_y (Int) as tuple
+  constraints:
+    - tile_x = world_x / tile_size
+    - tile_y = world_y / tile_size
+  examples:
+    - 64, 64, 32 → (2, 2)
+    - 0, 0, 32 → (0, 0)
+    - 100, 50, 32 → (3, 1)

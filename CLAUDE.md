@@ -67,15 +67,15 @@ make update-priority         # Update today's priority
 **Active Phase:** Week 1 - Pole Zomboid Demo  
 **Goal:** 1-minute playable demo by 2025-10-26
 
-### Today's Task (Day 2 - Tuesday) ✅ COMPLETED
-1. ✅ Write `games/zomboid/specs/zombie.pole` specification
-2. ✅ Generate IR with LLM (`pole build zombie.pole`)
-3. ✅ Test player + zombie integration
-4. ✅ **Bonus:** Migrate Python parser → Rust parser (10-100x faster)
+### Today's Task (Day 3 - Wednesday) ✅ COMPLETED
+1. ✅ Language improvements (no blocking issues found)
+2. ✅ Write `pole_engine/render/sprite.pole` specification
+3. ✅ Generate sprite.pole-ir with SDL2 FFI bindings
+4. ✅ Rendering functions: draw_sprite, draw_tile, get_tile, world_to_tile
 
-### Next Task (Day 3 - Wednesday)
-**Morning:** Language improvements (if blocking issues found)
-**Afternoon:** Rendering system (pole_engine/render/sprite.pole)
+### Next Task (Day 4 - Thursday)
+**Morning:** Main game loop with rendering
+**Afternoon:** Compile & debug demo
 
 ### Pending Task (Day 5 - Friday)
 **P1:** Add builtin functions to Rust type checker

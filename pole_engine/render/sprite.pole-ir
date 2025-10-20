@@ -1,0 +1,115 @@
+@source("pole_engine/render/sprite.pole")
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderFillRect")
+func SDL_RenderFillRect(renderer: Ptr<Unit>, rect_ptr: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderDrawRect")
+func SDL_RenderDrawRect(renderer: Ptr<Unit>, rect_ptr: Ptr<Unit>) -> Int
+
+type Color = { r: Int, g: Int, b: Int, a: Int }
+
+type Sprite = {
+  x: Int,
+  y: Int,
+  width: Int,
+  height: Int,
+  color: Color
+}
+
+type Rect = { x: Int, y: Int, width: Int, height: Int }
+
+type Tilemap = {
+  width: Int,
+  height: Int,
+  tile_size: Int,
+  tiles: List<Int>
+}
+
+func create_color(r: Int, g: Int, b: Int, a: Int) -> Color:
+  { r: r, g: g, b: b, a: a }
+
+func create_sprite(x: Int, y: Int, width: Int, height: Int, color: Color) -> Sprite:
+  { x: x, y: y, width: width, height: height, color: color }
+
+func draw_sprite(renderer: Ptr<Unit>, sprite: Sprite) -> Int:
+  let _ = SDL_SetRenderDrawColor(renderer, sprite.color.r, sprite.color.g, sprite.color.b, sprite.color.a) in
+  0
+
+func get_tile(tilemap: Tilemap, tile_x: Int, tile_y: Int) -> Int:
+  if tile_x < 0 || tile_y < 0 || tile_x >= tilemap.width || tile_y >= tilemap.height then
+    0
+  else
+    let index = tile_y * tilemap.width + tile_x in
+    list_get(tilemap.tiles, index, 0)
+
+func world_to_tile_x(world_x: Int, tile_size: Int) -> Int:
+  world_x / tile_size
+
+func world_to_tile_y(world_y: Int, tile_size: Int) -> Int:
+  world_y / tile_size
+
+func tile_to_world_x(tile_x: Int, tile_size: Int) -> Int:
+  tile_x * tile_size
+
+func tile_to_world_y(tile_y: Int, tile_size: Int) -> Int:
+  tile_y * tile_size
+
+func is_tile_visible(tile_x: Int, tile_y: Int, tile_size: Int, camera_x: Int, camera_y: Int, screen_width: Int, screen_height: Int) -> Bool:
+  let tile_screen_x = tile_to_world_x(tile_x, tile_size) - camera_x in
+  let tile_screen_y = tile_to_world_y(tile_y, tile_size) - camera_y in
+  if tile_screen_x + tile_size < 0 then
+    false
+  else if tile_screen_x > screen_width then
+    false
+  else if tile_screen_y + tile_size < 0 then
+    false
+  else if tile_screen_y > screen_height then
+    false
+  else
+    true
+
+func get_tile_color(tile_value: Int) -> Color:
+  if tile_value == 0 then
+    create_color(128, 128, 128, 255)
+  else if tile_value == 1 then
+    create_color(139, 69, 19, 255)
+  else
+    create_color(255, 255, 255, 255)
+
+func draw_tile(renderer: Ptr<Unit>, tile_x: Int, tile_y: Int, tile_size: Int, camera_x: Int, camera_y: Int, color: Color) -> Int:
+  let world_x = tile_to_world_x(tile_x, tile_size) in
+  let world_y = tile_to_world_y(tile_y, tile_size) in
+  let screen_x = world_x - camera_x in
+  let screen_y = world_y - camera_y in
+  let sprite = create_sprite(screen_x, screen_y, tile_size, tile_size, color) in
+  draw_sprite(renderer, sprite)
+
+@test_case(expected=true)
+func test_create_color() -> Bool:
+  let color = create_color(255, 0, 0, 255) in
+  color.r == 255 && color.g == 0 && color.b == 0 && color.a == 255
+
+@test_case(expected=true)
+func test_create_sprite() -> Bool:
+  let color = create_color(255, 0, 0, 255) in
+  let sprite = create_sprite(100, 100, 32, 32, color) in
+  sprite.x == 100 && sprite.width == 32
+
+@test_case(expected=2)
+func test_world_to_tile() -> Int:
+  world_to_tile_x(64, 32)
+
+@test_case(expected=64)
+func test_tile_to_world() -> Int:
+  tile_to_world_x(2, 32)
+
+@test_case(expected=true)
+func test_tile_visible_center() -> Bool:
+  is_tile_visible(5, 5, 32, 0, 0, 800, 600)
+
+@test_case(expected=false)
+func test_tile_not_visible() -> Bool:
+  is_tile_visible(100, 100, 32, 0, 0, 800, 600)
