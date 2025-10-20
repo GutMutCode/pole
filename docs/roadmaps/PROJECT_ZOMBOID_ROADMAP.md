@@ -321,6 +321,8 @@ function update_zombies(zombies: Array<Zombie>, players: Array<Player>, delta: F
 - `62-combat-system.pole-ir` - HP, damage, attack mechanics
 - `63-survival-loop.pole-ir` - Hunger, thirst, fatigue system
 - `64-crafting-system.pole-ir` - Recipe-based crafting
+- `65-looting-system.pole-ir` - Pickup/drop, ground items
+- `66-integrated-demo.pole-ir` - Complete game loop (all systems)
 
 ---
 
@@ -338,12 +340,13 @@ function update_zombies(zombies: Array<Zombie>, players: Array<Player>, delta: F
 - ✅ 체력/피해 시스템
 - ⏳ 아이템 줍기/드롭 (향후 통합)
 
-### Demo 3 (9개월): "Survival Loop" 🚧 진행 중
+### Demo 3 (9개월): "Survival Loop" ✅ 완성
 - ✅ 배고픔/갈증/피로
 - ✅ 간단한 제작
 - ✅ **2인 Co-op (LAN)** - 프로토타입 완성
-- ⏳ 루팅 시스템 (다음 작업)
-- ⏳ Day/Night 사이클 (향후)
+- ✅ 루팅 시스템
+- ✅ 통합 게임 루프 (5일 생존 시뮬레이션)
+- ⏳ Day/Night 사이클 (Demo 4)
 
 ### Demo 4 (12개월): "Early Access Ready"
 - 1개 도시 완성
