@@ -209,9 +209,28 @@ pole run games/zomboid/main.pole-ir main
 
 ---
 
-### Day 5 (금): Pole Engine 리팩토링
+### Day 5 (금): Pole Engine 리팩토링 & 언어 개선
 
-**오전: 재사용 코드 추출**
+**오전 (1): Rust 타입 체커 빌트인 함수 추가**
+```rust
+// compiler/src/type_checker.rs
+// 
+// 목표: Rust 타입 체커가 빌트인 함수를 인식하도록 수정
+//
+// 추가할 빌트인 함수:
+// - list_get(list: List<T>, index: Int, default: T) -> T
+// - list_set(list: List<T>, index: Int, value: T) -> List<T>
+// - list_push(list: List<T>, value: T) -> List<T>
+// - int_to_float(n: Int) -> Float64
+// - float_to_int(f: Float64) -> Int
+// - print(msg: String) -> Unit  (extern)
+//
+// 테스트:
+// - pole test games/zomboid/specs/player.pole-ir  (should pass type check)
+// - pole test games/zomboid/specs/zombie.pole-ir  (should pass type check)
+```
+
+**오전 (2): 재사용 코드 추출**
 ```bash
 pole_engine/
   ├── render/

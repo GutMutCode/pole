@@ -67,10 +67,21 @@ make update-priority         # Update today's priority
 **Active Phase:** Week 1 - Pole Zomboid Demo  
 **Goal:** 1-minute playable demo by 2025-10-26
 
-### Today's Task (Day 2 - Tuesday)
-1. ⭐ **P0** Write `games/zomboid/specs/zombie.pole` specification
-2. **P0** Generate IR with LLM (`pole build zombie.pole`)
-3. **P0** Test player + zombie integration
+### Today's Task (Day 2 - Tuesday) ✅ COMPLETED
+1. ✅ Write `games/zomboid/specs/zombie.pole` specification
+2. ✅ Generate IR with LLM (`pole build zombie.pole`)
+3. ✅ Test player + zombie integration
+4. ✅ **Bonus:** Migrate Python parser → Rust parser (10-100x faster)
+
+### Next Task (Day 3 - Wednesday)
+**Morning:** Language improvements (if blocking issues found)
+**Afternoon:** Rendering system (pole_engine/render/sprite.pole)
+
+### Pending Task (Day 5 - Friday)
+**P1:** Add builtin functions to Rust type checker
+- list_get, list_set, list_push
+- int_to_float, float_to_int
+- See Day 5 section in [docs/WEEK1_PLAN.md](docs/WEEK1_PLAN.md) for details
 
 **Detailed Plan:** See [docs/WEEK1_PLAN.md](docs/WEEK1_PLAN.md)
 
@@ -84,26 +95,29 @@ make update-priority         # Update today's priority
 
 **Before starting work:**
 1. ✅ Check this file (CLAUDE.md) for current priority
-2. ✅ Read related guide (WEEK1_PLAN.md)
-3. ✅ Confirm with user if unclear
+2. ✅ Check [.claude/PENDING_ISSUES.md](.claude/PENDING_ISSUES.md) for scheduled tasks
+3. ✅ Read related guide (WEEK1_PLAN.md)
+4. ✅ Confirm with user if unclear
 
 ## 🔍 Development Checklist (MUST FOLLOW)
 
 **IMPORTANT:** When starting development work, you MUST create a TODO list with these steps.
 
-### Quick Checklist (9 Steps)
+### Quick Checklist (11 Steps)
 
 When user says "진행해줘":
 
-1. ✅ **[TodoWrite]** Create 9-step checklist
+1. ✅ **[TodoWrite]** Create 11-step checklist
 2. ✅ Check dependencies (previous day's work)
 3. ✅ Read syntax examples (.pole and .pole-ir)
 4. ✅ Test pole CLI tools
 5. ✅ Write/edit specification files
 6. ✅ Validate with `pole check`
 7. ✅ Generate/verify IR
-8. ✅ Run all tests
-9. ✅ Commit only if all pass
+8. ✅ Run all tests on generated IR
+9. ✅ Write integration test file (examples/XX-name.pole-ir) **if required by task**
+10. ✅ Run integration test
+11. ✅ Commit only if all pass
 
 **Detailed Steps:** See [.claude/DEVELOPMENT_CHECKLIST.md](.claude/DEVELOPMENT_CHECKLIST.md)
 
