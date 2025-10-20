@@ -49,7 +49,13 @@ fn main() {
     }
     
     let output = Command::new("gcc")
-        .args(&[s_path, "-o", "/home/gmc/Devs/pole/test_list_push", "-lm"])
+        .args(&[
+            s_path, 
+            "../runtime/pole_runtime.o",
+            "-o", "/home/gmc/Devs/pole/test_list_push", 
+            "-lm", 
+            "-lSDL2"
+        ])
         .output()
         .expect("Failed to run gcc");
 
