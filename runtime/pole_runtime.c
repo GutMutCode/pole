@@ -48,6 +48,11 @@ void pole_write_i32_at(void* ptr, int offset, int32_t value) {
     *(int32_t*)((char*)ptr + offset) = value;
 }
 
+// Write 16-bit integer at byte offset
+void pole_write_i16_at(void* ptr, int offset, int16_t value) {
+    *(int16_t*)((char*)ptr + offset) = value;
+}
+
 // Write 64-bit integer to pointer
 void pole_write_i64(void* ptr, int64_t value) {
     *(int64_t*)ptr = value;
