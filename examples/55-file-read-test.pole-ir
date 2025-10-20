@@ -1,0 +1,66 @@
+// File I/O: Read test
+// Reads back the tilemap file created by previous examples
+
+@extern("fopen")
+func fopen(filename: String, mode: String) -> Ptr<Unit>
+
+@extern("fgets")
+func fgets(buffer: Ptr<Unit>, size: Int, stream: Ptr<Unit>) -> Ptr<Unit>
+
+@extern("fclose")
+func fclose(stream: Ptr<Unit>) -> Int
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_read_i32")
+func read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+@extern("pole_write_i32")
+func write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_ptr_to_string")
+func ptr_to_string(ptr: Ptr<Unit>) -> String
+
+// Read a single line and print it
+func read_one_line(file: Ptr<Unit>, buffer: Ptr<Unit>) -> Int:
+  let _ = fgets(buffer, 256, file) in
+  let line = ptr_to_string(buffer) in
+  c_puts(line)
+
+// Read file and print fixed number of lines
+func read_and_print(filename: String) -> Int:
+  let _ = c_puts("Opening file for reading...") in
+  let file = fopen(filename, "r") in
+  let buffer = c_malloc(256) in
+  let _ = c_puts("Reading lines:") in
+  let _ = c_puts("---") in
+  let _ = read_one_line(file, buffer) in
+  let _ = read_one_line(file, buffer) in
+  let _ = read_one_line(file, buffer) in
+  let _ = read_one_line(file, buffer) in
+  let _ = read_one_line(file, buffer) in
+  let _ = c_puts("---") in
+  let _ = fclose(file) in
+  let _ = c_free(buffer) in
+  0
+
+func main() -> Int:
+  let _ = c_puts("=== File I/O: Read Test ===") in
+  let _ = c_puts("") in
+  let result = read_and_print("tilemap_data.txt") in
+  let _ = c_puts("") in
+  if result == 0 then
+    let _ = c_puts("SUCCESS: File read completed") in
+    0
+  else
+    let _ = c_puts("FAIL: Could not read file") in
+    1
+
+@test_case(expected=0)

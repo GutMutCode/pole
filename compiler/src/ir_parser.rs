@@ -390,11 +390,41 @@ fn parse_bool_literal(input: &str) -> ParseResult<Expr> {
     ))(input)
 }
 
+fn process_escape_sequences(s: &str) -> String {
+    let mut result = String::new();
+    let mut chars = s.chars();
+    
+    while let Some(ch) = chars.next() {
+        if ch == '\\' {
+            if let Some(next) = chars.next() {
+                match next {
+                    'n' => result.push('\n'),
+                    't' => result.push('\t'),
+                    'r' => result.push('\r'),
+                    '\\' => result.push('\\'),
+                    '"' => result.push('"'),
+                    '0' => result.push('\0'),
+                    _ => {
+                        result.push('\\');
+                        result.push(next);
+                    }
+                }
+            } else {
+                result.push('\\');
+            }
+        } else {
+            result.push(ch);
+        }
+    }
+    
+    result
+}
+
 fn parse_string_literal(input: &str) -> ParseResult<Expr> {
     map(
         delimited(char('"'), take_while(|c| c != '"'), char('"')),
         |s: &str| Expr::Literal(Literal {
-            value: LiteralValue::String(s.to_string()),
+            value: LiteralValue::String(process_escape_sequences(s)),
             type_name: "String".to_string(),
         }),
     )(input)

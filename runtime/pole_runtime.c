@@ -57,3 +57,11 @@ void pole_write_i64(void* ptr, int64_t value) {
 void pole_write_ptr(void* ptr, void* value) {
     *(void**)ptr = value;
 }
+
+// String helpers
+
+// Convert C string pointer to Pole string (just returns the pointer as-is)
+// In Pole, String is represented as char* at runtime
+char* pole_ptr_to_string(void* ptr) {
+    return (char*)ptr;
+}
