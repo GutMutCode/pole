@@ -2,7 +2,8 @@
 
 > 2025년 현재 LLM 코딩 도구 생태계와 Pole에서의 활용
 
-**최종 업데이트:** 2025-10-20
+**최종 업데이트:** 2025-10-20  
+**웹 검색 완료:** 2025-10-20 (Anthropic, OpenAI, GitHub)
 
 ---
 
@@ -57,6 +58,17 @@ LLM이 외부 도구 호출:
 ---
 
 ## 도구별 비교
+
+### ❌ Factory AI Droid (존재하지 않음)
+
+**조사 결과 (2025-10-20):**
+- factory.ai 웹사이트 404 에러
+- "Factory AI Droid" 제품 없음
+- 오래된 정보이거나 잘못된 정보일 가능성
+
+**결론:** 제외
+
+---
 
 ### 1. GitHub Copilot (IDE 통합)
 
@@ -135,10 +147,15 @@ aider --model deepseek
 - Git 자동 커밋
 - 테스트 자동 실행
 
-### 4. OpenCode (터미널 AI Agent) ⭐ 추천
+### 4. OpenCode (by SST) ⭐ 추천
+
+**최신 정보 (2025-10-20 확인):**
+- **현재 버전:** 0.15.8 (2025-10-18)
+- **28.5k GitHub stars** (활발한 커뮤니티)
+- **211 contributors** (오픈소스 성장 중)
 
 **핵심 기능:**
-- **100% 오픈소스**
+- **100% 오픈소스** (MIT 라이선스)
 - **터미널 TUI:** 터미널 UI에 특화
 - **LSP 지원:** Language Server Protocol 내장
 - **Client-Server 아키텍처:** 원격 제어 가능
@@ -149,11 +166,11 @@ aider --model deepseek
 - 터미널 네이티브
 - 확장 가능한 아키텍처
 - 프라이버시 우선
-- 28.5k GitHub stars
+- 활발한 개발 (주 단위 릴리즈)
 
 **단점:**
 - 아직 베타 (0.15.x)
-- Aider보다 덜 성숙
+- Aider/Codex보다 덜 성숙
 
 **Pole 적용:**
 - ✅ **유망 후보**
@@ -161,7 +178,49 @@ aider --model deepseek
 - 터미널 중심
 - 향후 통합 검토 가능
 
-### 5. Claude Code ⭐ 공식 제품 (2025년 2월 출시)
+### 5. OpenAI Codex CLI ⭐⭐ 최신 (2025년 4월)
+
+**최신 정보 (2025-10-20 확인):**
+- **2025년 4월 16일** OpenAI 공식 출시
+- **48.3k GitHub stars** (OpenAI 공식 프로젝트)
+- **현재 버전:** 0.47.0 (2025-10-17)
+- **188 contributors**
+
+**핵심 기능:**
+- **터미널 Agent:** 로컬에서 실행되는 경량 agent
+- **ChatGPT 통합:** Plus/Pro/Team/Enterprise 플랜 사용
+- **MCP 지원:** Model Context Protocol 서버 연동
+- **Sandbox 모드:** 안전한 코드 실행 환경
+- **다중 설치 방법:** npm, brew, 바이너리
+
+**사용 예:**
+```bash
+npm install -g @openai/codex  # 또는 brew install codex
+codex  # ChatGPT 계정으로 로그인
+```
+
+**장점:**
+- **OpenAI 공식** (가장 최신 GPT 모델 사용)
+- 터미널 네이티브
+- ChatGPT 플랜 통합 (별도 비용 없음)
+- Rust로 작성 (빠른 성능)
+- 활발한 개발 (주 단위 업데이트)
+
+**단점:**
+- 아직 초기 단계 (0.47.x)
+- OpenAI 모델에 종속적
+- MCP 설정이 복잡
+
+**Pole 적용:**
+- ✅✅ **최우선 검토 대상**
+- OpenAI 공식이라 안정적
+- ChatGPT 플랜 활용 가능
+- 터미널 중심 (Pole과 완벽한 궁합)
+
+**참고:** 과거 "OpenAI Codex" API 모델(2021-2023)은 deprecated됨.  
+현재는 **Codex CLI**가 공식 제품.
+
+### 6. Claude Code ⭐ 공식 제품 (2025년 2월 출시)
 
 **최신 정보 (2025-10-20 확인):**
 - **2025년 2월 24일** Anthropic이 공식 출시
@@ -306,15 +365,17 @@ aider --model deepseek \
 
 ---
 
-## 도구별 사용 시나리오
+## 도구별 사용 시나리오 (2025-10 기준)
 
-| 작업 | 추천 도구 | 이유 |
-|------|-----------|------|
-| .pole → .pole-ir 생성 | **Aider** | 터미널 중심, Git 통합 |
-| Rust 컴파일러 수정 | **Aider** | 복잡한 리팩토링 |
-| 빠른 프로토타입 | **pole build** (기존) | 단순 생성 |
-| 대규모 리팩토링 | **OpenCode** (미래) | Multi-file 지원 |
-| 명세 작성 보조 | **pole build** | 명세 언어는 단순 |
+| 작업 | 1순위 | 2순위 | 이유 |
+|------|-------|-------|------|
+| .pole → .pole-ir 생성 | **Codex CLI** | Aider | OpenAI 공식, ChatGPT 통합 |
+| Rust 컴파일러 수정 | **Codex CLI** | Aider | 복잡한 리팩토링, MCP 지원 |
+| 빠른 프로토타입 | **pole build** | Codex | 단순 생성은 기존 방식 |
+| 대규모 리팩토링 | **Codex CLI** | Claude Code | Multi-file, Sandbox 지원 |
+| 명세 작성 보조 | **pole build** | - | 명세 언어는 단순 |
+| ChatGPT 플랜 보유 | **Codex CLI** | - | 별도 비용 없음 |
+| Claude 선호 | **Claude Code** | Aider | Anthropic 공식 |
 
 ---
 
@@ -334,20 +395,21 @@ aider --model deepseek \
 - 수동 재시도
 - Git 통합 없음
 
-### 즉시 적용 가능
+### 즉시 적용 가능 (2025-10 업데이트)
 
-1. **Aider 통합** (1주)
-   - `pole-aider` 래퍼 스크립트
-   - 자동 커밋
-   - 자동 재시도
+1. **OpenAI Codex CLI 통합** (1주) ⭐ 최우선
+   - ChatGPT 플랜 활용 (무료 또는 기존 플랜)
+   - MCP 서버로 Pole 도구 연동
+   - Sandbox 모드로 안전한 실행
 
-2. **웹 검색 추가** (2주)
+2. **Claude Code 통합** (1주)
+   - Anthropic 공식 agent
+   - Plugin 시스템 활용
+   - Extended Thinking
+
+3. **웹 검색 추가** (2주)
    - `--web-search` 플래그
    - 최신 API 문서 검색
-
-3. **Tool Use** (1개월)
-   - Claude/GPT Function Calling
-   - 파일 읽기, 명령 실행
 
 ---
 
@@ -365,23 +427,23 @@ aider --model deepseek \
    - 자동 검증 & 재시도
    - Git 자동화
 
-3. **Pole의 방향성**
-   - 단기: Aider 보조 사용
-   - 중기: Tool Use 통합
-   - 장기: 완전 자동화
+3. **Pole의 방향성 (2025-10 업데이트)**
+   - **단기:** Codex CLI/Claude Code 통합 (공식 도구 활용)
+   - **중기:** MCP로 Pole 도구 노출
+   - **장기:** Pole 자체가 agent 플랫폼
 
 ### 실용적 조언
 
 ```
 현재: pole build (수동)
    ↓
-단기: pole build + Aider (반자동)
+단기: Codex CLI / Claude Code (공식 agent) ⭐ 변경됨
    ↓
-중기: pole build --web-search (자동)
+중기: pole build --mcp (MCP 서버로 노출)
    ↓
-장기: pole agent (완전 자동)
+장기: pole agent (자체 agent 플랫폼)
 
-= 점진적 진화
+= Aider 대신 공식 도구 우선
 ```
 
 ---
