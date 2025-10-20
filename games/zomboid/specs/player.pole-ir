@@ -1,0 +1,95 @@
+type Position = { x: Int, y: Int }
+
+type Direction = North | South | East | West
+
+type Player = {
+  position: Position,
+  health: Int,
+  hunger: Int,
+  facing: Direction
+}
+
+type Tilemap = {
+  width: Int,
+  height: Int,
+  tiles: List<Int>
+}
+
+@source("games/zomboid/specs/player.pole")
+
+func create_player(x: Int, y: Int) -> Player:
+  {
+    position: { x: x, y: y },
+    health: 100,
+    hunger: 100,
+    facing: South
+  }
+
+func get_tile(tilemap: Tilemap, x: Int, y: Int) -> Int:
+  let index = y * tilemap.width + x in
+  list_get(tilemap.tiles, index, 0)
+
+func is_walkable(tilemap: Tilemap, x: Int, y: Int) -> Bool:
+  if x < 0 || y < 0 || x >= tilemap.width || y >= tilemap.height then
+    false
+  else
+    let tile = get_tile(tilemap, x, y) in
+    tile == 0
+
+func move_player(player: Player, direction: Direction, tilemap: Tilemap) -> Player:
+  match direction with
+  | North ->
+      let new_x = player.position.x in
+      let new_y = player.position.y - 1 in
+      if is_walkable(tilemap, new_x, new_y) then
+        { position: { x: new_x, y: new_y }, health: player.health, hunger: player.hunger, facing: North }
+      else
+        { position: player.position, health: player.health, hunger: player.hunger, facing: North }
+  | South ->
+      let new_x = player.position.x in
+      let new_y = player.position.y + 1 in
+      if is_walkable(tilemap, new_x, new_y) then
+        { position: { x: new_x, y: new_y }, health: player.health, hunger: player.hunger, facing: South }
+      else
+        { position: player.position, health: player.health, hunger: player.hunger, facing: South }
+  | East ->
+      let new_x = player.position.x + 1 in
+      let new_y = player.position.y in
+      if is_walkable(tilemap, new_x, new_y) then
+        { position: { x: new_x, y: new_y }, health: player.health, hunger: player.hunger, facing: East }
+      else
+        { position: player.position, health: player.health, hunger: player.hunger, facing: East }
+  | West ->
+      let new_x = player.position.x - 1 in
+      let new_y = player.position.y in
+      if is_walkable(tilemap, new_x, new_y) then
+        { position: { x: new_x, y: new_y }, health: player.health, hunger: player.hunger, facing: West }
+      else
+        { position: player.position, health: player.health, hunger: player.hunger, facing: West }
+
+func update_player(player: Player, dt: Float64) -> Player:
+  let hunger_rate = 10.0 / 3600.0 in
+  let hunger_delta = hunger_rate * dt in
+  let new_hunger_raw = int_to_float(player.hunger) - hunger_delta in
+  let new_hunger = if new_hunger_raw < 0.0 then 0 else float_to_int(new_hunger_raw) in
+  let health_loss = if new_hunger == 0 && player.hunger == 0 then float_to_int(dt) else 0 in
+  let new_health = if player.health > health_loss then player.health - health_loss else 0 in
+  {
+    position: player.position,
+    health: new_health,
+    hunger: new_hunger,
+    facing: player.facing
+  }
+
+func is_alive(player: Player) -> Bool:
+  player.health > 0
+
+@test_case(expected=true)
+func test_create_player() -> Bool:
+  let player = create_player(10, 10) in
+  player.position.x == 10 && player.position.y == 10 && player.health == 100
+
+@test_case(expected=true)
+func test_is_alive() -> Bool:
+  let player = create_player(10, 10) in
+  is_alive(player)

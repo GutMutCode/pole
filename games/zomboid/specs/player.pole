@@ -1,0 +1,74 @@
+type Position:
+  fields:
+    - x: Int - X coordinate
+    - y: Int - Y coordinate
+
+type Player:
+  fields:
+    - position: Position - Player location
+    - health: Int - Health points (0-100)
+    - hunger: Int - Hunger level (0-100)
+    - facing: Direction - Direction player is facing
+
+// Direction: enum with values North, South, East, West
+// LLM should implement as variant type in IR
+
+type Tilemap:
+  fields:
+    - width: Int - Map width in tiles
+    - height: Int - Map height in tiles
+    - tiles: List<Int> - Tile data (0=floor, 1=wall)
+
+function create_player:
+  purpose: Create a new player at given position
+  input: x (Int), y (Int) - initial position coordinates
+  output: Player with full health and hunger
+  constraints:
+    - health starts at 100
+    - hunger starts at 100
+    - initial facing direction is South
+  examples:
+    - 10, 10 → Player{pos=(10,10), hp=100, hunger=100, facing=South}
+    - 0, 0 → Player{pos=(0,0), hp=100, hunger=100, facing=South}
+
+function move_player:
+  purpose: Move player one tile in given direction
+  input: player (Player), direction (Direction), tilemap (Tilemap)
+  output: Updated player at new position, or unchanged if blocked
+  constraints:
+    - Check map boundaries (0 <= x < map_width, 0 <= y < map_height)
+    - Wall tiles (value 1) block movement
+    - Floor tiles (value 0) allow movement
+    - Update facing direction when moving
+    - North decreases y, South increases y
+    - East increases x, West decreases x
+  examples:
+    - player_at_10_10, North, map → player_at_10_9
+    - player_at_10_10, South, map → player_at_10_11
+    - player_at_10_10, East, map → player_at_11_10
+    - player_at_10_10, West, map → player_at_9_10
+    - player_at_0_0, West, map → player_at_0_0 (boundary blocked)
+    - player_at_wall, North, map → player_at_wall (wall blocked)
+
+function update_player:
+  purpose: Update player state each frame
+  input: player (Player), dt (Float64) - delta time in seconds
+  output: Updated player with decreased hunger and possibly health
+  constraints:
+    - Hunger decreases at rate of 10 per hour (10 / 3600 per second)
+    - If hunger reaches 0, health decreases at 1 per second
+    - Hunger cannot go below 0
+    - Health cannot go below 0
+  examples:
+    - player_100hp_50hunger, 0.016 → hunger decreases slightly
+    - player_100hp_0hunger, 1.0 → health=99, hunger=0
+    - player_1hp_0hunger, 2.0 → health=0, hunger=0 (dead)
+
+function is_alive:
+  purpose: Check if player is alive
+  input: player (Player)
+  output: true if health > 0, false otherwise
+  examples:
+    - player_100hp → true
+    - player_1hp → true
+    - player_0hp → false

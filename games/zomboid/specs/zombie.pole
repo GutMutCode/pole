@@ -1,0 +1,84 @@
+type Zombie:
+  fields:
+    - position: Position - Zombie location
+    - health: Int - Health points (0-100)
+    - state: ZombieState - Current AI state
+    - target_player: Int - Player ID being targeted (-1 if none)
+
+// ZombieState: enum with values Idle, Chase, Attack
+// LLM should implement as variant type in IR
+
+function create_zombie:
+  purpose: Create a new zombie at given position
+  input: x (Int), y (Int) - initial position coordinates
+  output: Zombie in Idle state with 50 health
+  constraints:
+    - health starts at 50
+    - state starts as Idle
+    - no target initially (target_player = -1)
+  examples:
+    - 5, 5 → Zombie{pos=(5,5), hp=50, state=Idle, target=-1}
+    - 20, 15 → Zombie{pos=(20,15), hp=50, state=Idle, target=-1}
+
+function distance:
+  purpose: Calculate Manhattan distance between two positions
+  input: pos1 (Position), pos2 (Position)
+  output: Manhattan distance as Int (|x1-x2| + |y1-y2|)
+  examples:
+    - (0,0), (3,4) → 7
+    - (10,10), (10,10) → 0
+    - (5,5), (8,9) → 7
+    - (0,0), (1,1) → 2
+
+function update_zombie:
+  purpose: Update zombie AI and state each frame
+  input: zombie (Zombie), player (Player), dt (Float64) - delta time in seconds
+  output: Updated zombie with new state and possibly position
+  constraints:
+    - If distance to player > 10 tiles: transition to Idle state
+    - If distance to player <= 10 and > 1: transition to Chase state
+    - If distance to player <= 1: transition to Attack state
+    - In Chase state: move towards player every 0.5 seconds
+    - In Attack state: deal 10 damage per second to player
+  examples:
+    - zombie_at_10_10, player_at_15_15, 0.016 → state=Idle (distance > 10)
+    - zombie_at_10_10, player_at_12_10, 0.016 → state=Chase (distance = 2)
+    - zombie_at_10_10, player_at_11_10, 0.016 → state=Attack (distance = 1)
+    - zombie_chase_at_10_10, player_at_15_10, 0.5 → pos=(11,10) (moved one tile)
+
+function move_towards:
+  purpose: Move zombie one tile towards target position
+  input: zombie (Zombie), target (Position), tilemap (Tilemap)
+  output: Updated zombie at new position, or unchanged if blocked
+  constraints:
+    - Move along axis with larger difference first
+    - If X difference > Y difference: move horizontally
+    - If Y difference > X difference: move vertically
+    - Wall tiles (value 1) block movement
+    - Check map boundaries
+  examples:
+    - zombie_at_10_10, target_at_15_10, map → zombie_at_11_10 (X axis)
+    - zombie_at_10_10, target_at_10_15, map → zombie_at_10_11 (Y axis)
+    - zombie_at_10_10, target_at_5_10, map → zombie_at_9_10 (X axis negative)
+    - zombie_at_wall, target, map → zombie_at_wall (wall blocks)
+
+function damage_player:
+  purpose: Apply damage to player
+  input: player (Player), damage (Int)
+  output: Updated player with reduced health
+  constraints:
+    - Health cannot go below 0
+    - Damage is subtracted from current health
+  examples:
+    - player_100hp, 10 → player_90hp
+    - player_5hp, 10 → player_0hp (dead)
+    - player_0hp, 10 → player_0hp (already dead)
+
+function is_zombie_alive:
+  purpose: Check if zombie is alive
+  input: zombie (Zombie)
+  output: true if health > 0, false otherwise
+  examples:
+    - zombie_50hp → true
+    - zombie_1hp → true
+    - zombie_0hp → false
