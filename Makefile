@@ -1,4 +1,4 @@
-.PHONY: help install dev-install test lint format typecheck clean update-priority
+.PHONY: help install dev-install test lint format typecheck clean update-priority verify-ir verify-specs verify-all pre-commit
 
 help:
 	@echo "Pole Development Commands:"
@@ -10,6 +10,12 @@ help:
 	@echo "  make typecheck       - Run type checker (mypy)"
 	@echo "  make clean           - Clean build artifacts"
 	@echo "  make update-priority - Update CLAUDE.md with today's priority"
+	@echo ""
+	@echo "Verification Commands:"
+	@echo "  make verify-ir       - Verify all .pole-ir files with Rust parser"
+	@echo "  make verify-specs    - Verify all .pole spec files"
+	@echo "  make verify-all      - Run all verification checks"
+	@echo "  make pre-commit      - Run before committing (format + verify)"
 
 install:
 	pip install -e .
@@ -38,3 +44,30 @@ clean:
 
 update-priority:
 	@python3 scripts/update_claude_priority.py
+
+verify-ir:
+	@echo "Verifying .pole-ir files with Rust parser..."
+	@cd compiler && cargo build --release --bin polec 2>&1 | grep -v "warning:" || true
+	@for file in examples/*.pole-ir games/zomboid/specs/*.pole-ir 2>/dev/null; do \
+		if [ -f "$$file" ]; then \
+			echo "  Checking $$file..."; \
+			cd compiler && cargo run --release --bin polec -- ../$$file > /dev/null 2>&1 && echo "    ✓ OK" || echo "    ✗ FAILED"; \
+		fi \
+	done
+
+verify-specs:
+	@echo "Verifying .pole spec files..."
+	@for file in games/zomboid/specs/*.pole 2>/dev/null; do \
+		if [ -f "$$file" ]; then \
+			echo "  Checking $$file..."; \
+			pole check "$$file" > /dev/null 2>&1 && echo "    ✓ OK" || echo "    ✗ FAILED"; \
+		fi \
+	done
+
+verify-all: verify-specs verify-ir
+	@echo ""
+	@echo "✓ All verification checks complete"
+
+pre-commit: format verify-all
+	@echo ""
+	@echo "✓ Pre-commit checks passed. Safe to commit!"

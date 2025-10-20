@@ -181,6 +181,66 @@ make typecheck # mypy
 2. ✅ Read related guide (WEEK1_PLAN.md)
 3. ✅ Confirm with user if unclear
 
+## 🔍 Development Checklist (MUST FOLLOW)
+
+### Before Writing Code
+
+**1. Check Dependencies:**
+```bash
+# If Day N task depends on Day N-1:
+ls games/zomboid/specs/player.pole  # Does previous work exist?
+```
+
+**2. Verify Syntax:**
+```bash
+# Read example files first
+cat examples/03-user-validation.pole  # For .pole syntax
+cat examples/08-simple-record.pole-ir  # For .pole-ir syntax
+cat specs/syntax-v0.md  # For grammar rules
+```
+
+**3. Test Tools:**
+```bash
+pole --version  # Verify pole CLI works
+pole check examples/01-factorial.pole  # Test basic functionality
+```
+
+### While Writing Code
+
+**4. Follow Examples:**
+- `.pole` files: Use `type Name:` with `fields:` (NOT `type Name = {...}`)
+- `.pole-ir` files: Use `type Name = {...}` for records
+- Enum types: Comment in `.pole`, implement in `.pole-ir`
+
+**5. Incremental Validation:**
+```bash
+pole check file.pole  # After writing .pole
+pole build file.pole  # Generate .pole-ir
+# If LLM fails: Check examples, improve prompt, or write manually
+```
+
+### After Writing Code
+
+**6. Multi-level Testing:**
+```bash
+# Level 1: Python parser (quick check)
+pole check file.pole-ir
+
+# Level 2: Rust parser (authoritative)
+cd compiler && cargo run --release --bin polec -- ../file.pole-ir
+
+# Level 3: Test cases
+pole test file.pole-ir
+
+# Level 4: Integration
+./test_all_examples.py  # If adding to examples/
+```
+
+**7. Commit Only If:**
+- ✅ Rust parser validates successfully
+- ✅ All test cases pass
+- ✅ No TODO/FIXME comments without issue tracking
+
 ## Important Conventions
 
 ### File Extensions

@@ -88,6 +88,38 @@ if week == 2:
     tasks_map = WEEK2_TASKS
 ```
 
+## verify_development.sh
+
+개발 중 모든 검증 체크를 실행합니다.
+
+### 사용법
+
+```bash
+# 커밋 전 실행
+./scripts/verify_development.sh
+
+# 또는 Makefile 통해
+make pre-commit
+```
+
+### 검증 항목
+
+1. **의존성 체크**: pole, cargo 명령 사용 가능 여부
+2. **.pole 파일 검증**: `pole check`로 명세 문법 확인
+3. **Rust 컴파일러 빌드**: 최신 버전으로 빌드
+4. **.pole-ir 파일 검증**: Rust 파서로 IR 문법 확인
+5. **TODO 추적**: 미해결 TODO/FIXME 경고
+
+### 언제 실행?
+
+**필수:**
+- Git commit 전
+- Pull Request 생성 전
+
+**권장:**
+- 파일 수정 후 (빠른 피드백)
+- Day 작업 완료 시
+
 ## 향후 추가 예정
 
 - `validate_week_progress.py` - Week 완료도 체크

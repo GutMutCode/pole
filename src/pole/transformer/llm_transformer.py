@@ -156,6 +156,8 @@ Pole IR is a MINIMAL functional language. You MUST follow these constraints stri
 
 2. Types:
    - Basic: Int, Nat, Float64, Bool, String, Unit
+   - Record: type Name = { field1: Type1, field2: Type2 }
+   - Variant: type Name = Tag1 | Tag2 | Tag3
    - Compound: Option<T>, Result<T,E>, List<T>, (T1,T2)
 
 3. Expressions:
@@ -196,7 +198,30 @@ Pole IR is a MINIMAL functional language. You MUST follow these constraints stri
 
 === EXAMPLES ===
 
-Example 1 - Factorial (recursion with pattern matching):
+Example 1 - Record Types (IMPORTANT):
+```
+type Point = { x: Int, y: Int }
+
+func distance_squared(p: Point) -> Int:
+  p.x * p.x + p.y * p.y
+
+func create_point(x: Int, y: Int) -> Point:
+  { x: x, y: y }
+```
+
+Example 2 - Variant Types:
+```
+type Direction = North | South | East | West
+
+func opposite(dir: Direction) -> Direction:
+  match dir with
+  | North -> South
+  | South -> North  
+  | East -> West
+  | West -> East
+```
+
+Example 3 - Factorial (recursion with pattern matching):
 ```
 func factorial(n: Nat) -> Nat
   requires n >= 0
