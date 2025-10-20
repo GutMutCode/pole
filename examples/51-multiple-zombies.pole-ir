@@ -1,0 +1,297 @@
+// Multiple Zombies Demo
+// 10 zombies chase player using List storage
+// Month 2-3: Scaling to multiple entities
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_RenderDrawLine")
+func SDL_RenderDrawLine(renderer: Ptr<Unit>, x1: Int, y1: Int, x2: Int, y2: Int) -> Int
+
+@extern("SDL_RenderFillRect")
+func SDL_RenderFillRect(renderer: Ptr<Unit>, rect: Ptr<Unit>) -> Int
+
+@extern("SDL_PollEvent")
+func SDL_PollEvent(event: Ptr<Unit>) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_read_i32")
+func read_i32(ptr: Ptr<Unit>) -> Int
+
+@extern("pole_read_i32_at")
+func read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+@extern("pole_write_i32_at")
+func write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("printf")
+@variadic
+func printf(format: String) -> Int
+
+func create_rect(x: Int, y: Int, w: Int, h: Int) -> Ptr<Unit>
+:
+  let rect = c_malloc(16) in
+  let _ = write_i32_at(rect, 0, x) in
+  let _ = write_i32_at(rect, 4, y) in
+  let _ = write_i32_at(rect, 8, w) in
+  let _ = write_i32_at(rect, 12, h) in
+  rect
+
+func create_zombie(x: Int, y: Int) -> Ptr<Unit>
+:
+  let zombie = c_malloc(8) in
+  let _ = write_i32_at(zombie, 0, x) in
+  let _ = write_i32_at(zombie, 4, y) in
+  zombie
+
+func get_tile_procedural(x: Int, y: Int) -> Int
+:
+  let mod_x = x - x / 10 * 10 in
+  let mod_y = y - y / 10 * 10 in
+  if mod_x == 0 then 1 else if mod_y == 0 then 1 else 0
+
+func draw_tile(renderer: Ptr<Unit>, tx: Int, ty: Int, tile_type: Int, cam_x: Int, cam_y: Int) -> Int
+:
+  let base_x = (tx - ty) * 32 + 400 in
+  let base_y = (tx + ty) * 16 + 100 in
+  let sx = base_x + cam_x in
+  let sy = base_y + cam_y in
+  let r = if tile_type == 0 then 100 else 150 in
+  let g = if tile_type == 0 then 200 else 150 in
+  let b = if tile_type == 0 then 100 else 150 in
+  let _ = SDL_SetRenderDrawColor(renderer, r, g, b, 255) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy - 16, sx + 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx + 32, sy, sx, sy + 16) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy + 16, sx - 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx - 32, sy, sx, sy - 16) in
+  0
+
+func render_row(renderer: Ptr<Unit>, row: Int, col: Int, max_col: Int, cam_x: Int, cam_y: Int) -> Int
+:
+  if col >= max_col then 0
+  else
+    let tile_type = get_tile_procedural(col, row) in
+    let _ = draw_tile(renderer, col, row, tile_type, cam_x, cam_y) in
+    render_row(renderer, row, col + 1, max_col, cam_x, cam_y)
+
+func render_grid(renderer: Ptr<Unit>, row: Int, max_row: Int, max_col: Int, cam_x: Int, cam_y: Int) -> Int
+:
+  if row >= max_row then 0
+  else
+    let _ = render_row(renderer, row, 0, max_col, cam_x, cam_y) in
+    render_grid(renderer, row + 1, max_row, max_col, cam_x, cam_y)
+
+func draw_player(renderer: Ptr<Unit>, px: Int, py: Int, cam_x: Int, cam_y: Int) -> Unit
+:
+  let base_x = (px - py) * 32 + 400 in
+  let base_y = (px + py) * 16 + 100 in
+  let sx = base_x + cam_x in
+  let sy = base_y + cam_y in
+  let _ = SDL_SetRenderDrawColor(renderer, 100, 255, 100, 255) in
+  let rect = create_rect(sx - 8, sy - 20, 16, 24) in
+  let _ = SDL_RenderFillRect(renderer, rect) in
+  let _ = c_free(rect) in
+  ()
+
+func draw_zombie_at(renderer: Ptr<Unit>, zombie: Ptr<Unit>, cam_x: Int, cam_y: Int) -> Unit
+:
+  let zx = read_i32_at(zombie, 0) in
+  let zy = read_i32_at(zombie, 4) in
+  let base_x = (zx - zy) * 32 + 400 in
+  let base_y = (zx + zy) * 16 + 100 in
+  let sx = base_x + cam_x in
+  let sy = base_y + cam_y in
+  let _ = SDL_SetRenderDrawColor(renderer, 200, 100, 100, 255) in
+  let rect = create_rect(sx - 6, sy - 18, 12, 20) in
+  let _ = SDL_RenderFillRect(renderer, rect) in
+  let _ = c_free(rect) in
+  ()
+
+func draw_zombies(renderer: Ptr<Unit>, zombies: List<Ptr<Unit>>, index: Int, cam_x: Int, cam_y: Int) -> Unit
+:
+  let len = List_length(zombies) in
+  if index >= len then ()
+  else
+    let zombie = List_get(zombies, index) in
+    let _ = draw_zombie_at(renderer, zombie, cam_x, cam_y) in
+    draw_zombies(renderer, zombies, index + 1, cam_x, cam_y)
+
+func update_zombie_pos(zombie: Ptr<Unit>, px: Int, py: Int, frame: Int) -> Ptr<Unit>
+:
+  let move_frame = frame - frame / 20 * 20 in
+  if move_frame == 0 then
+    let zx = read_i32_at(zombie, 0) in
+    let zy = read_i32_at(zombie, 4) in
+    let dx = px - zx in
+    let dy = py - zy in
+    if dx > 0 then
+      let new_zx = zx + 1 in
+      let _ = write_i32_at(zombie, 0, new_zx) in
+      zombie
+    else if dx < 0 then
+      let new_zx = zx - 1 in
+      let _ = write_i32_at(zombie, 0, new_zx) in
+      zombie
+    else if dy > 0 then
+      let new_zy = zy + 1 in
+      let _ = write_i32_at(zombie, 4, new_zy) in
+      zombie
+    else if dy < 0 then
+      let new_zy = zy - 1 in
+      let _ = write_i32_at(zombie, 4, new_zy) in
+      zombie
+    else
+      zombie
+  else
+    zombie
+
+func update_zombies(zombies: List<Ptr<Unit>>, px: Int, py: Int, frame: Int, index: Int) -> List<Ptr<Unit>>
+:
+  let len = List_length(zombies) in
+  if index >= len then zombies
+  else
+    let zombie = List_get(zombies, index) in
+    let _ = update_zombie_pos(zombie, px, py, frame) in
+    update_zombies(zombies, px, py, frame, index + 1)
+
+func process_input(event: Ptr<Unit>, px: Int, py: Int, running: Int) -> Ptr<Unit>
+:
+  let result = c_malloc(12) in
+  let has_event = SDL_PollEvent(event) in
+  if has_event == 0 then
+    let _ = write_i32_at(result, 0, px) in
+    let _ = write_i32_at(result, 4, py) in
+    let _ = write_i32_at(result, 8, running) in
+    result
+  else
+    let event_type = read_i32(event) in
+    if event_type == 768 then
+      let keycode = read_i32_at(event, 24) in
+      if keycode == 27 then
+        let _ = write_i32_at(result, 0, px) in
+        let _ = write_i32_at(result, 4, py) in
+        let _ = write_i32_at(result, 8, 0) in
+        result
+      else if keycode == 119 then
+        let new_y = py - 1 in
+        let _ = write_i32_at(result, 0, px) in
+        let _ = write_i32_at(result, 4, new_y) in
+        let _ = write_i32_at(result, 8, running) in
+        result
+      else if keycode == 115 then
+        let new_y = py + 1 in
+        let _ = write_i32_at(result, 0, px) in
+        let _ = write_i32_at(result, 4, new_y) in
+        let _ = write_i32_at(result, 8, running) in
+        result
+      else if keycode == 97 then
+        let new_x = px - 1 in
+        let _ = write_i32_at(result, 0, new_x) in
+        let _ = write_i32_at(result, 4, py) in
+        let _ = write_i32_at(result, 8, running) in
+        result
+      else if keycode == 100 then
+        let new_x = px + 1 in
+        let _ = write_i32_at(result, 0, new_x) in
+        let _ = write_i32_at(result, 4, py) in
+        let _ = write_i32_at(result, 8, running) in
+        result
+      else
+        let _ = write_i32_at(result, 0, px) in
+        let _ = write_i32_at(result, 4, py) in
+        let _ = write_i32_at(result, 8, running) in
+        result
+    else if event_type == 256 then
+      let _ = write_i32_at(result, 0, px) in
+      let _ = write_i32_at(result, 4, py) in
+      let _ = write_i32_at(result, 8, 0) in
+      result
+    else
+      let _ = write_i32_at(result, 0, px) in
+      let _ = write_i32_at(result, 4, py) in
+      let _ = write_i32_at(result, 8, running) in
+      result
+
+func game_loop(renderer: Ptr<Unit>, event: Ptr<Unit>, px: Int, py: Int, zombies: List<Ptr<Unit>>, running: Int, frame: Int) -> Unit
+:
+  if running == 0 then ()
+  else if frame >= 600 then ()
+  else
+    let input = process_input(event, px, py, running) in
+    let new_px = read_i32_at(input, 0) in
+    let new_py = read_i32_at(input, 4) in
+    let new_running = read_i32_at(input, 8) in
+    let _ = c_free(input) in
+    let new_zombies = update_zombies(zombies, new_px, new_py, frame, 0) in
+    let cam_x = 0 - new_px * 32 + 200 in
+    let cam_y = 0 - new_py * 16 + 150 in
+    let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
+    let _ = SDL_RenderClear(renderer) in
+    let _ = render_grid(renderer, 0, 30, 30, cam_x, cam_y) in
+    let _ = draw_zombies(renderer, new_zombies, 0, cam_x, cam_y) in
+    let _ = draw_player(renderer, new_px, new_py, cam_x, cam_y) in
+    let _ = SDL_RenderPresent(renderer) in
+    let _ = SDL_Delay(16) in
+    game_loop(renderer, event, new_px, new_py, new_zombies, new_running, frame + 1)
+
+func main() -> Int
+:
+  let _ = printf("=== Multiple Zombies Demo ===\n") in
+  let _ = printf("10 zombies will chase you!\n") in
+  let _ = printf("WASD to move, ESC to quit\n") in
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Multiple Zombies", 805240832, 805240832, 800, 600, 4) in
+  let renderer = SDL_CreateRenderer(window, -1, 2) in
+  let event = c_malloc(56) in
+  let z1 = create_zombie(10, 10) in
+  let z2 = create_zombie(20, 10) in
+  let z3 = create_zombie(10, 20) in
+  let z4 = create_zombie(20, 20) in
+  let z5 = create_zombie(5, 15) in
+  let z6 = create_zombie(25, 15) in
+  let z7 = create_zombie(15, 5) in
+  let z8 = create_zombie(15, 25) in
+  let z9 = create_zombie(8, 8) in
+  let z10 = create_zombie(22, 22) in
+  let zombies = [z1, z2, z3, z4, z5, z6, z7, z8, z9, z10] in
+  let _ = game_loop(renderer, event, 15, 15, zombies, 1, 0) in
+  let _ = c_free(event) in
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = printf("Multiple zombies demo complete!\n") in
+  0
+
+@test_case(expected=0)
