@@ -1737,18 +1737,19 @@ func game_loop(window: *Window, ctx: *GLContext) -> Unit :
 #### Q1 (Month 1-3): PZ 핵심 시스템
 - [x] **좀비 AI 시뮬레이션** (100+ 엔티티) ✅ 완료
   - `52-hundred-zombies.pole-ir` - 100 zombies @ 60 FPS
-- [ ] **네트워킹 FFI** (TCP/UDP 소켓) ⏳ 다음
-  - **접근 방법**:
-    1. TCP client 예제 먼저 (connect + send/recv)
-    2. 외부 server(nc, python)로 테스트
-    3. 성공 후 full TCP server 구현
-    4. UDP echo server/client
-  - **산출물**:
-    - Socket API FFI (`socket`, `bind`, `listen`, `accept`, `connect`)
-    - TCP client 예제
-    - TCP server 예제
-    - UDP echo 예제
-  - **도전 과제**: sockaddr 구조체, endianness, 상수 정의
+- [x] **네트워킹 FFI** (TCP/UDP 소켓) ✅ TCP 완료 (2025-10-20)
+  - **완료된 산출물**:
+    - ✅ Socket API FFI (`socket`, `bind`, `listen`, `accept`, `connect`, `send`, `recv`, `close`)
+    - ✅ `htons()` for network byte order
+    - ✅ `57-tcp-client-simple.pole-ir` - TCP client (tested with nc server)
+    - ✅ `58-tcp-server-simple.pole-ir` - TCP echo server (tested with nc client)
+  - **해결한 도전 과제**:
+    - ✅ sockaddr_in 구조체 생성 (malloc + write_i16_at/write_i32_at)
+    - ✅ Network byte order (htons 사용)
+    - ✅ Zero-arg function workaround (dummy Unit parameter)
+  - **남은 작업** (선택):
+    - [ ] UDP socket 예제
+    - [ ] Multi-client server (fork/thread)
 - [ ] **2인 Co-op 프로토타입**
 - [ ] **메모리 최적화** (Arena allocator)
 
