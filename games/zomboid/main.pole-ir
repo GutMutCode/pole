@@ -43,6 +43,15 @@ func malloc(size: Int) -> Ptr<Unit>
 @extern("pole_write_i32_at")
 func pole_write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
 
+@extern("pole_read_i32_at")
+func pole_read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+@extern("SDL_PollEvent")
+func SDL_PollEvent(event: Ptr<Unit>) -> Int
+
+@extern("free")
+func free(ptr: Ptr<Unit>) -> Unit
+
 type Position = { x: Int, y: Int }
 
 type Rect = { x: Int, y: Int, w: Int, h: Int }
@@ -150,12 +159,26 @@ func update_game_state(state: GameState, delta_time: Float64) -> GameState:
     frame_count: state.frame_count + 1
   }
 
+func process_events(state: GameState) -> GameState:
+  let event = malloc(56) in
+  let has_event = SDL_PollEvent(event) in
+  if has_event == 0 then
+    let _ = free(event) in
+    state
+  else
+    let event_type = pole_read_i32_at(event, 0) in
+    let _ = free(event) in
+    if event_type == 256 then
+      { player: state.player, zombie: state.zombie, tilemap: state.tilemap, running: false, frame_count: state.frame_count }
+    else
+      state
+
 func should_quit(state: GameState) -> Bool:
   if state.player.health <= 0 then
     true
   else if state.running == false then
     true
-  else if state.frame_count > 600 then
+  else if state.frame_count > 18000 then
     true
   else
     false
@@ -178,7 +201,8 @@ func render_game_state(renderer: Ptr<Unit>, state: GameState, screen_width: Int,
   0
 
 func game_loop_step(renderer: Ptr<Unit>, state: GameState, screen_width: Int, screen_height: Int) -> GameState:
-  let updated_state = update_game_state(state, 0.016) in
+  let event_state = process_events(state) in
+  let updated_state = update_game_state(event_state, 0.016) in
   let _ = render_game_state(renderer, updated_state, screen_width, screen_height) in
   let _ = SDL_Delay(16) in
   updated_state
