@@ -1,0 +1,140 @@
+# Survival System Specification
+
+## Purpose
+Track player survival needs (hunger, thirst, fatigue) with time-based degradation and consumption mechanics.
+
+## Requirements
+
+### Functional Requirements
+
+**Survival Stats:**
+- Each player has three vital stats:
+  - Hunger: 0-100 (100=full, 0=starving)
+  - Thirst: 0-100 (100=hydrated, 0=dehydrated)
+  - Fatigue: 0-100 (100=rested, 0=exhausted)
+
+**Operations:**
+- Create survival stats (initialized to 100)
+- Update stats over time (degradation)
+- Eat food (restore hunger)
+- Drink water (restore thirst)
+- Sleep (restore fatigue)
+- Check if any stat is critical (<30)
+
+**Time-Based Degradation:**
+- Per hour passed:
+  - Hunger decreases by 2
+  - Thirst decreases by 3
+  - Fatigue decreases by 1
+- Stats cannot go below 0
+- Stats cannot exceed 100
+
+**Death Conditions:**
+- Hunger reaches 0 → death (starvation)
+- Thirst reaches 0 → death (dehydration)
+- Fatigue reaches 0 → death (exhaustion)
+
+### Constraints
+
+- All stats must be in range [0, 100]
+- Time delta must be >= 0
+- Restoration amounts can vary by item/action
+- Stats are clamped to [0, 100] automatically
+
+### Examples
+
+```pole
+example "basic survival loop":
+  let stats = survival_create()
+  # hunger=100, thirst=100, fatigue=100
+  
+  # 10 hours pass
+  survival_update(stats, delta=10)
+  # hunger=80, thirst=70, fatigue=90
+  
+  # Eat food
+  survival_eat(stats, amount=30)
+  # hunger=100 (clamped)
+  
+  # 20 more hours
+  survival_update(stats, delta=20)
+  # hunger=60, thirst=10, fatigue=70
+  
+  # Critical state check
+  is_critical = survival_is_critical(stats)
+  # Result: 1 (thirst < 30)
+
+example "death from thirst":
+  let stats = survival_create()
+  
+  # 35 hours without water
+  survival_update(stats, delta=35)
+  # hunger=30, thirst=0 (death!), fatigue=65
+  
+  result = survival_update(stats, delta=1)
+  # Result: 0 (player died from dehydration)
+
+example "consumption":
+  let stats = survival_create()
+  survival_update(stats, delta=40)
+  # hunger=20, thirst=0 (critical!)
+  
+  # Drink water
+  survival_drink(stats, amount=50)
+  # thirst=50 (saved from death)
+  
+  # Eat food
+  survival_eat(stats, amount=40)
+  # hunger=60
+  
+  # Sleep
+  survival_sleep(stats, amount=30)
+  # fatigue=100 (was already high)
+```
+
+### Return Values
+
+**survival_update:**
+- Returns 1 if still alive
+- Returns 0 if died (any stat reached 0)
+
+**survival_eat/drink/sleep:**
+- Returns new stat value after restoration
+
+**survival_is_critical:**
+- Returns 1 if any stat < 30
+- Returns 0 if all stats >= 30
+
+### Warning Thresholds
+
+- Critical: < 30 (player should act soon)
+- Low: < 50 (warning indicator)
+- Normal: >= 50
+
+### Performance Requirements
+
+- All operations: O(1)
+- Update called every game tick (60 FPS)
+- Must be efficient
+
+### Memory Layout
+
+Per player: 12 bytes
+- hunger: 4 bytes (Int, 0-100)
+- thirst: 4 bytes (Int, 0-100)
+- fatigue: 4 bytes (Int, 0-100)
+
+### Dependencies
+
+Requires core system:
+- malloc/free for memory management
+- write_i32/read_i32 for memory access
+- clamp function for range limiting
+
+### Integration
+
+Survival system integrates with:
+- Inventory: consuming food/water items
+- Time: game hour tracking
+- UI: warning indicators when critical
+- Death: triggers game over when 0 reached

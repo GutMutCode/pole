@@ -1,0 +1,96 @@
+// Inventory System for Project Zomboid Clone
+
+spec Inventory:
+  purpose: slot-based inventory system with item stacking for game items
+  
+  storage:
+    - configurable number of slots (default 50)
+    - each slot stores: item_id (Int) and quantity (Int)
+    - empty slots have item_id = 0
+  
+  operations:
+    create:
+      input: num_slots (Int)
+      output: Inventory handle (Ptr)
+      constraints:
+        - num_slots > 0
+        - num_slots <= 1000 (memory limit)
+    
+    add_item:
+      purpose: add item to inventory with automatic stacking
+      input: inventory, max_slots, item_id, quantity
+      output: success (1) or failure (0)
+      behavior:
+        - if item already exists, add to existing slot (stack)
+        - if item is new, use first empty slot
+        - if inventory full, return failure
+      constraints:
+        - item_id > 0
+        - quantity > 0
+        - max_slots matches inventory size
+    
+    remove_item:
+      purpose: clear slot completely
+      input: inventory, slot
+      output: 0
+      behavior:
+        - set slot to empty (item_id=0, quantity=0)
+    
+    consume:
+      purpose: reduce quantity in slot (for crafting/eating)
+      input: inventory, slot, amount
+      output: success (1) or failure (0)
+      behavior:
+        - if quantity >= amount, reduce quantity
+        - if resulting quantity = 0, clear slot
+        - if quantity < amount, fail
+    
+    find_empty_slot:
+      input: inventory, max_slots
+      output: slot index or -1 if full
+      behavior:
+        - linear search for item_id = 0
+        - return first found or -1
+    
+    find_item:
+      input: inventory, max_slots, item_id
+      output: slot index or -1 if not found
+      behavior:
+        - linear search for matching item_id
+        - return first found or -1
+
+  examples:
+    basic_operations:
+      - create(10) → inv
+      - add_item(inv, 10, 1, 5) → 1 (success, slot 0 = [1, 5])
+      - add_item(inv, 10, 1, 3) → 1 (stacked, slot 0 = [1, 8])
+      - find_item(inv, 10, 1) → 0
+      - consume(inv, 0, 2) → 1 (slot 0 = [1, 6])
+      - consume(inv, 0, 6) → 1 (slot 0 = [0, 0], cleared)
+    
+    full_inventory:
+      - create(2) → inv
+      - add_item(inv, 2, 1, 5) → 1
+      - add_item(inv, 2, 2, 3) → 1
+      - add_item(inv, 2, 3, 1) → 0 (failed, no space)
+    
+    insufficient_quantity:
+      - create(10) → inv
+      - add_item(inv, 10, 1, 5) → 1
+      - consume(inv, 0, 10) → 0 (failed, only 5 available)
+
+  performance:
+    - add_item: O(n) worst case (scan + find empty)
+    - find_item: O(n) linear search
+    - consume: O(1) direct access
+    - acceptable for 50-100 slots
+  
+  memory_layout:
+    per_slot: 8 bytes
+      - item_id: 4 bytes (Int)
+      - quantity: 4 bytes (Int)
+    total: num_slots * 8 bytes
+  
+  dependencies:
+    - malloc/free (memory management)
+    - read_i32/write_i32 (memory access from core library)

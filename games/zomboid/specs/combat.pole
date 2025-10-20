@@ -1,0 +1,112 @@
+# Combat System Specification
+
+## Purpose
+Manage entity health points (HP), damage calculation, and death mechanics for combat encounters.
+
+## Requirements
+
+### Functional Requirements
+
+**Entity Stats:**
+- Each combat entity has:
+  - Current HP (Int)
+  - Maximum HP (Int)
+  - Alive status (Bool, represented as Int: 1=alive, 0=dead)
+
+**Operations:**
+- Create combat entity with max HP
+- Take damage (reduce HP, check for death)
+- Heal (restore HP, cannot exceed max)
+- Attack (source attacks target with damage amount)
+- Check if entity is alive
+
+**Combat Rules:**
+- Taking damage reduces current HP
+- If HP reaches 0 or below, entity dies (is_alive = 0)
+- Dead entities cannot attack or be healed
+- Healing cannot exceed max_hp
+- Damage must be positive
+
+### Constraints
+
+- max_hp must be > 0
+- current_hp must be >= 0 and <= max_hp
+- damage amount must be >= 0
+- heal amount must be >= 0
+- Dead entities remain dead (no resurrection)
+
+### Examples
+
+```pole
+example "basic combat":
+  let player = combat_create(max_hp=100)
+  let zombie = combat_create(max_hp=50)
+  
+  # Player attacks zombie
+  combat_attack(player, zombie, damage=25)
+  # Result: zombie hp = 50 - 25 = 25
+  
+  # Zombie attacks player
+  combat_attack(zombie, player, damage=15)
+  # Result: player hp = 100 - 15 = 85
+  
+  # Player finishes zombie
+  combat_attack(player, zombie, damage=30)
+  # Result: zombie hp = 0, is_alive = 0 (dead)
+  
+  # Zombie cannot attack (dead)
+  result = combat_attack(zombie, player, damage=15)
+  # Result: result = 0 (failed, attacker is dead)
+
+example "healing":
+  let entity = combat_create(max_hp=100)
+  combat_take_damage(entity, damage=60)
+  # hp = 40
+  
+  combat_heal(entity, amount=30)
+  # hp = 70
+  
+  combat_heal(entity, amount=50)
+  # hp = 100 (clamped to max_hp)
+
+example "overkill":
+  let entity = combat_create(max_hp=50)
+  combat_take_damage(entity, damage=100)
+  # hp = 0 (not negative), is_alive = 0
+```
+
+### Return Values
+
+**combat_take_damage:**
+- Returns 1 if still alive after damage
+- Returns 0 if entity died
+
+**combat_attack:**
+- Returns 1 if target died from the attack
+- Returns 0 if attack failed or target survived
+
+**combat_heal:**
+- Returns new HP value after healing
+
+**combat_is_alive:**
+- Returns 1 if alive
+- Returns 0 if dead
+
+### Performance Requirements
+
+- All operations: O(1)
+- Direct memory access only
+
+### Memory Layout
+
+Per entity: 12 bytes
+- hp: 4 bytes (Int)
+- max_hp: 4 bytes (Int)
+- is_alive: 4 bytes (Int, 0 or 1)
+
+### Dependencies
+
+Requires core system:
+- malloc/free for memory management
+- write_i32/read_i32 for memory access
+- max/min for clamping
