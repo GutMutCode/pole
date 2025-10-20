@@ -1,0 +1,80 @@
+// Pole Zomboid - Main Game Loop
+// Week 1 Demo: Player movement + Zombie chase
+
+type GameState:
+  fields:
+    - player: Player - Current player state
+    - zombie: Zombie - Current zombie state
+    - tilemap: Tilemap - Game map
+    - running: Bool - Is game still running
+    - frame_count: Int - Total frames rendered
+
+function create_game_state:
+  purpose: Initialize game with player, zombie, and tilemap
+  input: none
+  output: GameState with default setup
+  constraints:
+    - Player starts at (10, 10)
+    - Zombie starts at (5, 5)
+    - Map is 20x20 tiles, all walkable (for demo)
+  examples:
+    - create_game_state() → GameState with player at (10,10), zombie at (5,5)
+
+function update_game_state:
+  purpose: Update game state for one frame
+  input: state (GameState), delta_time (Float64)
+  output: Updated GameState
+  constraints:
+    - Update player hunger/health
+    - Update zombie AI (chase player)
+    - Delta time in seconds (typically 0.016 for 60 FPS)
+  examples:
+    - update_game_state(state, 0.016) → state with updated positions
+
+function should_quit:
+  purpose: Check if game should exit
+  input: state (GameState)
+  output: true if should quit, false otherwise
+  constraints:
+    - Quit if player health <= 0
+    - Quit if running flag is false
+  examples:
+    - should_quit(state_dead_player) → true
+    - should_quit(state_alive_player) → false
+
+function render_game_state:
+  purpose: Render current game state to screen
+  input: renderer (Ptr<Unit>), state (GameState), screen_width (Int), screen_height (Int)
+  output: 0 for success
+  constraints:
+    - Clear screen
+    - Draw tilemap with camera centered on player
+    - Draw player sprite
+    - Draw zombie sprite
+    - Present renderer
+  examples:
+    - render_game_state(renderer, state, 800, 600) → 0
+
+function game_loop_step:
+  purpose: Execute one iteration of the game loop
+  input: renderer (Ptr<Unit>), state (GameState), screen_width (Int), screen_height (Int)
+  output: Updated GameState
+  constraints:
+    - Update game state (0.016s delta)
+    - Render game state
+    - Return updated state
+  examples:
+    - game_loop_step(renderer, state, 800, 600) → new_state
+
+function main:
+  purpose: Entry point - initialize SDL2 and run game
+  input: none
+  output: 0 for success
+  constraints:
+    - Initialize SDL2
+    - Create window (800x600)
+    - Create renderer
+    - Run game loop until quit
+    - Cleanup SDL2
+  examples:
+    - main() → 0 (after game exits)

@@ -1,0 +1,205 @@
+@source("games/zomboid/main.pole")
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("printf")
+@variadic
+func printf(format: String) -> Int
+
+type Position = { x: Int, y: Int }
+
+type Direction = North | South | East | West
+
+type Player = {
+  position: Position,
+  health: Int,
+  hunger: Int,
+  facing: Direction
+}
+
+type ZombieState = Idle | Chase | Attack
+
+type Zombie = {
+  position: Position,
+  health: Int,
+  state: ZombieState,
+  target_player: Int
+}
+
+type Tilemap = {
+  width: Int,
+  height: Int,
+  tile_size: Int,
+  tiles: List<Int>
+}
+
+type GameState = {
+  player: Player,
+  zombie: Zombie,
+  tilemap: Tilemap,
+  running: Bool,
+  frame_count: Int
+}
+
+func create_player(x: Int, y: Int) -> Player:
+  {
+    position: { x: x, y: y },
+    health: 100,
+    hunger: 100,
+    facing: South
+  }
+
+func create_zombie(x: Int, y: Int) -> Zombie:
+  {
+    position: { x: x, y: y },
+    health: 50,
+    state: Idle,
+    target_player: -1
+  }
+
+func create_simple_tilemap(width: Int, height: Int, tile_size: Int) -> Tilemap:
+  {
+    width: width,
+    height: height,
+    tile_size: tile_size,
+    tiles: []
+  }
+
+func create_game_state() -> GameState:
+  let player = create_player(10, 10) in
+  let zombie = create_zombie(5, 5) in
+  let tilemap = create_simple_tilemap(20, 20, 32) in
+  {
+    player: player,
+    zombie: zombie,
+    tilemap: tilemap,
+    running: true,
+    frame_count: 0
+  }
+
+func abs(n: Int) -> Int:
+  if n < 0 then 0 - n else n
+
+func distance(pos1: Position, pos2: Position) -> Int:
+  abs(pos1.x - pos2.x) + abs(pos1.y - pos2.y)
+
+func update_zombie_simple(zombie: Zombie, player: Player) -> Zombie:
+  let dist = distance(zombie.position, player.position) in
+  let new_state = if dist > 10 then Idle else if dist > 1 then Chase else Attack in
+  {
+    position: zombie.position,
+    health: zombie.health,
+    state: new_state,
+    target_player: zombie.target_player
+  }
+
+func update_game_state(state: GameState, delta_time: Float64) -> GameState:
+  let updated_zombie = update_zombie_simple(state.zombie, state.player) in
+  {
+    player: state.player,
+    zombie: updated_zombie,
+    tilemap: state.tilemap,
+    running: state.running,
+    frame_count: state.frame_count + 1
+  }
+
+func should_quit(state: GameState) -> Bool:
+  if state.player.health <= 0 then
+    true
+  else if state.running == false then
+    true
+  else if state.frame_count > 600 then
+    true
+  else
+    false
+
+func render_game_state(renderer: Ptr<Unit>, state: GameState, screen_width: Int, screen_height: Int) -> Int:
+  let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = SDL_SetRenderDrawColor(renderer, 100, 200, 100, 255) in
+  let _ = SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255) in
+  let _ = SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255) in
+  let _ = SDL_RenderPresent(renderer) in
+  0
+
+func game_loop_step(renderer: Ptr<Unit>, state: GameState, screen_width: Int, screen_height: Int) -> GameState:
+  let updated_state = update_game_state(state, 0.016) in
+  let _ = render_game_state(renderer, updated_state, screen_width, screen_height) in
+  let _ = SDL_Delay(16) in
+  updated_state
+
+func game_loop(renderer: Ptr<Unit>, state: GameState, screen_width: Int, screen_height: Int) -> Int:
+  if should_quit(state) then
+    0
+  else
+    let new_state = game_loop_step(renderer, state, screen_width, screen_height) in
+    game_loop(renderer, new_state, screen_width, screen_height)
+
+func main() -> Int:
+  let _ = printf("Initializing Pole Zomboid Demo...\n") in
+  let SDL_INIT_VIDEO = 32 in
+  let init_result = SDL_Init(SDL_INIT_VIDEO) in
+  if init_result == 0 then
+    let _ = printf("Creating window...\n") in
+    let SDL_WINDOWPOS_CENTERED = 805240832 in
+    let SDL_WINDOW_SHOWN = 4 in
+    let window = SDL_CreateWindow("Pole Zomboid Demo - Week 1", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 800, 600, SDL_WINDOW_SHOWN) in
+    let SDL_RENDERER_ACCELERATED = 2 in
+    let renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED) in
+    let _ = printf("Starting game loop...\n") in
+    let initial_state = create_game_state() in
+    let result = game_loop(renderer, initial_state, 800, 600) in
+    let _ = printf("Game ended. Cleaning up...\n") in
+    let _ = SDL_DestroyRenderer(renderer) in
+    let _ = SDL_DestroyWindow(window) in
+    let _ = SDL_Quit(()) in
+    result
+  else
+    let _ = printf("SDL_Init failed\n") in
+    -1
+
+@test_case(expected=true)
+func test_create_game_state() -> Bool:
+  let state = create_game_state() in
+  state.player.position.x == 10 && state.zombie.position.x == 5
+
+@test_case(expected=true)
+func test_distance() -> Bool:
+  let pos1 = { x: 0, y: 0 } in
+  let pos2 = { x: 3, y: 4 } in
+  distance(pos1, pos2) == 7
+
+@test_case(expected=true)
+func test_should_quit_dead() -> Bool:
+  let state = create_game_state() in
+  let dead_player = { position: state.player.position, health: 0, hunger: 0, facing: South } in
+  let dead_state = { player: dead_player, zombie: state.zombie, tilemap: state.tilemap, running: true, frame_count: 0 } in
+  should_quit(dead_state)
