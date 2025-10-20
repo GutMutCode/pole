@@ -98,14 +98,22 @@ Year 3 (2027-2028): PZ Clone 개발 및 출시
 
 ## Year 1 (2025-2026): Pole 언어 PZ 기능 완성
 
-### Q1 (2025-10 ~ 2025-12) ✅ 일부 완료
+### Q1 (2025-10 ~ 2025-12) ✅ 거의 완료
 - [x] LLVM 네이티브 컴파일
 - [x] SDL2 FFI 통합
 - [x] **동적 배열/HashMap** (완료!)
   - List_push, List_length 구현
   - HashMap_new, HashMap_put, HashMap_get 구현
   - 100 zombies @ 60 FPS 검증
-- [ ] **파일 I/O 시스템** (다음 우선순위!)
+- [x] **파일 I/O 시스템** (완료!)
+  - fopen, fgets, fputs FFI bindings
+  - 파일 읽기/쓰기 검증 (50-file-write-simple, 55-file-read-test)
+- [x] **TCP 네트워킹** (완료!)
+  - socket, bind, listen, accept, connect, send, recv FFI
+  - 2-player co-op prototype (59-coop-server, 60-coop-client)
+- [x] **인벤토리 시스템** (완료!)
+  - 50 slots grid-based inventory (61-inventory-system)
+  - add/remove/print operations working
 
 ### Q2 (2026-01 ~ 2026-03): 핵심 자료구조
 - [ ] 벡터/리스트 완전 구현
@@ -305,6 +313,11 @@ function update_zombies(zombies: Array<Zombie>, players: Array<Player>, delta: F
 - `50-zombie-chase.pole-ir` - Single zombie chase AI
 - `51-multiple-zombies.pole-ir` - 10 zombies HashMap demo
 - `52-hundred-zombies.pole-ir` - 100 zombies final milestone
+- `57-tcp-client-simple.pole-ir` - TCP client FFI bindings
+- `58-tcp-server-simple.pole-ir` - Echo server implementation
+- `59-coop-server.pole-ir` - 2-player co-op server
+- `60-coop-client.pole-ir` - Co-op client with state sync
+- `61-inventory-system.pole-ir` - Grid-based inventory (50 slots)
 
 ---
 
