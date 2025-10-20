@@ -27,6 +27,29 @@ fn main() {
     let context = Context::create();
     let mut codegen = CodeGen::new(&context, "test_player", &arenas.codegen_arena);
     
+    // Try compiling each function individually to find which one fails
+    println!("Testing individual functions:");
+    for (i, func) in program.func_defs.iter().enumerate() {
+        let test_program = pole_compiler::Program {
+            type_defs: program.type_defs.clone(),
+            func_defs: vec![func.clone()],
+            extern_funcs: program.extern_funcs.clone(),
+        };
+        
+        let arenas_test = CompilerArenas::new_default();
+        let context_test = Context::create();
+        let mut codegen_test = CodeGen::new(&context_test, "test_func", &arenas_test.codegen_arena);
+        
+        match codegen_test.compile_program(&test_program) {
+            Ok(_) => println!("  {}/16 ✓ {}", i+1, func.name),
+            Err(e) => {
+                println!("  {}/16 ✗ {} - {}", i+1, func.name, e);
+                break;
+            }
+        }
+    }
+    
+    println!("\nFull program compilation:");
     match codegen.compile_program(&program) {
         Ok(_) => println!("✓ Compilation successful!"),
         Err(e) => println!("✗ Compilation failed: {}", e),

@@ -370,8 +370,8 @@ fn parse_inline_type_def(annotations: Vec<Annotation>) -> impl FnMut(&str) -> Pa
 fn parse_literal(input: &str) -> ParseResult<Expr> {
     alt((
         parse_unit_literal,
+        parse_float_literal,  // Try float before int to handle "1.0" correctly
         parse_int_literal,
-        parse_float_literal,
         parse_bool_literal,
         parse_string_literal,
     ))(input)

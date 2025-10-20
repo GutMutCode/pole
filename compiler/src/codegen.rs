@@ -7,7 +7,7 @@ use inkwell::targets::{
 use inkwell::types::{BasicMetadataTypeEnum, BasicType as LLVMBasicType, BasicTypeEnum};
 use inkwell::values::{BasicValueEnum, FunctionValue};
 use inkwell::OptimizationLevel;
-use inkwell::IntPredicate;
+use inkwell::{IntPredicate, FloatPredicate};
 use std::path::Path;
 
 use crate::ast::{
@@ -351,7 +351,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     return Ok(list_val.into());
                 }
                 
-                if func_name == "List_push" || func_name == "List.push" {
+                if func_name == "List_push" || func_name == "List.push" || func_name == "list_push" {
                     // List.push: List<T> -> T -> List<T>
                     if args.len() != 2 {
                         return Err(format!("List.push expects 2 arguments, got {}", args.len()));
@@ -1539,9 +1539,71 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
             return Ok(result.into());
         }
         
-        // For other operators, convert to int
-        let lhs = self.compile_expr(&binop.left, function)?.into_int_value();
-        let rhs = self.compile_expr(&binop.right, function)?.into_int_value();
+        // For other operators, check if operands are floats or ints
+        let lhs = self.compile_expr(&binop.left, function)?;
+        let rhs = self.compile_expr(&binop.right, function)?;
+        
+        // Check if we're dealing with floats
+        if lhs.is_float_value() || rhs.is_float_value() {
+            // Float operations
+            let lhs_float = if lhs.is_float_value() {
+                lhs.into_float_value()
+            } else {
+                self.builder.build_signed_int_to_float(
+                    lhs.into_int_value(),
+                    self.context.f64_type(),
+                    "int_to_float"
+                ).unwrap()
+            };
+            
+            let rhs_float = if rhs.is_float_value() {
+                rhs.into_float_value()
+            } else {
+                self.builder.build_signed_int_to_float(
+                    rhs.into_int_value(),
+                    self.context.f64_type(),
+                    "int_to_float"
+                ).unwrap()
+            };
+            
+            let result: BasicValueEnum = match binop.op.as_str() {
+                "+" => self.builder.build_float_add(lhs_float, rhs_float, "fadd").unwrap().into(),
+                "-" => self.builder.build_float_sub(lhs_float, rhs_float, "fsub").unwrap().into(),
+                "*" => self.builder.build_float_mul(lhs_float, rhs_float, "fmul").unwrap().into(),
+                "/" => self.builder.build_float_div(lhs_float, rhs_float, "fdiv").unwrap().into(),
+                "==" => self
+                    .builder
+                    .build_float_compare(FloatPredicate::OEQ, lhs_float, rhs_float, "feq")
+                    .unwrap().into(),
+                "!=" => self
+                    .builder
+                    .build_float_compare(FloatPredicate::ONE, lhs_float, rhs_float, "fne")
+                    .unwrap().into(),
+                "<" => self
+                    .builder
+                    .build_float_compare(FloatPredicate::OLT, lhs_float, rhs_float, "flt")
+                    .unwrap().into(),
+                "<=" => self
+                    .builder
+                    .build_float_compare(FloatPredicate::OLE, lhs_float, rhs_float, "fle")
+                    .unwrap().into(),
+                ">" => self
+                    .builder
+                    .build_float_compare(FloatPredicate::OGT, lhs_float, rhs_float, "fgt")
+                    .unwrap().into(),
+                ">=" => self
+                    .builder
+                    .build_float_compare(FloatPredicate::OGE, lhs_float, rhs_float, "fge")
+                    .unwrap().into(),
+                _ => return Err(format!("Unsupported binary operator for floats: {}", binop.op)),
+            };
+            
+            return Ok(result);
+        }
+        
+        // Integer operations
+        let lhs = lhs.into_int_value();
+        let rhs = rhs.into_int_value();
 
         let result = match binop.op.as_str() {
             "+" => self.builder.build_int_add(lhs, rhs, "add").unwrap(),
@@ -2056,7 +2118,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     // Returns the same list type
                     return self.infer_expr_type(&args[0]);
                 }
-                if (func_name == "List_push" || func_name == "List.push") && args.len() == 2 {
+                if (func_name == "List_push" || func_name == "List.push" || func_name == "list_push") && args.len() == 2 {
                     // List_push: List<T> -> T -> List<T>
                     // Returns the same list type
                     return self.infer_expr_type(&args[0]);
@@ -2081,6 +2143,20 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                 if func_name == "HashMap_size" && args.len() == 1 {
                     // HashMap_size: HashMap<K, V> -> Nat
                     return Ok(Type::Basic(AstBasicType { name: "Nat".to_string() }));
+                }
+                if func_name == "int_to_float" && args.len() == 1 {
+                    // int_to_float: Int -> Float64
+                    return Ok(Type::Basic(AstBasicType { name: "Float64".to_string() }));
+                }
+                if func_name == "float_to_int" && args.len() == 1 {
+                    // float_to_int: Float64 -> Int
+                    return Ok(Type::Basic(AstBasicType { name: "Int".to_string() }));
+                }
+                if func_name == "list_new" {
+                    // list_new: () -> List<Int> (we default to Int for now)
+                    return Ok(Type::List(crate::ast::ListType {
+                        element_type: Box::new(Type::Basic(AstBasicType { name: "Int".to_string() }))
+                    }));
                 }
                 
                 // Check if the whole application is a multi-arg extern call
