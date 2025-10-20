@@ -1,391 +1,243 @@
-# Pole Development Guide
+# Pole 개발 가이드
 
-> 개발 환경 설정 및 개발 가이드
+> **개발자용 Index** - 필요한 가이드를 빠르게 찾기
 
-## 요구사항
+---
 
-### Phase 0-4 (Python - 현재)
-- Python 3.11 이상
-- pip
+## 🚀 빠른 시작
 
-### Phase 5+ (Rust 컴파일러)
-- Rust 1.75+ (2024 Edition)
-- Cargo (Rust 패키지 매니저)
-- LLVM 17.0+ (시스템 설치)
-- Python 3.11+ (CLI 및 바인딩용)
+### 처음 시작하는 분
+1. [빠른 시작 가이드](QUICKSTART.md) - 5분 안에 Pole 시작
+2. [아키텍처 이해](ARCHITECTURE.md) - 시스템 구조 파악
+3. [예제 실행](examples/README.md) - 예제 코드 실행
 
-## 개발 환경 설정
+### 기여하고 싶은 분
+1. [개발 환경 설정](#개발-환경-설정)
+2. [작업할 분야 선택](#작업-분야)
+3. [해당 가이드 읽기](#개발-가이드)
 
-### Phase 0-4: Python 개발 환경
+---
 
-#### 1. 저장소 클론
+## 🔧 개발 환경 설정
 
+### 필수 도구
 ```bash
-git clone <repository-url>
-cd pole
+# Pole CLI
+pole --version
+
+# Rust 컴파일러
+rustc --version
+
+# Python
+python3 --version
+
+# SDL2
+sdl2-config --version
+
+# OpenRouter API Key
+echo $OPENROUTER_API_KEY
 ```
 
-#### 2. 가상 환경 생성 (권장)
+### 설치 가이드
+- [Pole CLI 설치](QUICKSTART.md#설치)
+- [개발 도구 설정](docs/guides/SETUP.md)
 
+---
+
+## 📂 작업 분야
+
+### Track 1: Pole 언어 개발
+**작업 내용:**
+- 컴파일러 개선 (Rust)
+- IR Parser / Type Checker
+- LLM 통합
+- 런타임 함수
+
+**가이드:** [언어 개발 가이드](docs/guides/LANGUAGE_DEV.md)
+
+**주요 파일:**
+- `compiler/` - Rust 컴파일러
+- `src/pole/` - Python 도구
+- `specs/` - 언어 명세
+
+### Track 2: Pole Engine 개발
+**작업 내용:**
+- 엔진 모듈 작성 (.pole 명세)
+- 재사용 가능한 코드 추출
+- API 설계
+- 문서화
+
+**가이드:** [엔진 개발 가이드](docs/guides/ENGINE_DEV.md)
+
+**주요 파일:**
+- `pole_engine/` - 엔진 코드
+- `pole_engine/docs/` - API 문서
+
+### Track 3: Pole Zomboid 개발
+**작업 내용:**
+- 게임 기능 명세 작성
+- LLM으로 구현 생성
+- 게임플레이 테스트
+- 버그 수정
+
+**가이드:** [게임 개발 가이드](docs/guides/GAME_DEV.md)
+
+**주요 파일:**
+- `games/zomboid/specs/` - 게임 명세
+- `games/zomboid/docs/` - 설계 문서
+
+---
+
+## 📚 개발 가이드
+
+### 언어 개발
+- [Pole 언어 개발](docs/guides/LANGUAGE_DEV.md)
+  - 컴파일러 수정
+  - 새 언어 기능 추가
+  - 타입 시스템 확장
+  
+- [LLM 통합](docs/guides/LLM_USAGE.md)
+  - System prompt 작성
+  - 생성 품질 개선
+  - 에러 처리
+
+### 엔진 개발
+- [Pole Engine 개발](docs/guides/ENGINE_DEV.md)
+  - 모듈 구조
+  - API 설계 원칙
+  - 재사용 패턴
+
+- [모듈별 가이드](pole_engine/docs/MODULES.md)
+  - render/ 렌더링
+  - input/ 입력 처리
+  - physics/ 물리 시스템
+
+### 게임 개발
+- [Pole Zomboid 개발](docs/guides/GAME_DEV.md)
+  - 명세 작성법
+  - LLM 생성 워크플로
+  - 디버깅 팁
+
+- [시스템별 가이드](games/zomboid/docs/SYSTEMS.md)
+  - Player 시스템
+  - AI 시스템
+  - 네트워크
+
+---
+
+## 🗓️ 개발 워크플로
+
+### 주간 사이클
+- **월-화**: 게임 개발 (명세 작성 → LLM 생성)
+- **수요일**: 언어 개선 (발견된 문제 수정)
+- **목-금**: 엔진 리팩토링 (재사용 코드 추출)
+- **토요일**: 통합 테스트
+- **일요일**: 계획 & 홍보
+
+**자세한 사이클:** [통합 개발 전략](docs/UNIFIED_DEVELOPMENT_STRATEGY.md)
+
+### 이번 주 계획
+현재 주차 계획은 항상 여기 참고:
+- [Week 1 계획](docs/WEEK1_PLAN.md)
+- [주간 계획 모음](docs/roadmaps/WEEKLY_PLANS.md)
+
+---
+
+## 🛠️ 일반 작업
+
+### 코드 작성
 ```bash
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# or
-venv\Scripts\activate  # Windows
+# 1. 명세 작성
+vim games/zomboid/specs/player.pole
+
+# 2. LLM 생성
+pole build games/zomboid/specs/player.pole
+
+# 3. 타입 체크
+pole check games/zomboid/specs/player.pole-ir
+
+# 4. 테스트
+pole test games/zomboid/specs/player.pole-ir
 ```
 
-#### 3. 개발 의존성 설치
-
+### 디버깅
 ```bash
-make dev-install
+# 인터프리터 실행
+pole run examples/01-factorial.pole-ir factorial 5
+
+# 상세 로그
+RUST_LOG=debug pole build ...
+
+# Python 디버거
+python -m pdb src/pole/cli/main.py build ...
+```
+
+### 테스트
+```bash
+# Python 테스트
+python tests/test_parser.py
+
+# Rust 테스트
+cd compiler && cargo test
+
+# 통합 테스트
+./test_all_examples.py
 ```
 
 ---
 
-### Phase 5+: Rust 컴파일러 개발 환경
+## 📖 참고 자료
 
-#### 1. Rust 설치
+### 내부 문서
+- [ROADMAP](ROADMAP.md) - 전체 로드맵
+- [ARCHITECTURE](ARCHITECTURE.md) - 아키텍처
+- [문서 전략](docs/DOCUMENTATION_STRATEGY.md) - 문서 구조
 
-```bash
-# rustup 설치 (공식 설치 방법)
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+### 언어 명세
+- [명세 언어](specs/syntax-v0.md) - .pole 문법
+- [IR 문법](specs/ir-syntax.md) - .pole-ir 문법
+- [FFI 명세](specs/ffi.md) - C 함수 호출
 
-# Rust 버전 확인
-rustc --version  # 1.75 이상 필요
-cargo --version
-
-# 최신 안정 버전으로 업데이트
-rustup update stable
-```
-
-#### 2. LLVM 설치
-
-**Ubuntu/Debian:**
-```bash
-sudo apt-get update
-sudo apt-get install llvm-17 llvm-17-dev libpolly-17-dev
-```
-
-**macOS (Homebrew):**
-```bash
-brew install llvm@17
-export LLVM_SYS_170_PREFIX="$(brew --prefix llvm@17)"
-```
-
-**Arch Linux:**
-```bash
-sudo pacman -S llvm
-```
-
-#### 3. Rust 개발 도구 설치
-
-```bash
-# rust-analyzer (IDE 지원)
-rustup component add rust-analyzer
-
-# clippy (린터)
-rustup component add clippy
-
-# rustfmt (포매터)
-rustup component add rustfmt
-```
-
-#### 4. 컴파일러 빌드
-
-```bash
-# Rust 컴파일러 빌드
-cd compiler
-cargo build --release
-
-# Python 바인딩 빌드 (PyO3 + maturin)
-pip install maturin
-maturin develop  # 개발 모드
-# 또는
-maturin build --release  # 릴리스 빌드
-```
+### 완료 보고서
+- [Phase 5.1 완료](docs/reports/PHASE_5.1_COMPLETION.md)
+- [Phase 6.1 완료](docs/reports/PHASE_6.1_COMPLETION.md)
+- [Multi-arg 버그 수정](docs/IR_PARSER_MULTIARG_FIX.md)
 
 ---
 
-## 개발 명령어
+## 💬 커뮤니티
 
-### Python (Phase 0-4)
+### 질문하기
+- GitHub Issues - 버그, 기능 요청
+- Discord (예정) - 실시간 토론
 
-**테스트:**
-```bash
-make test
-```
-
-**린팅:**
-```bash
-make lint
-```
-
-**포매팅:**
-```bash
-make format
-```
-
-**타입 체크:**
-```bash
-make typecheck
-```
-
-**모든 검사 실행:**
-```bash
-make lint && make typecheck && make test
-```
+### 기여하기
+- Pull Request 환영
+- 코드 리뷰 참여
+- 문서 개선
 
 ---
 
-### Rust (Phase 5+)
+## 🎯 다음 단계
 
-**빌드:**
-```bash
-cd compiler
-cargo build          # 디버그 빌드
-cargo build --release  # 릴리스 빌드 (최적화)
-```
+### 언어 개발자
+1. [언어 로드맵](docs/roadmaps/LANGUAGE_ROADMAP.md) 확인
+2. 우선순위 높은 이슈 선택
+3. [언어 개발 가이드](docs/guides/LANGUAGE_DEV.md) 참고
+4. 개발 시작!
 
-**테스트:**
-```bash
-cd compiler
-cargo test           # 모든 테스트 실행
-cargo test --release  # 릴리스 모드 테스트
-```
+### 엔진 개발자
+1. [엔진 로드맵](docs/roadmaps/ENGINE_ROADMAP.md) 확인
+2. 모듈 선택 (render, physics 등)
+3. [엔진 개발 가이드](docs/guides/ENGINE_DEV.md) 참고
+4. 명세 작성!
 
-**린팅:**
-```bash
-cd compiler
-cargo clippy         # Rust 린터
-cargo clippy -- -D warnings  # 경고를 에러로
-```
-
-**포매팅:**
-```bash
-cd compiler
-cargo fmt            # 코드 포매팅
-cargo fmt -- --check  # 포맷 체크만
-```
-
-**문서 생성:**
-```bash
-cd compiler
-cargo doc --open     # 문서 생성 및 브라우저 열기
-```
-
-**벤치마크:**
-```bash
-cd compiler
-cargo bench          # 성능 벤치마크
-```
+### 게임 개발자
+1. [게임 로드맵](docs/roadmaps/GAME_ROADMAP.md) 확인
+2. 시스템 선택 (Player, AI 등)
+3. [게임 개발 가이드](docs/guides/GAME_DEV.md) 참고
+4. 명세 작성!
 
 ---
 
-## 프로젝트 구조
-
-```
-pole/
-├── src/pole/               # Python 소스 코드 (Phase 0-4)
-│   ├── parser/             # .pole 파일 파서
-│   ├── validator/          # 명세 검증기
-│   ├── transformer/        # LLM 변환기
-│   ├── runtime/            # IR 인터프리터
-│   ├── verifier/           # 검증 시스템 (타입 체커, 테스트 실행기)
-│   ├── cli/                # CLI 도구
-│   └── compiler/           # Rust 바인딩 (Phase 5+)
-│       └── bindings.py     # PyO3 Python 바인딩
-├── compiler/               # Rust 컴파일러 (Phase 5+, 별도 crate)
-│   ├── src/
-│   │   ├── lib.rs          # 라이브러리 루트
-│   │   ├── ir_to_llvm.rs   # IR → LLVM IR 변환
-│   │   ├── codegen.rs      # 코드 생성
-│   │   ├── optimization.rs # 최적화
-│   │   └── memory/         # 메모리 관리
-│   │       ├── mod.rs
-│   │       ├── gc.rs       # 가비지 컬렉션
-│   │       └── allocator.rs # 커스텀 할당자
-│   ├── Cargo.toml          # Rust 프로젝트 설정
-│   ├── build.rs            # 빌드 스크립트
-│   └── tests/              # Rust 통합 테스트
-├── tests/                  # Python 테스트 코드
-├── specs/                  # 언어 사양 문서
-├── examples/               # 예제 프로그램
-├── pyproject.toml          # Python 프로젝트 설정
-└── Makefile                # 빌드 스크립트
-```
-
----
-
-## 개발 워크플로우
-
-### 1. 기능 개발
-
-1. 새 브랜치 생성
-2. 코드 작성
-3. 테스트 작성
-4. 린팅 및 타입 체크 통과
-5. 커밋 및 PR 생성
-
-### 2. 코드 스타일
-
-**Python:**
-- **포매터**: Black (line-length=100)
-- **린터**: Ruff
-- **타입 체크**: mypy (strict mode)
-
-**Rust:**
-- **포매터**: rustfmt (Rust 표준)
-- **린터**: clippy (Rust 표준)
-- **네이밍**: Rust 컨벤션 (snake_case, CamelCase)
-
-### 3. 커밋 메시지
-
-명확하고 간결한 커밋 메시지 작성:
-
-```
-Add type checker for basic types
-
-- Implement type checking for Int, Nat, Bool, String
-- Add test cases for type inference
-```
-
----
-
-## 의존성 관리
-
-### Python (Phase 0-4)
-
-**프로덕션 의존성:**
-- `anthropic`: Claude API 연동
-- `openai`: GPT API 연동
-
-**개발 의존성:**
-- `pytest`: 테스트 프레임워크
-- `pytest-cov`: 코드 커버리지
-- `mypy`: 타입 체커
-- `ruff`: 린터
-- `black`: 코드 포매터
-
----
-
-### Rust (Phase 5+)
-
-**주요 의존성 (Cargo.toml):**
-- `llvm-sys = "170"` 또는 `inkwell = "0.4"`: LLVM 바인딩
-- `pyo3 = "0.20"`: Python 연동
-- `anyhow = "1.0"`: 에러 처리
-- `thiserror = "1.0"`: 커스텀 에러 타입
-- `clap = "4.0"`: CLI 파싱 (선택사항)
-
-**개발 의존성:**
-- `criterion = "0.5"`: 벤치마킹
-- `proptest = "1.0"`: 속성 기반 테스트
-- `pretty_assertions = "1.0"`: 테스트 출력 개선
-
-**빌드 도구:**
-- `maturin = "1.4"`: Python wheel 빌드
-- `cc = "1.0"`: C 코드 빌드 (LLVM 연동 시)
-
----
-
-## Rust 학습 리소스 (Phase 5 준비)
-
-### 필수 학습 자료
-
-**1. Rust 기초 (4-6주)**
-- [The Rust Programming Language](https://doc.rust-lang.org/book/) (The Book)
-  - Chapter 1-10: 기본 문법 및 소유권
-  - Chapter 15-17: 스마트 포인터, 동시성, OOP
-- [Rust by Example](https://doc.rust-lang.org/rust-by-example/)
-  - 실습 위주 학습
-
-**2. 고급 Rust (2-4주)**
-- [The Rustonomicon](https://doc.rust-lang.org/nomicon/) (Unsafe Rust)
-- [Rust Design Patterns](https://rust-unofficial.github.io/patterns/)
-
-**3. LLVM 학습 (4-6주)**
-- [LLVM Tutorial](https://llvm.org/docs/tutorial/)
-- [Kaleidoscope Tutorial](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/)
-- [llvm-sys Rust Crate](https://docs.rs/llvm-sys/)
-- [inkwell - 고수준 LLVM 래퍼](https://github.com/TheDan64/inkwell)
-
-**4. PyO3 학습 (1-2주)**
-- [PyO3 User Guide](https://pyo3.rs/)
-- [maturin 빌드 도구](https://www.maturin.rs/)
-
-### 추천 학습 순서
-
-```
-Week 1-6:   Rust 기초 (The Book + Rust by Example)
-Week 7-10:  고급 Rust (Unsafe, 매크로, 트레이트)
-Week 11-16: LLVM 튜토리얼 (간단한 컴파일러 구현)
-Week 17-18: PyO3 통합 (Python-Rust 바인딩)
-Week 19+:   Pole 컴파일러 개발 시작
-```
-
-### 실습 프로젝트 (학습용)
-
-1. **간단한 계산기 인터프리터** (Rust로 구현)
-2. **LLVM "Hello World" 컴파일러** (LLVM IR 생성)
-3. **간단한 함수형 언어 컴파일러** (Kaleidoscope 따라하기)
-4. **Python-Rust 통합 예제** (PyO3로 Rust 함수 노출)
-
----
-
-## 문제 해결
-
-### Python 환경
-
-**가상 환경이 활성화되지 않음:**
-```bash
-source venv/bin/activate
-```
-
-**의존성 설치 실패:**
-```bash
-pip install --upgrade pip
-make dev-install
-```
-
-**테스트 실패:**
-```bash
-pytest tests/ -v  # 자세한 출력
-pytest tests/ -x  # 첫 실패 시 중단
-```
-
----
-
-### Rust 환경
-
-**LLVM 찾을 수 없음:**
-```bash
-# LLVM 경로 설정
-export LLVM_SYS_170_PREFIX=/usr/lib/llvm-17
-# 또는 macOS
-export LLVM_SYS_170_PREFIX="$(brew --prefix llvm@17)"
-```
-
-**링크 에러:**
-```bash
-# LLVM 라이브러리 경로 추가
-export LD_LIBRARY_PATH=/usr/lib/llvm-17/lib:$LD_LIBRARY_PATH
-```
-
-**maturin 빌드 실패:**
-```bash
-# Python 헤더 설치 (Ubuntu)
-sudo apt-get install python3-dev
-
-# maturin 재설치
-pip install --upgrade maturin
-```
-
----
-
-## 참고 문서
-
-- [README.md](README.md) - 프로젝트 개요 및 설계 원칙
-- [ARCHITECTURE.md](ARCHITECTURE.md) - 시스템 아키텍처
-- [ROADMAP.md](ROADMAP.md) - 개발 로드맵
-- [AGENTS.md](AGENTS.md) - AI 에이전트 개발 가이드라인
-- [specs/](specs/) - 언어 사양 문서
+Happy Coding! 🚀

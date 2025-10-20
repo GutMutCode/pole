@@ -325,6 +325,30 @@ class IRParser:
 
             return expr
 
+    def _split_args(self, args_str: str) -> list[str]:
+        """Split function arguments by comma, respecting parentheses"""
+        args = []
+        current = []
+        paren_depth = 0
+
+        for char in args_str:
+            if char == "(":
+                paren_depth += 1
+                current.append(char)
+            elif char == ")":
+                paren_depth -= 1
+                current.append(char)
+            elif char == "," and paren_depth == 0:
+                args.append("".join(current).strip())
+                current = []
+            else:
+                current.append(char)
+
+        if current:
+            args.append("".join(current).strip())
+
+        return args
+
     def _parse_simple_expr(self, expr_str: str) -> Expr:
         expr_str = expr_str.strip()
 
@@ -390,7 +414,16 @@ class IRParser:
                 )
                 return Constructor(name=func_name, args=args)
             elif func_name:
-                arg = self._parse_simple_expr(args_str)
+                # Multi-argument function call: parse as tuple
+                if "," in args_str:
+                    args = [self._parse_simple_expr(a.strip()) for a in self._split_args(args_str)]
+                    arg = TupleExpr(elements=args)
+                else:
+                    arg = (
+                        self._parse_simple_expr(args_str)
+                        if args_str
+                        else Literal(value=None, type_name="Unit")
+                    )
                 return Application(func=Variable(name=func_name), arg=arg)
 
         if " => " in expr_str:
@@ -498,11 +531,17 @@ class IRParser:
                 self.pos += 1
                 else_line = self.lines[self.pos].strip()
                 self.pos += 1
+                else_branch = self._parse_simple_expr(else_line)
+            elif else_line.startswith("else if "):
+                else_part = else_line[5:].strip()
+                self.pos += 1
+                else_branch = self._parse_if_expr(else_part)
             elif else_line.startswith("else"):
                 else_line = else_line[4:].strip()
                 self.pos += 1
-
-            else_branch = self._parse_simple_expr(else_line)
+                else_branch = self._parse_simple_expr(else_line)
+            else:
+                else_branch = self._parse_simple_expr(else_line)
 
             return IfExpr(condition=condition, then_branch=then_branch, else_branch=else_branch)
 

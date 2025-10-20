@@ -216,13 +216,31 @@ func max(a: Int, b: Int) -> Int
   if a >= b then a else b
 ```
 
-Example 3 - Nested if:
+Example 3 - Nested if (MUST be single line):
 ```
 func classify(n: Int) -> String
   requires true
 :
   if n == 0 then "zero" else if n > 0 then "positive" else "negative"
 ```
+
+Example 4 - Multi-line if (with indentation):
+```
+func validate_range(x: Int) -> String
+  requires true
+:
+  if x < 0 then
+    "negative"
+  else if x > 100 then
+    "too large"
+  else
+    "valid"
+```
+
+CRITICAL: For else-if chains:
+- EITHER write entire expression on ONE line: if X then Y else if Z then W else V
+- OR use multi-line with indented values (then-value on next line)
+- NEVER mix formats (then-value same line + else-if next line)
 
 === OUTPUT FORMAT ===
 
