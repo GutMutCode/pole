@@ -1,5 +1,0 @@
-func no_args() -> Int:
-  42
-
-func test_call() -> Int:
-  no_args()
