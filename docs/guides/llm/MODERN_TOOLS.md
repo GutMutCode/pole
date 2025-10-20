@@ -59,14 +59,55 @@ LLM이 외부 도구 호출:
 
 ## 도구별 비교
 
-### ❌ Factory AI Droid (존재하지 않음)
+### 7. Factory AI Droids ⭐⭐ Enterprise (2024-2025)
 
-**조사 결과 (2025-10-20):**
-- factory.ai 웹사이트 404 에러
-- "Factory AI Droid" 제품 없음
-- 오래된 정보이거나 잘못된 정보일 가능성
+**최신 정보 (2025-10-20 확인):**
+- **Series A $15M** (Sequoia 주도, 2025)
+- **Agent-Native Development** (IDE, Web, CLI, Slack, Linear 통합)
+- **Droids:** Code, Reliability, Knowledge, Tutorial 전문 agents
+- **Enterprise 중심:** Fortune 500 기업 고객 (Clari 등)
 
-**결론:** 제외
+**핵심 기능:**
+- **Droids everywhere:** IDE, Web, CLI, Slack, Teams, Project Manager
+- **Context Management:** Jira, Notion, Slack 자동 연동
+- **MCP 통합:** Model Context Protocol 지원
+- **Git 통합:** 자동 커밋, PR 생성
+- **Specification Mode:** 계획 → 구현 워크플로우
+
+**Droids 종류:**
+- **Code Droid:** 코딩, 리팩토링, 디버깅
+- **Reliability Droid:** 인시던트 관리, RCA 문서
+- **Knowledge Droid:** 문서화, 지식 관리
+- **Tutorial Droid:** Factory 학습
+
+**설치:**
+```bash
+# macOS/Linux
+curl -fsSL https://app.factory.ai/cli | sh
+
+# Windows
+irm https://app.factory.ai/cli/windows | iex
+
+# 실행
+droid
+```
+
+**장점:**
+- **Enterprise급 보안 & 컴플라이언스**
+- 모든 개발 인터페이스 통합 (가장 광범위)
+- Sequoia 투자 (안정적 백킹)
+- 전문화된 Droids (용도별 최적화)
+
+**단점:**
+- Enterprise 중심 (개인 사용자는 비쌈)
+- 비공개 소스
+- 가격 정보 미공개 (Contact Sales)
+
+**Pole 적용:**
+- ⚠️ **Enterprise 팀에게 적합**
+- 개인/오픈소스 프로젝트엔 과함
+- Slack/Linear 통합은 매력적
+- MCP로 Pole 도구 연동 가능
 
 ---
 
@@ -353,14 +394,8 @@ pole agent build games/zomboid/specs/*.pole
 ### 예제: Aider 워크플로우
 
 ```bash
-# IR 생성 + 자동 검증
-aider --model deepseek \
-  --lint "pole check {file}" \
-  games/zomboid/specs/player.pole
-
-> Generate Pole IR from spec. Follow specs/ir-syntax.md
-
-# Aider가 자동으로: spec 읽기 → IR 생성 → 검증 → 재시도 → 커밋
+aider --model deepseek --lint "pole check {file}" player.pole
+# spec 읽기 → IR 생성 → 검증 → 재시도 → 커밋
 ```
 
 ---
@@ -376,6 +411,8 @@ aider --model deepseek \
 | 명세 작성 보조 | **pole build** | - | 명세 언어는 단순 |
 | ChatGPT 플랜 보유 | **Codex CLI** | - | 별도 비용 없음 |
 | Claude 선호 | **Claude Code** | Aider | Anthropic 공식 |
+| Enterprise 팀 | **Factory Droids** | - | Slack/Jira 통합, 보안 |
+| 인시던트 대응 | **Factory Droids** | - | Reliability Droid 전문 |
 
 ---
 
