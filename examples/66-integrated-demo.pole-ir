@@ -1,0 +1,237 @@
+// Integrated Demo - Complete Game Loop
+// Combines: Combat, Survival, Crafting, Looting
+// Simplified PZ gameplay simulation
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_write_i32_at")
+func write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_read_i32_at")
+func read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+// Game state: [player_hp: Int, hunger: Int, thirst: Int, day: Int] = 16 bytes
+// Inventory is separate (10 slots * 8 bytes = 80 bytes)
+func create_game_state(dummy: Unit) -> Ptr<Unit>:
+let state = c_malloc(16) in
+let _ = write_i32_at(state, 0, 100) in
+let _ = write_i32_at(state, 4, 100) in
+let _ = write_i32_at(state, 8, 100) in
+let _ = write_i32_at(state, 12, 1) in
+state
+
+func create_inventory(dummy: Unit) -> Ptr<Unit>:
+c_malloc(80)
+
+func get_player_hp(state: Ptr<Unit>) -> Int:
+read_i32_at(state, 0)
+
+func get_hunger(state: Ptr<Unit>) -> Int:
+read_i32_at(state, 4)
+
+func get_thirst(state: Ptr<Unit>) -> Int:
+read_i32_at(state, 8)
+
+func get_day(state: Ptr<Unit>) -> Int:
+read_i32_at(state, 12)
+
+func set_player_hp(state: Ptr<Unit>, hp: Int) -> Int:
+let _ = write_i32_at(state, 0, hp) in
+0
+
+func set_hunger(state: Ptr<Unit>, hunger: Int) -> Int:
+let _ = write_i32_at(state, 4, hunger) in
+0
+
+func set_thirst(state: Ptr<Unit>, thirst: Int) -> Int:
+let _ = write_i32_at(state, 8, thirst) in
+0
+
+func set_day(state: Ptr<Unit>, day: Int) -> Int:
+let _ = write_i32_at(state, 12, day) in
+0
+
+// Inventory helpers
+func get_item_id(inv: Ptr<Unit>, slot: Int) -> Int:
+let offset = slot * 8 in
+read_i32_at(inv, offset)
+
+func get_quantity(inv: Ptr<Unit>, slot: Int) -> Int:
+let offset = slot * 8 in
+read_i32_at(inv, offset + 4)
+
+func set_item(inv: Ptr<Unit>, slot: Int, item_id: Int, quantity: Int) -> Int:
+let offset = slot * 8 in
+let _ = write_i32_at(inv, offset, item_id) in
+let _ = write_i32_at(inv, offset + 4, quantity) in
+0
+
+// Add item to inventory
+func add_item_to_slot(inv: Ptr<Unit>, slot: Int, item_id: Int, quantity: Int) -> Int:
+if slot >= 10 then
+0
+else
+let current_id = get_item_id(inv, slot) in
+if current_id == 0 then
+let _ = set_item(inv, slot, item_id, quantity) in
+1
+else
+add_item_to_slot(inv, slot + 1, item_id, quantity)
+
+func add_item(inv: Ptr<Unit>, item_id: Int, quantity: Int) -> Int:
+add_item_to_slot(inv, 0, item_id, quantity)
+
+// Consume item (food/water)
+func consume_item(inv: Ptr<Unit>, slot: Int) -> Int:
+let item_id = get_item_id(inv, slot) in
+if item_id == 0 then
+0
+else
+let qty = get_quantity(inv, slot) in
+let new_qty = qty - 1 in
+if new_qty <= 0 then
+let _ = set_item(inv, slot, 0, 0) in
+item_id
+else
+let _ = set_item(inv, slot, item_id, new_qty) in
+item_id
+
+// Game actions
+func action_eat(state: Ptr<Unit>, inv: Ptr<Unit>, slot: Int) -> Int:
+let item_id = consume_item(inv, slot) in
+if item_id == 1 then
+let hunger = get_hunger(state) in
+let new_hunger = hunger + 30 in
+let final = if new_hunger > 100 then 100 else new_hunger in
+let _ = set_hunger(state, final) in
+let _ = c_puts("Ate food (+30 hunger)") in
+1
+else
+let _ = c_puts("No food in that slot!") in
+0
+
+func action_drink(state: Ptr<Unit>, inv: Ptr<Unit>, slot: Int) -> Int:
+let item_id = consume_item(inv, slot) in
+if item_id == 2 then
+let thirst = get_thirst(state) in
+let new_thirst = thirst + 40 in
+let final = if new_thirst > 100 then 100 else new_thirst in
+let _ = set_thirst(state, final) in
+let _ = c_puts("Drank water (+40 thirst)") in
+1
+else
+let _ = c_puts("No water in that slot!") in
+0
+
+func action_fight_zombie(state: Ptr<Unit>) -> Int:
+let hp = get_player_hp(state) in
+let damage = 20 in
+let new_hp = hp - damage in
+let _ = set_player_hp(state, new_hp) in
+let _ = c_puts("Fought zombie (-20 HP)") in
+if new_hp <= 0 then
+let _ = c_puts("YOU DIED") in
+0
+else
+1
+
+// Advance day (hunger/thirst decrease)
+func advance_day(state: Ptr<Unit>) -> Int:
+let day = get_day(state) in
+let hunger = get_hunger(state) in
+let thirst = get_thirst(state) in
+let new_day = day + 1 in
+let new_hunger = hunger - 20 in
+let new_thirst = thirst - 30 in
+let final_hunger = if new_hunger < 0 then 0 else new_hunger in
+let final_thirst = if new_thirst < 0 then 0 else new_thirst in
+let _ = set_day(state, new_day) in
+let _ = set_hunger(state, final_hunger) in
+let _ = set_thirst(state, final_thirst) in
+let _ = c_puts("--- Day passed ---") in
+if final_hunger == 0 then
+let _ = c_puts("STARVED TO DEATH") in
+0
+else
+if final_thirst == 0 then
+let _ = c_puts("DIED OF THIRST") in
+0
+else
+1
+
+// Print status
+func print_status(state: Ptr<Unit>) -> Int:
+let hp = get_player_hp(state) in
+let hunger = get_hunger(state) in
+let thirst = get_thirst(state) in
+let day = get_day(state) in
+let _ = c_puts("Status:") in
+if hp < 30 then
+let _ = c_puts("  HP: LOW") in 0
+else
+let _ = c_puts("  HP: OK") in 0
+in
+if hunger < 30 then
+let _ = c_puts("  Hunger: LOW") in 0
+else
+let _ = c_puts("  Hunger: OK") in 0
+in
+if thirst < 30 then
+let _ = c_puts("  Thirst: LOW") in 0
+else
+let _ = c_puts("  Thirst: OK") in 0
+
+// Game simulation
+func run_game_simulation(dummy: Unit) -> Int:
+let _ = c_puts("=== Integrated Game Demo ===") in
+let _ = c_puts("") in
+let state = create_game_state(()) in
+let inv = create_inventory(()) in
+let _ = c_puts("Day 1: Found supplies") in
+let _ = add_item(inv, 1, 3) in
+let _ = add_item(inv, 2, 2) in
+let _ = print_status(state) in
+let _ = c_puts("") in
+let _ = c_puts("Day 1: Zombie encounter!") in
+let _ = action_fight_zombie(state) in
+let _ = print_status(state) in
+let _ = c_puts("") in
+let _ = advance_day(state) in
+let _ = c_puts("Day 2: Eat food") in
+let _ = action_eat(state, inv, 0) in
+let _ = print_status(state) in
+let _ = c_puts("") in
+let _ = advance_day(state) in
+let _ = c_puts("Day 3: Drink water") in
+let _ = action_drink(state, inv, 1) in
+let _ = print_status(state) in
+let _ = c_puts("") in
+let _ = c_puts("Day 3: Another zombie!") in
+let _ = action_fight_zombie(state) in
+let _ = print_status(state) in
+let _ = c_puts("") in
+let _ = advance_day(state) in
+let _ = c_puts("Day 4: Critical status") in
+let _ = print_status(state) in
+let _ = c_puts("") in
+let _ = c_puts("Day 4: Eat last food") in
+let _ = action_eat(state, inv, 0) in
+let _ = print_status(state) in
+let _ = c_puts("") in
+let _ = advance_day(state) in
+let _ = c_puts("Day 5: Final day") in
+let _ = print_status(state) in
+let _ = c_puts("") in
+let _ = c_free(inv) in
+let _ = c_free(state) in
+0
+
+func main() -> Int:
+run_game_simulation(())

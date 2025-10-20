@@ -1,0 +1,206 @@
+// Looting System - PZ Style
+// Ground items, pickup, drop mechanics
+// Integration with inventory system
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_write_i32_at")
+func write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_read_i32_at")
+func read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+// Item IDs
+func ITEM_BREAD() -> Int: 1
+func ITEM_WATER() -> Int: 2
+func ITEM_BANDAGE() -> Int: 3
+func ITEM_WOOD() -> Int: 4
+func ITEM_NAIL() -> Int: 5
+
+// Ground item: [item_id: Int, quantity: Int, x: Int, y: Int] = 16 bytes
+func create_ground_item(item_id: Int, quantity: Int, x: Int, y: Int) -> Ptr<Unit>:
+let item = c_malloc(16) in
+let _ = write_i32_at(item, 0, item_id) in
+let _ = write_i32_at(item, 4, quantity) in
+let _ = write_i32_at(item, 8, x) in
+let _ = write_i32_at(item, 12, y) in
+item
+
+func get_ground_item_id(item: Ptr<Unit>) -> Int:
+read_i32_at(item, 0)
+
+func get_ground_quantity(item: Ptr<Unit>) -> Int:
+read_i32_at(item, 4)
+
+func get_ground_x(item: Ptr<Unit>) -> Int:
+read_i32_at(item, 8)
+
+func get_ground_y(item: Ptr<Unit>) -> Int:
+read_i32_at(item, 12)
+
+// Inventory slot: [item_id: Int, quantity: Int] = 8 bytes
+func create_inventory(size: Int) -> Ptr<Unit>:
+let bytes = size * 8 in
+c_malloc(bytes)
+
+func get_inv_item_id(inv: Ptr<Unit>, slot: Int) -> Int:
+let offset = slot * 8 in
+read_i32_at(inv, offset)
+
+func get_inv_quantity(inv: Ptr<Unit>, slot: Int) -> Int:
+let offset = slot * 8 in
+read_i32_at(inv, offset + 4)
+
+func set_inv_item(inv: Ptr<Unit>, slot: Int, item_id: Int, quantity: Int) -> Int:
+let offset = slot * 8 in
+let _ = write_i32_at(inv, offset, item_id) in
+let _ = write_i32_at(inv, offset + 4, quantity) in
+0
+
+// Find empty slot in inventory
+func find_empty_slot(inv: Ptr<Unit>, slot: Int, max_slots: Int) -> Int:
+if slot >= max_slots then
+0 - 1
+else
+let item_id = get_inv_item_id(inv, slot) in
+if item_id == 0 then
+slot
+else
+find_empty_slot(inv, slot + 1, max_slots)
+
+// Find item by ID in inventory
+func find_item_slot(inv: Ptr<Unit>, slot: Int, max_slots: Int, item_id: Int) -> Int:
+if slot >= max_slots then
+0 - 1
+else
+let current_id = get_inv_item_id(inv, slot) in
+if current_id == item_id then
+slot
+else
+find_item_slot(inv, slot + 1, max_slots, item_id)
+
+// Check if player is near item (distance <= 1)
+func is_near_item(player_x: Int, player_y: Int, item_x: Int, item_y: Int) -> Int:
+let dx = player_x - item_x in
+let dy = player_y - item_y in
+let abs_dx = if dx < 0 then 0 - dx else dx in
+let abs_dy = if dy < 0 then 0 - dy else dy in
+if abs_dx <= 1 then
+if abs_dy <= 1 then 1 else 0
+else
+0
+
+// Pickup item from ground
+func pickup_item(inv: Ptr<Unit>, max_slots: Int, ground_item: Ptr<Unit>, player_x: Int, player_y: Int) -> Int:
+let item_id = get_ground_item_id(ground_item) in
+let quantity = get_ground_quantity(ground_item) in
+let item_x = get_ground_x(ground_item) in
+let item_y = get_ground_y(ground_item) in
+let near = is_near_item(player_x, player_y, item_x, item_y) in
+if near == 0 then
+let _ = c_puts("Too far from item!") in
+0
+else
+let existing_slot = find_item_slot(inv, 0, max_slots, item_id) in
+if existing_slot >= 0 then
+let current_qty = get_inv_quantity(inv, existing_slot) in
+let new_qty = current_qty + quantity in
+let _ = set_inv_item(inv, existing_slot, item_id, new_qty) in
+let _ = c_puts("Picked up item (stacked)") in
+1
+else
+let empty_slot = find_empty_slot(inv, 0, max_slots) in
+if empty_slot < 0 then
+let _ = c_puts("Inventory full!") in
+0
+else
+let _ = set_inv_item(inv, empty_slot, item_id, quantity) in
+let _ = c_puts("Picked up item") in
+1
+
+// Drop item from inventory to ground
+func drop_item(inv: Ptr<Unit>, slot: Int, quantity: Int, player_x: Int, player_y: Int) -> Ptr<Unit>:
+let item_id = get_inv_item_id(inv, slot) in
+if item_id == 0 then
+let _ = c_puts("Slot is empty!") in
+c_malloc(0)
+else
+let inv_qty = get_inv_quantity(inv, slot) in
+if quantity > inv_qty then
+let _ = c_puts("Not enough items!") in
+c_malloc(0)
+else
+let new_qty = inv_qty - quantity in
+if new_qty == 0 then
+let _ = set_inv_item(inv, slot, 0, 0) in
+let _ = c_puts("Dropped item (slot empty)") in
+create_ground_item(item_id, quantity, player_x, player_y)
+else
+let _ = set_inv_item(inv, slot, item_id, new_qty) in
+let _ = c_puts("Dropped item (partial)") in
+create_ground_item(item_id, quantity, player_x, player_y)
+
+// Print inventory
+func print_inv_slot(inv: Ptr<Unit>, slot: Int, max_slots: Int) -> Int:
+if slot >= max_slots then
+0
+else
+let item_id = get_inv_item_id(inv, slot) in
+if item_id > 0 then
+let qty = get_inv_quantity(inv, slot) in
+let _ = c_puts("  Item in slot") in
+print_inv_slot(inv, slot + 1, max_slots)
+else
+print_inv_slot(inv, slot + 1, max_slots)
+
+func print_inventory(inv: Ptr<Unit>, max_slots: Int) -> Int:
+let _ = c_puts("Inventory:") in
+print_inv_slot(inv, 0, max_slots)
+
+// Test looting system
+func test_looting(dummy: Unit) -> Int:
+let _ = c_puts("=== Looting System Test ===") in
+let _ = c_puts("") in
+let _ = c_puts("Player at (5, 5)") in
+let inv = create_inventory(10) in
+let _ = c_puts("Creating ground items...") in
+let item1 = create_ground_item(1, 3, 5, 6) in
+let item2 = create_ground_item(2, 2, 5, 5) in
+let item3 = create_ground_item(4, 5, 10, 10) in
+let _ = c_puts("") in
+let _ = c_puts("Attempt 1: Pickup bread at (5,6) - should succeed") in
+let _ = pickup_item(inv, 10, item1, 5, 5) in
+let _ = print_inventory(inv, 10) in
+let _ = c_puts("") in
+let _ = c_puts("Attempt 2: Pickup water at (5,5) - should succeed") in
+let _ = pickup_item(inv, 10, item2, 5, 5) in
+let _ = print_inventory(inv, 10) in
+let _ = c_puts("") in
+let _ = c_puts("Attempt 3: Pickup wood at (10,10) - should fail (too far)") in
+let _ = pickup_item(inv, 10, item3, 5, 5) in
+let _ = print_inventory(inv, 10) in
+let _ = c_puts("") in
+let _ = c_puts("Attempt 4: Drop 1 bread at (5,5)") in
+let dropped = drop_item(inv, 0, 1, 5, 5) in
+let _ = print_inventory(inv, 10) in
+let _ = c_puts("") in
+let _ = c_puts("Attempt 5: Pickup dropped bread") in
+let _ = pickup_item(inv, 10, dropped, 5, 5) in
+let _ = print_inventory(inv, 10) in
+let _ = c_puts("") in
+let _ = c_free(inv) in
+let _ = c_free(item1) in
+let _ = c_free(item2) in
+let _ = c_free(item3) in
+let _ = c_free(dropped) in
+0
+
+func main() -> Int:
+test_looting(())
