@@ -47,4 +47,13 @@ result-*
 # Direnv
 .direnv/
 .env
+
+# Build artifacts
+coop_server
 test_sdl_verbose
+*.ll
+*.s
+!runtime/*.o
+
+# Tilemap data
+tilemap*.txt
