@@ -1760,9 +1760,24 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                 LiteralValue::String(_) => Ok(Type::Basic(AstBasicType { name: "String".to_string() })),
                 LiteralValue::Unit => Ok(Type::Basic(AstBasicType { name: "Unit".to_string() })),
             },
-            Expr::Variable(var) => self.var_types.get(&var.name)
-                .cloned()
-                .ok_or_else(|| format!("Cannot find type for variable '{}'", var.name)),
+            Expr::Variable(var) => {
+                // First check if it's a regular variable
+                if let Some(ty) = self.var_types.get(&var.name) {
+                    return Ok(ty.clone());
+                }
+                
+                // Check if it's a variant constructor
+                for (variant_name, constructors) in &self.variant_defs {
+                    for (ctor_name, ctor_args) in constructors {
+                        if ctor_name == &var.name && ctor_args.is_empty() {
+                            // Nullary constructor - return the variant type
+                            return Ok(Type::Basic(AstBasicType { name: variant_name.clone() }));
+                        }
+                    }
+                }
+                
+                Err(format!("Cannot find type for variable '{}'", var.name))
+            }
             Expr::BinaryOp(binop) => self.infer_expr_type(&binop.left),
             Expr::FieldAccess(field_access) => {
                 let record_type = self.infer_expr_type(&field_access.record)?;

@@ -3,29 +3,29 @@ use pole_compiler::{parse_ir, CodeGen, CompilerArenas};
 use std::fs;
 
 fn main() {
-    println!("=== Testing Zomboid Main Compilation ===\n");
+    println!("=== Testing Example 67: test-player ===\n");
     
-    let ir_code = fs::read_to_string("../games/zomboid/main.pole-ir")
-        .expect("Failed to read main.pole-ir");
+    let ir_code = fs::read_to_string("../examples/67-test-player.pole-ir")
+        .expect("Failed to read file");
     
     println!("Parsing IR...");
     let program = match parse_ir(&ir_code) {
-        Ok(p) => p,
+        Ok(p) => {
+            println!("✓ Parse successful!");
+            println!("  Type defs: {}", p.type_defs.len());
+            println!("  Functions: {}", p.func_defs.len());
+            p
+        },
         Err(e) => {
             println!("✗ Parse failed: {}", e);
             return;
         }
     };
     
-    println!("✓ Parse successful!");
-    println!("  Type defs: {}", program.type_defs.len());
-    println!("  Functions: {}", program.func_defs.len());
-    println!("  Externs: {}", program.extern_funcs.len());
-    
     println!("\nAttempting compilation...");
     let arenas = CompilerArenas::new_default();
     let context = Context::create();
-    let mut codegen = CodeGen::new(&context, "zomboid", &arenas.codegen_arena);
+    let mut codegen = CodeGen::new(&context, "test_player", &arenas.codegen_arena);
     
     match codegen.compile_program(&program) {
         Ok(_) => println!("✓ Compilation successful!"),
