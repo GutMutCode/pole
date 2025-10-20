@@ -14,54 +14,47 @@ None currently.
 
 ## 🟡 P1 Issues (Important, Non-blocking)
 
-### 1. Rust Type Checker - Missing Builtin Functions
-
-**Status:** Scheduled for Day 5 (Friday, 2025-10-25)  
-**Impact:** Type checking fails for player.pole-ir, zombie.pole-ir  
-**Workaround:** Python fallback works, automation not broken
-
-**Problem:**
-Rust type checker doesn't recognize builtin functions like `list_get`, `int_to_float`, etc.
-
-**Solution:**
-Add builtin function signatures to `compiler/src/type_checker.rs`:
-
-```rust
-fn initialize_builtins(&mut self) {
-    // List operations
-    self.add_builtin("list_get", ...);
-    self.add_builtin("list_set", ...);
-    self.add_builtin("list_push", ...);
-    
-    // Type conversions
-    self.add_builtin("int_to_float", ...);
-    self.add_builtin("float_to_int", ...);
-    
-    // IO
-    self.add_extern("print", ...);
-}
-```
-
-**Test:**
-```bash
-pole test games/zomboid/specs/player.pole-ir
-pole test games/zomboid/specs/zombie.pole-ir
-pole test examples/01-factorial.pole-ir
-```
-
-**Expected Result:**
-All type checks should pass without errors.
-
-**Related Files:**
-- `compiler/src/type_checker.rs` - Add builtins here
-- `docs/WEEK1_PLAN.md` - Day 5 schedule
-- `CLAUDE.md` - Pending task reference
+None currently.
 
 ---
 
 ## 🟢 P2 Issues (Optional)
 
-### 2. Python Type Checker Deprecation
+### 1. Let Expression Edge Cases
+
+**Status:** Week 2+  
+**Impact:** Low - rare occurrences  
+**Workaround:** Python fallback handles these cases
+
+**Problem:**
+Occasionally "Undefined variable 'let'" error in specific contexts.
+
+**Action:** Deep parser/type checker debugging when time permits.
+
+---
+
+### 2. Function Argument Record Literals
+
+**Status:** Week 2+  
+**Impact:** Low - workaround available  
+
+**Problem:**
+```pole-ir
+func test(p: Point) -> Int: ...
+test({ x: 1, y: 2 })  // Type error
+```
+
+**Workaround:**
+```pole-ir
+let p = { x: 1, y: 2 } in
+test(p)  // Works
+```
+
+**Action:** Extend expected type hints to function arguments.
+
+---
+
+### 3. Python Type Checker Deprecation
 
 **Status:** Consider for Week 2+  
 **Impact:** Low - Rust type checker now primary
@@ -86,6 +79,27 @@ All type checks should pass without errors.
 ---
 
 ## ✅ Completed Issues (Archive)
+
+### Week 1 Day 5 (2025-10-21)
+- ✅ **Rust Type Checker - Variant Constructors**
+  - **Problem:** South, North, etc. not recognized
+  - **Solution:** Added inline variant parsing + registered as type env values
+  - **Commit:** 9d363c8
+  
+- ✅ **Rust Type Checker - Record Literal Type Inference**
+  - **Problem:** `{ health: 100 }` not recognized as `Player` type
+  - **Solution:** Expected type hints + recursive inference + structural typing
+  - **Commit:** 9d363c8
+
+- ✅ **Rust Type Checker - Builtin Functions**
+  - **Problem:** list_get, int_to_float not recognized
+  - **Solution:** Added curried builtin function signatures
+  - **Commit:** 10cc4a5
+
+- ✅ **IR Parser - Record Literal Syntax**
+  - **Problem:** Parser expected `=` instead of `:`
+  - **Solution:** Fixed to match IR spec (`:` for field bindings)
+  - **Commit:** 10cc4a5
 
 ### Week 1 Day 2 (2025-10-21)
 - ✅ Python parser limitations (record literals)
