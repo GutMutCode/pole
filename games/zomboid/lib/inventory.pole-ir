@@ -1,0 +1,101 @@
+// Inventory Library - Slot-based inventory system
+// Memory layout per slot: [item_id: Int, quantity: Int] = 8 bytes
+
+// NOTE: This file depends on core.pole-ir
+// In final build, concatenate: core.pole-ir + inventory.pole-ir
+
+// Constants
+func INVENTORY_SLOT_SIZE() -> Int: 8
+func ITEM_EMPTY() -> Int: 0
+
+// Create inventory with N slots
+func inventory_create(num_slots: Int) -> Ptr<Unit>:
+let bytes = num_slots * 8 in
+malloc(bytes)
+
+func inventory_free(inv: Ptr<Unit>) -> Unit:
+free(inv)
+
+// Get item ID at slot
+func inventory_get_item_id(inv: Ptr<Unit>, slot: Int) -> Int:
+let offset = slot * 8 in
+read_i32(inv, offset)
+
+// Get quantity at slot
+func inventory_get_quantity(inv: Ptr<Unit>, slot: Int) -> Int:
+let offset = slot * 8 in
+read_i32(inv, offset + 4)
+
+// Set item at slot
+func inventory_set_item(inv: Ptr<Unit>, slot: Int, item_id: Int, quantity: Int) -> Int:
+let offset = slot * 8 in
+let _ = write_i32(inv, offset, item_id) in
+let _ = write_i32(inv, offset + 4, quantity) in
+0
+
+// Find first empty slot (returns -1 if full)
+func inventory_find_empty_slot_iter(inv: Ptr<Unit>, slot: Int, max_slots: Int) -> Int:
+if slot >= max_slots then
+0 - 1
+else
+let item_id = inventory_get_item_id(inv, slot) in
+if item_id == 0 then
+slot
+else
+inventory_find_empty_slot_iter(inv, slot + 1, max_slots)
+
+func inventory_find_empty_slot(inv: Ptr<Unit>, max_slots: Int) -> Int:
+inventory_find_empty_slot_iter(inv, 0, max_slots)
+
+// Find slot containing specific item (returns -1 if not found)
+func inventory_find_item_iter(inv: Ptr<Unit>, slot: Int, max_slots: Int, item_id: Int) -> Int:
+if slot >= max_slots then
+0 - 1
+else
+let current_id = inventory_get_item_id(inv, slot) in
+if current_id == item_id then
+slot
+else
+inventory_find_item_iter(inv, slot + 1, max_slots, item_id)
+
+func inventory_find_item(inv: Ptr<Unit>, max_slots: Int, item_id: Int) -> Int:
+inventory_find_item_iter(inv, 0, max_slots, item_id)
+
+// Add item to inventory (with stacking)
+func inventory_add_item(inv: Ptr<Unit>, max_slots: Int, item_id: Int, quantity: Int) -> Int:
+let existing_slot = inventory_find_item(inv, max_slots, item_id) in
+if existing_slot >= 0 then
+let current_qty = inventory_get_quantity(inv, existing_slot) in
+let new_qty = current_qty + quantity in
+let _ = inventory_set_item(inv, existing_slot, item_id, new_qty) in
+1
+else
+let empty_slot = inventory_find_empty_slot(inv, max_slots) in
+if empty_slot < 0 then
+0
+else
+let _ = inventory_set_item(inv, empty_slot, item_id, quantity) in
+1
+
+// Remove item from slot (set to empty)
+func inventory_remove_item(inv: Ptr<Unit>, slot: Int) -> Int:
+let _ = inventory_set_item(inv, slot, 0, 0) in
+0
+
+// Consume N quantity from slot (returns 1 if consumed, 0 if not enough)
+func inventory_consume(inv: Ptr<Unit>, slot: Int, amount: Int) -> Int:
+let item_id = inventory_get_item_id(inv, slot) in
+if item_id == 0 then
+0
+else
+let qty = inventory_get_quantity(inv, slot) in
+if qty < amount then
+0
+else
+let new_qty = qty - amount in
+if new_qty == 0 then
+let _ = inventory_remove_item(inv, slot) in
+1
+else
+let _ = inventory_set_item(inv, slot, item_id, new_qty) in
+1

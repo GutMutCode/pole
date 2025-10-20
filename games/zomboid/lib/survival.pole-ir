@@ -1,0 +1,90 @@
+// Survival Library - Hunger, Thirst, Fatigue
+// Memory layout: [hunger: Int, thirst: Int, fatigue: Int] = 12 bytes
+// Range: 0-100 (100 = full, 0 = critical)
+
+// NOTE: Depends on core.pole-ir
+
+// Create survival stats (initialized to 100)
+func survival_create(dummy: Unit) -> Ptr<Unit>:
+let stats = malloc(12) in
+let _ = write_i32(stats, 0, 100) in
+let _ = write_i32(stats, 4, 100) in
+let _ = write_i32(stats, 8, 100) in
+stats
+
+func survival_free(stats: Ptr<Unit>) -> Unit:
+free(stats)
+
+// Getters
+func survival_get_hunger(stats: Ptr<Unit>) -> Int:
+read_i32(stats, 0)
+
+func survival_get_thirst(stats: Ptr<Unit>) -> Int:
+read_i32(stats, 4)
+
+func survival_get_fatigue(stats: Ptr<Unit>) -> Int:
+read_i32(stats, 8)
+
+// Setters (with clamping 0-100)
+func survival_set_hunger(stats: Ptr<Unit>, value: Int) -> Int:
+let clamped = clamp(value, 0, 100) in
+let _ = write_i32(stats, 0, clamped) in
+clamped
+
+func survival_set_thirst(stats: Ptr<Unit>, value: Int) -> Int:
+let clamped = clamp(value, 0, 100) in
+let _ = write_i32(stats, 4, clamped) in
+clamped
+
+func survival_set_fatigue(stats: Ptr<Unit>, value: Int) -> Int:
+let clamped = clamp(value, 0, 100) in
+let _ = write_i32(stats, 8, clamped) in
+clamped
+
+// Update survival stats over time (delta = hours passed)
+// Returns 1 if alive, 0 if dead from starvation/dehydration
+func survival_update(stats: Ptr<Unit>, delta: Int) -> Int:
+let hunger = survival_get_hunger(stats) in
+let thirst = survival_get_thirst(stats) in
+let fatigue = survival_get_fatigue(stats) in
+let new_hunger = survival_set_hunger(stats, hunger - delta * 2) in
+let new_thirst = survival_set_thirst(stats, thirst - delta * 3) in
+let new_fatigue = survival_set_fatigue(stats, fatigue - delta * 1) in
+if new_hunger == 0 then
+0
+else
+if new_thirst == 0 then
+0
+else
+1
+
+// Consume food (restore hunger)
+func survival_eat(stats: Ptr<Unit>, amount: Int) -> Int:
+let current = survival_get_hunger(stats) in
+survival_set_hunger(stats, current + amount)
+
+// Drink water (restore thirst)
+func survival_drink(stats: Ptr<Unit>, amount: Int) -> Int:
+let current = survival_get_thirst(stats) in
+survival_set_thirst(stats, current + amount)
+
+// Sleep (restore fatigue)
+func survival_sleep(stats: Ptr<Unit>, amount: Int) -> Int:
+let current = survival_get_fatigue(stats) in
+survival_set_fatigue(stats, current + amount)
+
+// Check if any stat is critical (< 30)
+func survival_is_critical(stats: Ptr<Unit>) -> Int:
+let hunger = survival_get_hunger(stats) in
+let thirst = survival_get_thirst(stats) in
+let fatigue = survival_get_fatigue(stats) in
+if hunger < 30 then
+1
+else
+if thirst < 30 then
+1
+else
+if fatigue < 30 then
+1
+else
+0

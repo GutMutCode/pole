@@ -1,0 +1,69 @@
+// Combat Library - HP, Damage, Death
+// Memory layout: [hp: Int, max_hp: Int, is_alive: Int] = 12 bytes
+
+// NOTE: Depends on core.pole-ir
+
+// Create combat entity
+func combat_create(max_hp: Int) -> Ptr<Unit>:
+let entity = malloc(12) in
+let _ = write_i32(entity, 0, max_hp) in
+let _ = write_i32(entity, 4, max_hp) in
+let _ = write_i32(entity, 8, 1) in
+entity
+
+func combat_free(entity: Ptr<Unit>) -> Unit:
+free(entity)
+
+// Getters
+func combat_get_hp(entity: Ptr<Unit>) -> Int:
+read_i32(entity, 0)
+
+func combat_get_max_hp(entity: Ptr<Unit>) -> Int:
+read_i32(entity, 4)
+
+func combat_is_alive(entity: Ptr<Unit>) -> Int:
+read_i32(entity, 8)
+
+// Setters
+func combat_set_hp(entity: Ptr<Unit>, hp: Int) -> Int:
+let _ = write_i32(entity, 0, hp) in
+0
+
+func combat_set_alive(entity: Ptr<Unit>, alive: Int) -> Int:
+let _ = write_i32(entity, 8, alive) in
+0
+
+// Take damage (returns 1 if alive, 0 if dead)
+func combat_take_damage(entity: Ptr<Unit>, damage: Int) -> Int:
+let current_hp = combat_get_hp(entity) in
+let new_hp = current_hp - damage in
+if new_hp <= 0 then
+let _ = combat_set_hp(entity, 0) in
+let _ = combat_set_alive(entity, 0) in
+0
+else
+let _ = combat_set_hp(entity, new_hp) in
+1
+
+// Heal (cannot exceed max_hp)
+func combat_heal(entity: Ptr<Unit>, amount: Int) -> Int:
+let current_hp = combat_get_hp(entity) in
+let max_hp = combat_get_max_hp(entity) in
+let new_hp = current_hp + amount in
+let clamped = if new_hp > max_hp then max_hp else new_hp in
+let _ = combat_set_hp(entity, clamped) in
+clamped
+
+// Attack: source attacks target with damage
+// Returns 1 if target died, 0 otherwise
+func combat_attack(source: Ptr<Unit>, target: Ptr<Unit>, damage: Int) -> Int:
+let source_alive = combat_is_alive(source) in
+let target_alive = combat_is_alive(target) in
+if source_alive == 0 then
+0
+else
+if target_alive == 0 then
+0
+else
+let result = combat_take_damage(target, damage) in
+if result == 0 then 1 else 0
