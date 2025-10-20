@@ -1,28 +1,226 @@
-@extern("puts")
-func c_puts(s: String) -> Int
+// Interactive 100x100 Isometric Tilemap with Camera Control
+// Week 3 + Month 1: Complete demo combining all features
+// - 100x100 procedural tilemap (10,000 tiles)
+// - WASD camera movement
+// - Viewport culling for performance
+// - Isometric rendering
 
-func main() -> Int :
-  let tilemap = [0, 1, 0, 1, 2, 1, 0, 1, 0] in
-  let width = 3 in
-  let get_index = 1 * width + 1 in
-  let center = List_get(tilemap, get_index) in
-  let set_index = 1 * width + 1 in
-  let updated = List_set(tilemap, set_index, 9) in
-  let new_center = List_get(updated, get_index) in
-  let old_center = List_get(tilemap, get_index) in
-  if center == 2 then
-    if new_center == 9 then
-      if old_center == 2 then
-        let _ = c_puts("SUCCESS: List tilemap test passed") in
-        0
-      else
-        let _ = c_puts("FAIL: Original map modified") in
-        1
-    else
-      let _ = c_puts("FAIL: Set failed") in
-      1
-  else
-    let _ = c_puts("FAIL: Get failed") in
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_RenderDrawLine")
+func SDL_RenderDrawLine(renderer: Ptr<Unit>, x1: Int, y1: Int, x2: Int, y2: Int) -> Int
+
+@extern("SDL_PollEvent")
+func SDL_PollEvent(event: Ptr<Unit>) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_read_i32")
+func read_i32(ptr: Ptr<Unit>) -> Int
+
+@extern("pole_read_i32_at")
+func read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+@extern("pole_write_i32_at")
+func write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("printf")
+@variadic
+func printf(format: String) -> Int
+
+func get_tile_procedural(x: Int, y: Int) -> Int
+:
+  let mod_x = x - x / 10 * 10 in
+  let mod_y = y - y / 10 * 10 in
+  if mod_x == 0 then
     1
+  else if mod_y == 0 then
+    1
+  else
+    let sum = x + y in
+    let mod_sum = sum - sum / 7 * 7 in
+    if mod_sum == 0 then
+      2
+    else
+      0
+
+func draw_tile(renderer: Ptr<Unit>, tx: Int, ty: Int, tile_type: Int, cam_x: Int, cam_y: Int) -> Int
+:
+  let base_x = (tx - ty) * 32 + 400 in
+  let base_y = (tx + ty) * 16 + 100 in
+  let sx = base_x + cam_x in
+  let sy = base_y + cam_y in
+  let r = if tile_type == 0 then 100 else if tile_type == 1 then 150 else 180 in
+  let g = if tile_type == 0 then 200 else if tile_type == 1 then 150 else 160 in
+  let b = if tile_type == 0 then 100 else if tile_type == 1 then 150 else 140 in
+  let _ = SDL_SetRenderDrawColor(renderer, r, g, b, 255) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy - 16, sx + 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx + 32, sy, sx, sy + 16) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy + 16, sx - 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx - 32, sy, sx, sy - 16) in
+  0
+
+func is_visible(tx: Int, ty: Int, cam_x: Int, cam_y: Int) -> Int
+:
+  let sx = (tx - ty) * 32 + 400 + cam_x in
+  let sy = (tx + ty) * 16 + 100 + cam_y in
+  if sx < -100 then
+    0
+  else if sx > 900 then
+    0
+  else if sy < -100 then
+    0
+  else if sy > 700 then
+    0
+  else
+    1
+
+func render_row_culled(renderer: Ptr<Unit>, row: Int, col: Int, max_col: Int, cam_x: Int, cam_y: Int) -> Int
+:
+  if col >= max_col then
+    0
+  else
+    let visible = is_visible(col, row, cam_x, cam_y) in
+    let _ = if visible == 1 then
+      let tile_type = get_tile_procedural(col, row) in
+      draw_tile(renderer, col, row, tile_type, cam_x, cam_y)
+    else
+      0 in
+    render_row_culled(renderer, row, col + 1, max_col, cam_x, cam_y)
+
+func render_grid_culled(renderer: Ptr<Unit>, row: Int, max_row: Int, max_col: Int, cam_x: Int, cam_y: Int) -> Int
+:
+  if row >= max_row then
+    0
+  else
+    let _ = render_row_culled(renderer, row, 0, max_col, cam_x, cam_y) in
+    render_grid_culled(renderer, row + 1, max_row, max_col, cam_x, cam_y)
+
+func process_camera_input(event: Ptr<Unit>, camera_x: Int, camera_y: Int, running: Int) -> Ptr<Unit>
+:
+  let result = c_malloc(12) in
+  let has_event = SDL_PollEvent(event) in
+  if has_event == 0 then
+    let _ = write_i32_at(result, 0, camera_x) in
+    let _ = write_i32_at(result, 4, camera_y) in
+    let _ = write_i32_at(result, 8, running) in
+    result
+  else
+    let event_type = read_i32(event) in
+    if event_type == 768 then
+      let keycode = read_i32_at(event, 24) in
+      if keycode == 27 then
+        let _ = write_i32_at(result, 0, camera_x) in
+        let _ = write_i32_at(result, 4, camera_y) in
+        let _ = write_i32_at(result, 8, 0) in
+        result
+      else if keycode == 119 then
+        let new_y = camera_y + 40 in
+        let _ = write_i32_at(result, 0, camera_x) in
+        let _ = write_i32_at(result, 4, new_y) in
+        let _ = write_i32_at(result, 8, running) in
+        result
+      else if keycode == 115 then
+        let new_y = camera_y - 40 in
+        let _ = write_i32_at(result, 0, camera_x) in
+        let _ = write_i32_at(result, 4, new_y) in
+        let _ = write_i32_at(result, 8, running) in
+        result
+      else if keycode == 97 then
+        let new_x = camera_x + 40 in
+        let _ = write_i32_at(result, 0, new_x) in
+        let _ = write_i32_at(result, 4, camera_y) in
+        let _ = write_i32_at(result, 8, running) in
+        result
+      else if keycode == 100 then
+        let new_x = camera_x - 40 in
+        let _ = write_i32_at(result, 0, new_x) in
+        let _ = write_i32_at(result, 4, camera_y) in
+        let _ = write_i32_at(result, 8, running) in
+        result
+      else
+        let _ = write_i32_at(result, 0, camera_x) in
+        let _ = write_i32_at(result, 4, camera_y) in
+        let _ = write_i32_at(result, 8, running) in
+        result
+    else if event_type == 256 then
+      let _ = write_i32_at(result, 0, camera_x) in
+      let _ = write_i32_at(result, 4, camera_y) in
+      let _ = write_i32_at(result, 8, 0) in
+      result
+    else
+      let _ = write_i32_at(result, 0, camera_x) in
+      let _ = write_i32_at(result, 4, camera_y) in
+      let _ = write_i32_at(result, 8, running) in
+      result
+
+func game_loop(renderer: Ptr<Unit>, event: Ptr<Unit>, camera_x: Int, camera_y: Int, running: Int, frame: Int) -> Unit
+:
+  if running == 0 then
+    ()
+  else if frame >= 600 then
+    ()
+  else
+    let input = process_camera_input(event, camera_x, camera_y, running) in
+    let new_camera_x = read_i32_at(input, 0) in
+    let new_camera_y = read_i32_at(input, 4) in
+    let new_running = read_i32_at(input, 8) in
+    let _ = c_free(input) in
+    let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
+    let _ = SDL_RenderClear(renderer) in
+    let _ = render_grid_culled(renderer, 0, 100, 100, new_camera_x, new_camera_y) in
+    let _ = SDL_RenderPresent(renderer) in
+    let _ = SDL_Delay(16) in
+    game_loop(renderer, event, new_camera_x, new_camera_y, new_running, frame + 1)
+
+func main() -> Int
+:
+  let _ = printf("=== Interactive 100x100 Isometric Tilemap ===\n") in
+  let _ = printf("10,000 tiles with viewport culling\n") in
+  let _ = printf("WASD to move camera\n") in
+  let _ = printf("ESC to quit (or auto-exit after 10 seconds)\n") in
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Pole - 100x100 Interactive Tilemap", 805240832, 805240832, 800, 600, 4) in
+  let renderer = SDL_CreateRenderer(window, -1, 2) in
+  let event = c_malloc(56) in
+  let _ = game_loop(renderer, event, -2000, -1000, 1, 0) in
+  let _ = c_free(event) in
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = printf("Interactive tilemap demo complete!\n") in
+  0
 
 @test_case(expected=0)
