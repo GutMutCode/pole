@@ -25,9 +25,14 @@
 - 버전 관리 전략
 
 ### [현대적 LLM 도구](MODERN_TOOLS.md) 🔥 신규
-- Aider, OpenCode 등 터미널 AI 도구
+- Codex CLI, Claude Code, Factory Droids
 - Tool Use (웹 검색, 자동 재시도)
 - Pole 통합 전략 (단기/중기/장기)
+
+### [LLM 한계 평가](ASSESSMENT.md) ⭐ 검증 완료
+- 문서 정확도 평가 (90/100점)
+- 핵심 한계 우선순위
+- 개선 제안
 
 ---
 

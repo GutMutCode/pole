@@ -187,6 +187,23 @@ def factorial(n: Int) -> Int =
 **문제:** LLM이 타입 명시 누락  
 **우회:** 명세에 모든 타입 명시
 
+### 5. Hallucination (환각) ⭐ 매우 중요
+
+**문제:** LLM이 **존재하지 않는** API/함수를 자신감 있게 생성
+
+**증상:**
+```pole
+@extern("SDL_CreateWindowEx")  // ❌ 실제로 없음
+@extern("LLVM_CreateOptimizedContext")  // ❌ 환각
+```
+
+**발생 빈도:** ~20-30% (최신/마이너 라이브러리)
+
+**우회:**
+1. 공식 문서로 모든 API 검증 (필수)
+2. `pole check`로 조기 발견
+3. 명세에 정확한 함수명 + 문서 링크 명시
+
 ---
 
 ## 생성 품질 한계
@@ -214,38 +231,9 @@ function a_star_pathfinding(start, goal, tilemap) -> List<Position>:
 
 **우회 전략:**
 
-1. **알고리즘 분해**
-   ```pole
-   // 나쁨: 한 번에 전체
-   function a_star(...) -> Path
-   
-   // 좋음: 단계별 분해
-   function heuristic(pos1, pos2) -> Int
-   function get_neighbors(pos, map) -> List<Position>
-   function reconstruct_path(came_from, current) -> List<Position>
-   function a_star_search(...) -> Path
-   ```
-
-2. **의사코드 제공**
-   ```pole
-   function a_star(...):
-     purpose: "A* pathfinding"
-     
-     algorithm:
-       1. Initialize open_set with start
-       2. While open_set not empty:
-         a. Get node with lowest f_score
-         b. If node == goal, return path
-         c. For each neighbor:
-           - Calculate tentative g_score
-           - If better than current, update
-       3. Return empty (no path)
-   ```
-
-3. **검증된 예제 참고**
-   ```pole
-   // See: examples/XX-bfs.pole-ir for similar pattern
-   ```
+1. **알고리즘 분해:** 큰 함수 → 작은 함수들 (heuristic, get_neighbors 등)
+2. **의사코드 제공:** 단계별 알고리즘을 명세에 명시
+3. **검증된 예제 참고:** `examples/XX-bfs.pole-ir` 같은 유사 패턴
 
 ### 2. 엣지 케이스 누락
 
