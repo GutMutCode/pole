@@ -1,0 +1,130 @@
+// Week 3: Large Tilemap - 20x20 Grid with List Storage
+// 400 tiles total, using List for storage
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_RenderDrawLine")
+func SDL_RenderDrawLine(renderer: Ptr<Unit>, x1: Int, y1: Int, x2: Int, y2: Int) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+// Create 20x20 tilemap (400 tiles)
+// Pattern: roads on columns 5 and 15, buildings in center area
+func create_large_tilemap(dummy: Unit) -> List<Int>:
+  [
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,2,2,2,2,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,2,2,2,2,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,2,2,2,2,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,2,2,2,2,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,
+    0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1,0,0,0,0
+  ]
+
+// Get tile from 2D coordinates
+func get_tile(tilemap: List<Int>, x: Int, y: Int) -> Int:
+  let width = 20 in
+  let index = y * width + x in
+  List_get(tilemap, index)
+
+// Draw single isometric tile
+func draw_tile(renderer: Ptr<Unit>, tx: Int, ty: Int, tile_type: Int, cam_x: Int, cam_y: Int) -> Int:
+  let base_x = (tx - ty) * 32 + 400 in
+  let base_y = (tx + ty) * 16 + 100 in
+  let sx = base_x + cam_x in
+  let sy = base_y + cam_y in
+  let r = if tile_type == 0 then 100 else if tile_type == 1 then 150 else 180 in
+  let g = if tile_type == 0 then 200 else if tile_type == 1 then 150 else 160 in
+  let b = if tile_type == 0 then 100 else if tile_type == 1 then 150 else 140 in
+  let _ = SDL_SetRenderDrawColor(renderer, r, g, b, 255) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy - 16, sx + 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx + 32, sy, sx, sy + 16) in
+  let _ = SDL_RenderDrawLine(renderer, sx, sy + 16, sx - 32, sy) in
+  let _ = SDL_RenderDrawLine(renderer, sx - 32, sy, sx, sy - 16) in
+  0
+
+// Render single row
+func render_row(renderer: Ptr<Unit>, tilemap: List<Int>, row: Int, col: Int, max_col: Int, cam_x: Int, cam_y: Int) -> Int:
+  if col >= max_col then
+    0
+  else
+    let tile_type = get_tile(tilemap, col, row) in
+    let _ = draw_tile(renderer, col, row, tile_type, cam_x, cam_y) in
+    render_row(renderer, tilemap, row, col + 1, max_col, cam_x, cam_y)
+
+// Render all rows
+func render_grid(renderer: Ptr<Unit>, tilemap: List<Int>, row: Int, max_row: Int, max_col: Int, cam_x: Int, cam_y: Int) -> Int:
+  if row >= max_row then
+    0
+  else
+    let _ = render_row(renderer, tilemap, row, 0, max_col, cam_x, cam_y) in
+    render_grid(renderer, tilemap, row + 1, max_row, max_col, cam_x, cam_y)
+
+// Main demo
+func main() -> Int:
+  let _ = c_puts("=== Week 3: Large Tilemap 20x20 ===") in
+  let _ = c_puts("400 tiles rendered with List storage") in
+  let _ = c_puts("") in
+  let _ = SDL_Init(32) in
+  let window = SDL_CreateWindow("Pole Week 3 - 20x20 Tilemap", 805240832, 805240832, 800, 600, 4) in
+  let renderer = SDL_CreateRenderer(window, -1, 2) in
+  let tilemap = create_large_tilemap(()) in
+  let _ = c_puts("Rendering 20x20 grid...") in
+  let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
+  let _ = SDL_RenderClear(renderer) in
+  let _ = render_grid(renderer, tilemap, 0, 20, 20, -200, -100) in
+  let _ = SDL_RenderPresent(renderer) in
+  let _ = SDL_Delay(5000) in
+  let _ = SDL_DestroyRenderer(renderer) in
+  let _ = SDL_DestroyWindow(window) in
+  let _ = SDL_Quit(()) in
+  let _ = c_puts("") in
+  let _ = c_puts("Large tilemap demo complete!") in
+  let _ = c_puts("  - 20x20 grid (400 tiles)") in
+  let _ = c_puts("  - List-based storage") in
+  let _ = c_puts("  - Isometric rendering") in
+  0
+
+@test_case(expected=0)

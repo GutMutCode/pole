@@ -5,7 +5,7 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
-    let ir_source = fs::read_to_string("../examples/36-large-tilemap.pole-ir")
+    let ir_source = fs::read_to_string("../examples/53-large-tilemap-20x20.pole-ir")
         .expect("Failed to read IR file");
 
     println!("=== Large Tilemap Test ===\n");
