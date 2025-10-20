@@ -1750,7 +1750,12 @@ func game_loop(window: *Window, ctx: *GLContext) -> Unit :
   - **남은 작업** (선택):
     - [ ] UDP socket 예제
     - [ ] Multi-client server (fork/thread)
-- [ ] **2인 Co-op 프로토타입**
+- [x] **2인 Co-op 프로토타입** ✅ 완료 (2025-10-20)
+  - **산출물**:
+    - `59-coop-server.pole-ir` - 2-player server (accepts 2 clients, broadcasts state)
+    - `60-coop-client.pole-ir` - Client (connect, recv state, send position)
+  - **Protocol**: Text-based "WELCOME P1/P2", "P1:x,y P2:x,y", "POS x y"
+  - **Tested**: 2 clients simultaneously, state broadcast working
 - [ ] **메모리 최적화** (Arena allocator)
 
 #### Q2 (Month 4-6): PZ 게임플레이
