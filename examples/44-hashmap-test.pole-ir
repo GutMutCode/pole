@@ -1,0 +1,36 @@
+// Test HashMap basic operations
+// HashMap_new: Nat -> HashMap<Int, Int>
+// HashMap_put: HashMap<Int, Int> -> Int -> Int -> Unit
+// HashMap_get: HashMap<Int, Int> -> Int -> Option<Int>
+// HashMap_size: HashMap<Int, Int> -> Nat
+
+@extern("printf")
+@variadic
+func printf(format: String) -> Int
+
+func test_hashmap(dummy: Unit) -> Unit
+:
+  let map = HashMap_new(16) in
+  let _ = printf("Created HashMap with capacity 16\n") in
+  let size0 = HashMap_size(map) in
+  let _ = printf("Initial size: %lld\n", size0) in
+  let _ = HashMap_put(map, 10, 100) in
+  let _ = printf("Put (10, 100)\n") in
+  let _ = HashMap_put(map, 20, 200) in
+  let _ = printf("Put (20, 200)\n") in
+  let _ = HashMap_put(map, 30, 300) in
+  let _ = printf("Put (30, 300)\n") in
+  let size1 = HashMap_size(map) in
+  let _ = printf("Size after 3 inserts: %lld\n", size1) in
+  let val1 = HashMap_get(map, 10) in
+  let _ = printf("Get key 10: %lld\n", val1) in
+  let val2 = HashMap_get(map, 20) in
+  let _ = printf("Get key 20: %lld\n", val2) in
+  let val3 = HashMap_get(map, 30) in
+  let _ = printf("Get key 30: %lld\n", val3) in
+  ()
+
+func main(dummy: Unit) -> Int
+:
+  let _ = test_hashmap(()) in
+  0

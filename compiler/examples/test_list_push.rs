@@ -4,7 +4,10 @@ use std::fs;
 use std::process::Command;
 
 fn main() {
-    let ir_source = fs::read_to_string("../examples/42-list-push-test.pole-ir")
+    let args: Vec<String> = std::env::args().collect();
+    let file = if args.len() > 1 { &args[1] } else { "../examples/42-list-push-test.pole-ir" };
+    
+    let ir_source = fs::read_to_string(file)
         .expect("Failed to read IR file");
 
     println!("=== Parsing Pole IR ===");

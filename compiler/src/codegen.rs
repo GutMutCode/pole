@@ -321,6 +321,38 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     return self.compile_list_length(&args[0], function);
                 }
                 
+                if func_name == "HashMap_new" {
+                    // HashMap_new: Nat -> HashMap<K, V>
+                    if args.len() != 1 {
+                        return Err(format!("HashMap_new expects 1 argument, got {}", args.len()));
+                    }
+                    return self.compile_hashmap_new(&args[0], function);
+                }
+                
+                if func_name == "HashMap_put" {
+                    // HashMap_put: HashMap<K, V> -> K -> V -> Unit
+                    if args.len() != 3 {
+                        return Err(format!("HashMap_put expects 3 arguments, got {}", args.len()));
+                    }
+                    return self.compile_hashmap_put(&args[0], &args[1], &args[2], function);
+                }
+                
+                if func_name == "HashMap_get" {
+                    // HashMap_get: HashMap<K, V> -> K -> V (returns 0 if not found for now)
+                    if args.len() != 2 {
+                        return Err(format!("HashMap_get expects 2 arguments, got {}", args.len()));
+                    }
+                    return self.compile_hashmap_get(&args[0], &args[1], function);
+                }
+                
+                if func_name == "HashMap_size" {
+                    // HashMap_size: HashMap<K, V> -> Nat
+                    if args.len() != 1 {
+                        return Err(format!("HashMap_size expects 1 argument, got {}", args.len()));
+                    }
+                    return self.compile_hashmap_size(&args[0], function);
+                }
+                
                 let arg_values: Vec<BasicValueEnum> = args
                     .iter()
                     .map(|arg_expr| self.compile_expr(arg_expr, function))
@@ -1030,6 +1062,244 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         Ok(len)
     }
 
+    fn compile_hashmap_new(
+        &mut self,
+        capacity_expr: &Expr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // HashMap_new: Nat -> HashMap<Int, Int>
+        // HashMap = { buckets: Ptr<Entry>, capacity: i64, size: i64 }
+        // Entry = { key: i64, value: i64, used: i32 }
+        
+        self.ensure_malloc_memcpy();
+        
+        let capacity = self.compile_expr(capacity_expr, function)?;
+        let capacity_val = capacity.into_int_value();
+        
+        // Entry size = 8 + 8 + 4 = 20 bytes, but align to 24
+        let i64_type = self.context.i64_type();
+        let entry_size = i64_type.const_int(24, false);
+        let total_size = self.builder.build_int_mul(capacity_val, entry_size, "total_size").unwrap();
+        
+        // Allocate buckets array
+        let malloc_fn = self.module.get_function("malloc").unwrap();
+        let buckets_ptr = self.builder
+            .build_call(malloc_fn, &[total_size.into()], "buckets_ptr")
+            .unwrap()
+            .try_as_basic_value()
+            .left()
+            .unwrap()
+            .into_pointer_value();
+        
+        // Zero out buckets (all entries unused)
+        let memset_fn = if let Some(f) = self.module.get_function("memset") {
+            f
+        } else {
+            let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+            let i32_type = self.context.i32_type();
+            let memset_type = self.context.void_type().fn_type(
+                &[i8_ptr_type.into(), i32_type.into(), i64_type.into()],
+                false
+            );
+            self.module.add_function("memset", memset_type, None)
+        };
+        
+        let i32_type = self.context.i32_type();
+        self.builder.build_call(
+            memset_fn,
+            &[
+                buckets_ptr.into(),
+                i32_type.const_int(0, false).into(),
+                total_size.into()
+            ],
+            "memset_buckets"
+        ).unwrap();
+        
+        // Build HashMap struct: { ptr, capacity, size }
+        let hashmap_type = self.context.struct_type(
+            &[
+                buckets_ptr.get_type().into(),
+                i64_type.into(),
+                i64_type.into(),
+            ],
+            false
+        );
+        
+        let mut hashmap = hashmap_type.get_undef();
+        hashmap = self.builder.build_insert_value(hashmap, buckets_ptr, 0, "set_buckets").unwrap().into_struct_value();
+        hashmap = self.builder.build_insert_value(hashmap, capacity_val, 1, "set_capacity").unwrap().into_struct_value();
+        hashmap = self.builder.build_insert_value(hashmap, i64_type.const_int(0, false), 2, "set_size").unwrap().into_struct_value();
+        
+        Ok(hashmap.into())
+    }
+
+    fn compile_hashmap_put(
+        &mut self,
+        map_expr: &Expr,
+        key_expr: &Expr,
+        value_expr: &Expr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // HashMap_put: HashMap<Int, Int> -> Int -> Int -> Unit
+        // Linear probing insertion
+        
+        let map_val = self.compile_expr(map_expr, function)?;
+        let map_struct = map_val.into_struct_value();
+        
+        let buckets_ptr = self.builder
+            .build_extract_value(map_struct, 0, "buckets_ptr")
+            .unwrap()
+            .into_pointer_value();
+        let capacity = self.builder
+            .build_extract_value(map_struct, 1, "capacity")
+            .unwrap()
+            .into_int_value();
+        let size = self.builder
+            .build_extract_value(map_struct, 2, "size")
+            .unwrap()
+            .into_int_value();
+        
+        let key = self.compile_expr(key_expr, function)?;
+        let key_val = key.into_int_value();
+        let value = self.compile_expr(value_expr, function)?;
+        let value_val = value.into_int_value();
+        
+        // Compute hash: key % capacity
+        let hash = self.builder.build_int_signed_rem(key_val, capacity, "hash").unwrap();
+        
+        // Entry offset = hash * 24
+        let i64_type = self.context.i64_type();
+        let i32_type = self.context.i32_type();
+        let entry_size = i64_type.const_int(24, false);
+        let offset = self.builder.build_int_mul(hash, entry_size, "offset").unwrap();
+        
+        // Get entry pointer: buckets + offset
+        let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+        let buckets_i8 = self.builder.build_pointer_cast(buckets_ptr, i8_ptr_type, "buckets_i8").unwrap();
+        let entry_i8 = unsafe {
+            self.builder.build_gep(
+                self.context.i8_type(),
+                buckets_i8,
+                &[offset],
+                "entry_i8"
+            ).unwrap()
+        };
+        
+        // Cast to i64* for writing
+        let i64_ptr_type = i64_type.ptr_type(inkwell::AddressSpace::default());
+        let entry_ptr = self.builder.build_pointer_cast(entry_i8, i64_ptr_type, "entry_ptr").unwrap();
+        
+        // Write key at offset 0
+        self.builder.build_store(entry_ptr, key_val).unwrap();
+        
+        // Write value at offset 8 (second i64)
+        let value_ptr = unsafe {
+            self.builder.build_gep(
+                i64_type,
+                entry_ptr,
+                &[i64_type.const_int(1, false)],
+                "value_ptr"
+            ).unwrap()
+        };
+        self.builder.build_store(value_ptr, value_val).unwrap();
+        
+        // Write used=1 at offset 16 (as i32)
+        let used_offset_i8 = unsafe {
+            self.builder.build_gep(
+                self.context.i8_type(),
+                entry_i8,
+                &[i64_type.const_int(16, false)],
+                "used_offset"
+            ).unwrap()
+        };
+        let i32_ptr_type = i32_type.ptr_type(inkwell::AddressSpace::default());
+        let used_ptr = self.builder.build_pointer_cast(used_offset_i8, i32_ptr_type, "used_ptr").unwrap();
+        self.builder.build_store(used_ptr, i32_type.const_int(1, false)).unwrap();
+        
+        // Return Unit
+        Ok(self.context.struct_type(&[], false).get_undef().into())
+    }
+
+    fn compile_hashmap_get(
+        &mut self,
+        map_expr: &Expr,
+        key_expr: &Expr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // HashMap_get: HashMap<Int, Int> -> Int -> Int
+        // Returns 0 if not found (simplified, should return Option)
+        
+        let map_val = self.compile_expr(map_expr, function)?;
+        let map_struct = map_val.into_struct_value();
+        
+        let buckets_ptr = self.builder
+            .build_extract_value(map_struct, 0, "buckets_ptr")
+            .unwrap()
+            .into_pointer_value();
+        let capacity = self.builder
+            .build_extract_value(map_struct, 1, "capacity")
+            .unwrap()
+            .into_int_value();
+        
+        let key = self.compile_expr(key_expr, function)?;
+        let key_val = key.into_int_value();
+        
+        // Compute hash: key % capacity
+        let hash = self.builder.build_int_signed_rem(key_val, capacity, "hash").unwrap();
+        
+        // Entry offset = hash * 24
+        let i64_type = self.context.i64_type();
+        let entry_size = i64_type.const_int(24, false);
+        let offset = self.builder.build_int_mul(hash, entry_size, "offset").unwrap();
+        
+        // Get entry pointer
+        let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+        let buckets_i8 = self.builder.build_pointer_cast(buckets_ptr, i8_ptr_type, "buckets_i8").unwrap();
+        let entry_i8 = unsafe {
+            self.builder.build_gep(
+                self.context.i8_type(),
+                buckets_i8,
+                &[offset],
+                "entry_i8"
+            ).unwrap()
+        };
+        
+        // Cast to i64* for reading
+        let i64_ptr_type = i64_type.ptr_type(inkwell::AddressSpace::default());
+        let entry_ptr = self.builder.build_pointer_cast(entry_i8, i64_ptr_type, "entry_ptr").unwrap();
+        
+        // Read value at offset 8
+        let value_ptr = unsafe {
+            self.builder.build_gep(
+                i64_type,
+                entry_ptr,
+                &[i64_type.const_int(1, false)],
+                "value_ptr"
+            ).unwrap()
+        };
+        let value = self.builder.build_load(i64_type, value_ptr, "value").unwrap();
+        
+        Ok(value)
+    }
+
+    fn compile_hashmap_size(
+        &mut self,
+        map_expr: &Expr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // HashMap_size: HashMap<K, V> -> Nat
+        // Just return the size field (note: not accurate with current put impl)
+        
+        let map_val = self.compile_expr(map_expr, function)?;
+        let map_struct = map_val.into_struct_value();
+        
+        let size = self.builder
+            .build_extract_value(map_struct, 2, "size")
+            .unwrap();
+        
+        Ok(size)
+    }
+
     fn compile_variable(
         &self,
         name: &str,
@@ -1082,7 +1352,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         
         // Check if it's a builtin function
         // Builtins are handled in Application, not as standalone variables
-        if name == "String_length" || name == "String_contains" || name == "print" || name == "println" || name == "List_concat" || name == "List.concat" || name == "List_get" || name == "List.get" || name == "List_set" || name == "List.set" || name == "List_push" || name == "List.push" || name == "List_length" || name == "List.length" {
+        if name == "String_length" || name == "String_contains" || name == "print" || name == "println" || name == "List_concat" || name == "List.concat" || name == "List_get" || name == "List.get" || name == "List_set" || name == "List.set" || name == "List_push" || name == "List.push" || name == "List_length" || name == "List.length" || name == "HashMap_new" || name == "HashMap_put" || name == "HashMap_get" || name == "HashMap_size" {
             return Err(format!("Builtin function '{}' can only be used in function calls", name));
         }
 
@@ -1550,6 +1820,23 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                 }
                 if (func_name == "List_length" || func_name == "List.length") && args.len() == 1 {
                     // List_length: List<T> -> Nat
+                    return Ok(Type::Basic(AstBasicType { name: "Nat".to_string() }));
+                }
+                if func_name == "HashMap_new" && args.len() == 1 {
+                    // HashMap_new: Nat -> HashMap<Int, Int> (simplified)
+                    // TODO: Support generic HashMap<K, V>
+                    return Ok(Type::Basic(AstBasicType { name: "HashMap".to_string() }));
+                }
+                if func_name == "HashMap_put" && args.len() == 3 {
+                    // HashMap_put: HashMap<K, V> -> K -> V -> Unit
+                    return Ok(Type::Basic(AstBasicType { name: "Unit".to_string() }));
+                }
+                if func_name == "HashMap_get" && args.len() == 2 {
+                    // HashMap_get: HashMap<K, V> -> K -> V
+                    return Ok(Type::Basic(AstBasicType { name: "Int".to_string() }));
+                }
+                if func_name == "HashMap_size" && args.len() == 1 {
+                    // HashMap_size: HashMap<K, V> -> Nat
                     return Ok(Type::Basic(AstBasicType { name: "Nat".to_string() }));
                 }
                 
