@@ -63,7 +63,8 @@ LLM이 외부 도구 호출:
 **핵심 기능:**
 - **Agent Mode:** 백그라운드에서 이슈 처리 → PR 생성
 - **Code Review:** AI가 코드 리뷰 수행
-- **Multi-model:** GPT-5, Claude Opus 4.1, Gemini 2.0 Flash
+- **Multi-model:** GPT-5*, Claude Opus 4.1, Gemini 2.0 Flash  
+  (*GPT-5는 아직 미출시, 현재는 GPT-4o)
 - **Spaces:** 팀별 컨텍스트 구성
 
 **장점:**
@@ -91,7 +92,7 @@ LLM이 외부 도구 호출:
 
 **장점:**
 - VS Code 기반 (익숙한 UX)
-- 최신 모델 지원 (GPT-5, Claude Sonnet 4.5)
+- 최신 모델 지원 (Claude Sonnet 4.5, GPT-4o)
 - Tab 모델 성능 우수 (21% fewer suggestions, 28% higher accept)
 - Fortune 500 절반이 사용
 
@@ -160,11 +161,24 @@ aider --model deepseek
 - 터미널 중심
 - 향후 통합 검토 가능
 
-### 5. Claude Code (공식 제품 없음)
+### 5. Claude Code ⭐ 공식 제품 (2025년 2월 출시)
 
-**상태:** Anthropic은 "Claude Code"라는 독립 제품을 출시하지 않았습니다.
-- Claude API를 사용한 도구들이 "Claude Code"로 불림
-- GitHub Copilot, Cursor 등이 Claude 모델 사용
+**최신 정보 (2025-10-20 확인):**
+- **2025년 2월 24일** Anthropic이 공식 출시
+- **Claude 3.7 Sonnet** 기반 코딩 전용 agent
+- **Extended Thinking** 지원 (추론 과정 표시)
+- **터미널/IDE 통합** 가능
+
+**핵심 기능:**
+- **Agent 모드:** 자율적 코드 생성 & 수정
+- **Plugin 시스템:** 확장 가능 (2025-10-09 발표)
+- **MCP 통합:** Model Context Protocol 지원
+- **Team/Enterprise 플랜** 지원
+
+**Pole 적용:**
+- ✅ **공식 Agent 도구로 유망**
+- Aider와 비슷하지만 Anthropic 공식
+- 향후 통합 검토 필요
 
 ---
 

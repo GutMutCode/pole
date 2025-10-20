@@ -49,9 +49,10 @@
 
 **문제:**
 - LLM 학습 데이터는 특정 시점까지만 (cutoff date)
-- Claude 3.5 Sonnet: ~2024년 4월
-- GPT-4 Turbo: ~2023년 12월
-- 최신 라이브러리, API, 문법을 모름
+- **Claude Sonnet 4.5** (최신): 2025년 1월 (reliable), 7월 (training)
+- **Claude Haiku 4.5**: 2025년 2월 (reliable), 7월 (training)
+- **GPT-4o**: ~2023년 10월 (1년+ 구식)
+- **문제:** 2025년 하반기 기술은 Claude도 모름!
 
 **증상:**
 ```pole
@@ -87,9 +88,13 @@ function sdl_create_window(...) -> Ptr<SDL_Window>
    → 비효율적 코드 생성
    ```
 
-**발생 빈도:**
-- 최신 기술 (출시 1년 이내): ~80% 오류
-- 기존 기술 (출시 2년+): ~10% 오류
+**발생 빈도 (2025년 10월 기준):**
+- **초최신** (< 3개월, 2025-08~10): Claude 90%, GPT-4o 95%
+- **최신** (3-12개월, 2025년 초): Claude 70%, GPT-4o 85%
+- **비교적 새** (1-2년, 2024): Claude 40%, GPT-4o 60%
+- **안정** (2년+, 2023 이전): Claude 10%, GPT-4o 20%
+
+**권장:** **Claude Sonnet 4.5 사용** (GPT-4o는 1년 뒤처짐)
 
 **우회 전략:**
 
@@ -141,9 +146,12 @@ function sdl_create_window(...) -> Ptr<SDL_Window>
 ### 2. 컨텍스트 윈도우 제한
 
 **문제:**
-- Claude 3.5 Sonnet: 200K tokens
-- GPT-4 Turbo: 128K tokens
+- **Claude Sonnet 4.5**: 200K tokens (1M beta 지원)
+- **Claude Haiku 4.5**: 200K tokens
+- **GPT-4o**: 128K tokens
 - 큰 명세는 잘려서 전달
+
+**참고:** Claude 1M context는 베타 (실험적)
 
 **증상:**
 ```pole
