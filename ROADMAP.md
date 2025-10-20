@@ -105,7 +105,7 @@
 - [언어 개발](docs/guides/LANGUAGE_DEV.md) - Pole 언어 개발
 - [엔진 개발](docs/guides/ENGINE_DEV.md) - Pole Engine 개발  
 - [게임 개발](docs/guides/GAME_DEV.md) - Pole Zomboid 개발
-- [LLM 활용](docs/guides/LLM_USAGE.md) - LLM 효과적 사용
+- [LLM 활용](docs/guides/llm/) - LLM 효과적 사용 (4개 가이드)
 
 ### 로드맵 상세
 - [주간 계획](docs/roadmaps/WEEKLY_PLANS.md) - 주간 작업 모음

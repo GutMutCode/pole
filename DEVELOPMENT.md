@@ -96,10 +96,10 @@ echo $OPENROUTER_API_KEY
   - 새 언어 기능 추가
   - 타입 시스템 확장
   
-- [LLM 통합](docs/guides/LLM_USAGE.md)
-  - System prompt 작성
-  - 생성 품질 개선
-  - 에러 처리
+- [LLM 활용 가이드](docs/guides/llm/)
+  - [기본 활용법](docs/guides/llm/USAGE.md)
+  - [LLM 한계](docs/guides/llm/LIMITATIONS.md)
+  - [최신 정보 문제](docs/guides/llm/LATEST_INFO.md) ⭐
 
 ### 엔진 개발
 - [Pole Engine 개발](docs/guides/ENGINE_DEV.md)
