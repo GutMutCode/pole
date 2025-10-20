@@ -1,0 +1,5 @@
+@test_case(expected=42)
+func test_list_set () -> Nat:
+  let numbers = [10, 20, 30, 40, 50] in
+  let updated = List_set (numbers, 2, 42) in
+  List_get (updated, 2)

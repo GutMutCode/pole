@@ -1,0 +1,7 @@
+@test_case(expected=9)
+func test_list_get () -> Nat:
+  let numbers = [1, 2, 3, 4, 5] in
+  let first = List_get (numbers, 0) in
+  let third = List_get (numbers, 2) in
+  let last = List_get (numbers, 4) in
+  first + third + last

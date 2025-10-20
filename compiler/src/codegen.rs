@@ -289,6 +289,22 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     return self.compile_list_concat(&args[0], function);
                 }
                 
+                if func_name == "List_get" || func_name == "List.get" {
+                    // List.get: List<T> -> Nat -> T
+                    if args.len() != 2 {
+                        return Err(format!("List.get expects 2 arguments, got {}", args.len()));
+                    }
+                    return self.compile_list_get(&args[0], &args[1], function);
+                }
+                
+                if func_name == "List_set" || func_name == "List.set" {
+                    // List.set: List<T> -> Nat -> T -> List<T>
+                    if args.len() != 3 {
+                        return Err(format!("List.set expects 3 arguments, got {}", args.len()));
+                    }
+                    return self.compile_list_set(&args[0], &args[1], &args[2], function);
+                }
+                
                 let arg_values: Vec<BasicValueEnum> = args
                     .iter()
                     .map(|arg_expr| self.compile_expr(arg_expr, function))
@@ -460,6 +476,27 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         Ok(i8_type.const_int(0, false).into())
     }
 
+    fn ensure_malloc_memcpy(&mut self) {
+        // Ensure malloc is declared
+        if self.module.get_function("malloc").is_none() {
+            let i64_type = self.context.i64_type();
+            let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+            let malloc_type = i8_ptr_type.fn_type(&[i64_type.into()], false);
+            self.module.add_function("malloc", malloc_type, None);
+        }
+        
+        // Ensure memcpy is declared
+        if self.module.get_function("memcpy").is_none() {
+            let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+            let i64_type = self.context.i64_type();
+            let memcpy_type = i8_ptr_type.fn_type(
+                &[i8_ptr_type.into(), i8_ptr_type.into(), i64_type.into()],
+                false
+            );
+            self.module.add_function("memcpy", memcpy_type, None);
+        }
+    }
+
     fn compile_list_concat(
         &mut self,
         list_of_lists_expr: &Expr,
@@ -467,6 +504,8 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
     ) -> Result<BasicValueEnum<'ctx>, String> {
         // List.concat: List<List<T>> -> List<T>
         // For ValidationError which is i32
+        
+        self.ensure_malloc_memcpy();
         
         let list_of_lists = self.compile_expr(list_of_lists_expr, function)?;
         let outer_list = list_of_lists.into_struct_value();
@@ -669,6 +708,202 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         Ok(result_list.into())
     }
 
+    fn compile_list_get(
+        &mut self,
+        list_expr: &Expr,
+        index_expr: &Expr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // List.get: List<T> -> Nat -> T
+        // Extract element at given index with bounds checking
+        
+        let list_val = self.compile_expr(list_expr, function)?;
+        let list_struct = list_val.into_struct_value();
+        
+        let ptr = self.builder
+            .build_extract_value(list_struct, 0, "ptr")
+            .unwrap()
+            .into_pointer_value();
+        let len = self.builder
+            .build_extract_value(list_struct, 1, "len")
+            .unwrap()
+            .into_int_value();
+        
+        let index = self.compile_expr(index_expr, function)?.into_int_value();
+        
+        // Infer element type from the list expression
+        let list_type = self.infer_expr_type(list_expr)?;
+        let element_type = match list_type {
+            Type::List(list_type) => self.compile_type(&list_type.element_type),
+            _ => return Err(format!("List.get expects a list, got {:?}", list_type)),
+        };
+        
+        // Bounds check: index < len
+        let i64_type = self.context.i64_type();
+        let in_bounds = self.builder.build_int_compare(
+            inkwell::IntPredicate::ULT,
+            index,
+            len,
+            "in_bounds"
+        ).unwrap();
+        
+        let valid_bb = self.context.append_basic_block(function, "valid_index");
+        let invalid_bb = self.context.append_basic_block(function, "invalid_index");
+        
+        self.builder.build_conditional_branch(in_bounds, valid_bb, invalid_bb).unwrap();
+        
+        // Invalid path: panic (for now, return zero/default)
+        self.builder.position_at_end(invalid_bb);
+        // TODO: Add proper panic/abort mechanism
+        // For now, return a default value (this is unsafe but allows compilation)
+        let default_val: BasicValueEnum = if element_type.is_int_type() {
+            element_type.into_int_type().const_zero().into()
+        } else if element_type.is_pointer_type() {
+            element_type.into_pointer_type().const_null().into()
+        } else if element_type.is_struct_type() {
+            element_type.into_struct_type().get_undef().into()
+        } else {
+            return Err("List.get: unsupported element type".to_string());
+        };
+        let invalid_result = self.builder.build_alloca(element_type, "invalid_result").unwrap();
+        self.builder.build_store(invalid_result, default_val).unwrap();
+        let invalid_val = self.builder.build_load(element_type, invalid_result, "invalid_val").unwrap();
+        let invalid_bb_end = self.builder.get_insert_block().unwrap();
+        
+        // Valid path: load element
+        self.builder.position_at_end(valid_bb);
+        let element_ptr = unsafe {
+            self.builder.build_gep(
+                element_type,
+                ptr,
+                &[index],
+                "element_ptr"
+            ).unwrap()
+        };
+        let element = self.builder.build_load(element_type, element_ptr, "element").unwrap();
+        let valid_bb_end = self.builder.get_insert_block().unwrap();
+        
+        // Merge blocks
+        let merge_bb = self.context.append_basic_block(function, "merge");
+        self.builder.position_at_end(valid_bb_end);
+        self.builder.build_unconditional_branch(merge_bb).unwrap();
+        self.builder.position_at_end(invalid_bb_end);
+        self.builder.build_unconditional_branch(merge_bb).unwrap();
+        
+        self.builder.position_at_end(merge_bb);
+        let phi = self.builder.build_phi(element_type, "result").unwrap();
+        phi.add_incoming(&[
+            (&element, valid_bb_end),
+            (&invalid_val, invalid_bb_end),
+        ]);
+        
+        Ok(phi.as_basic_value())
+    }
+
+    fn compile_list_set(
+        &mut self,
+        list_expr: &Expr,
+        index_expr: &Expr,
+        value_expr: &Expr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // List.set: List<T> -> Nat -> T -> List<T>
+        // Creates a new list with element at index replaced
+        
+        self.ensure_malloc_memcpy();
+        
+        let list_val = self.compile_expr(list_expr, function)?;
+        let list_struct = list_val.into_struct_value();
+        
+        let old_ptr = self.builder
+            .build_extract_value(list_struct, 0, "old_ptr")
+            .unwrap()
+            .into_pointer_value();
+        let len = self.builder
+            .build_extract_value(list_struct, 1, "len")
+            .unwrap()
+            .into_int_value();
+        
+        let index = self.compile_expr(index_expr, function)?.into_int_value();
+        let new_value = self.compile_expr(value_expr, function)?;
+        
+        // Infer element type
+        let list_type = self.infer_expr_type(list_expr)?;
+        let element_type = match list_type {
+            Type::List(list_type) => self.compile_type(&list_type.element_type),
+            _ => return Err(format!("List.set expects a list, got {:?}", list_type)),
+        };
+        
+        // Allocate new array
+        let i64_type = self.context.i64_type();
+        let element_size = element_type.size_of().unwrap();
+        let total_size = self.builder.build_int_mul(len, element_size, "total_size").unwrap();
+        
+        let malloc_fn = self.module.get_function("malloc").unwrap();
+        let new_ptr_i8 = self.builder
+            .build_call(malloc_fn, &[total_size.into()], "new_ptr_i8")
+            .unwrap()
+            .try_as_basic_value()
+            .left()
+            .unwrap()
+            .into_pointer_value();
+        
+        let new_ptr = self.builder.build_pointer_cast(
+            new_ptr_i8,
+            old_ptr.get_type(),
+            "new_ptr"
+        ).unwrap();
+        
+        // Copy old data to new array
+        let memcpy_fn = self.module.get_function("memcpy").unwrap();
+        let i8_ptr_type = self.context.i8_type().ptr_type(inkwell::AddressSpace::default());
+        let dest_i8 = self.builder.build_pointer_cast(new_ptr, i8_ptr_type, "dest_i8").unwrap();
+        let src_i8 = self.builder.build_pointer_cast(old_ptr, i8_ptr_type, "src_i8").unwrap();
+        
+        self.builder.build_call(
+            memcpy_fn,
+            &[dest_i8.into(), src_i8.into(), total_size.into()],
+            ""
+        ).unwrap();
+        
+        // Update element at index (with bounds check)
+        let in_bounds = self.builder.build_int_compare(
+            inkwell::IntPredicate::ULT,
+            index,
+            len,
+            "in_bounds"
+        ).unwrap();
+        
+        let update_bb = self.context.append_basic_block(function, "update");
+        let skip_bb = self.context.append_basic_block(function, "skip");
+        
+        self.builder.build_conditional_branch(in_bounds, update_bb, skip_bb).unwrap();
+        
+        // Update path
+        self.builder.position_at_end(update_bb);
+        let target_ptr = unsafe {
+            self.builder.build_gep(
+                element_type,
+                new_ptr,
+                &[index],
+                "target_ptr"
+            ).unwrap()
+        };
+        self.builder.build_store(target_ptr, new_value).unwrap();
+        self.builder.build_unconditional_branch(skip_bb).unwrap();
+        
+        // Merge
+        self.builder.position_at_end(skip_bb);
+        
+        // Build result struct
+        let result_type = list_struct.get_type();
+        let mut result = result_type.get_undef();
+        result = self.builder.build_insert_value(result, new_ptr, 0, "ptr").unwrap().into_struct_value();
+        result = self.builder.build_insert_value(result, len, 1, "len").unwrap().into_struct_value();
+        
+        Ok(result.into())
+    }
+
     fn compile_variable(
         &self,
         name: &str,
@@ -721,7 +956,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         
         // Check if it's a builtin function
         // Builtins are handled in Application, not as standalone variables
-        if name == "String_length" || name == "String_contains" || name == "print" || name == "println" || name == "List_concat" || name == "List.concat" {
+        if name == "String_length" || name == "String_contains" || name == "print" || name == "println" || name == "List_concat" || name == "List.concat" || name == "List_get" || name == "List.get" || name == "List_set" || name == "List.set" {
             return Err(format!("Builtin function '{}' can only be used in function calls", name));
         }
 
@@ -1165,6 +1400,24 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     }
                 }
                 
+                // Check for List_get and List_set which have curried application
+                let (func_name, args) = self.flatten_application(app)?;
+                if (func_name == "List_get" || func_name == "List.get") && args.len() == 2 {
+                    // List_get: List<T> -> Nat -> T
+                    // Infer element type from the list argument
+                    let list_type = self.infer_expr_type(&args[0])?;
+                    if let Type::List(list_type) = list_type {
+                        return Ok(*list_type.element_type);
+                    } else {
+                        return Err(format!("List.get expects a list, got {:?}", list_type));
+                    }
+                }
+                if (func_name == "List_set" || func_name == "List.set") && args.len() == 3 {
+                    // List_set: List<T> -> Nat -> T -> List<T>
+                    // Returns the same list type
+                    return self.infer_expr_type(&args[0]);
+                }
+                
                 // Check if the whole application is a multi-arg extern call
                 // Flatten to get the function name
                 let (func_name, _args) = self.flatten_application(app)?;
@@ -1241,6 +1494,22 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     self.infer_expr_type(first_expr)
                 } else {
                     Err("Cannot infer type from empty match expression".to_string())
+                }
+            },
+            Expr::Constructor(constructor) => {
+                // List literal: [1, 2, 3] => List<Int>
+                if constructor.name == "List" {
+                    if let Some(first_elem) = constructor.args.first() {
+                        let elem_type = self.infer_expr_type(first_elem)?;
+                        Ok(Type::List(crate::ast::ListType { element_type: Box::new(elem_type) }))
+                    } else {
+                        // Empty list - we need type annotation, but for now default to Int
+                        Ok(Type::List(crate::ast::ListType { 
+                            element_type: Box::new(Type::Basic(AstBasicType { name: "Int".to_string() }))
+                        }))
+                    }
+                } else {
+                    Err(format!("Cannot infer type for constructor: {}", constructor.name))
                 }
             },
             _ => Err(format!("Cannot infer type for expression: {:?}", expr)),
