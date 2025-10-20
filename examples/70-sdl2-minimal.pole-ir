@@ -1,0 +1,15 @@
+// Minimal SDL2 Test
+// Just initialize SDL and quit
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+func main() -> Int:
+  let result = SDL_Init(0) in
+  let _ = SDL_Quit(()) in
+  result
+
+@test(main() == 0)
