@@ -1,6 +1,6 @@
-// Multiple Zombies Demo
-// 10 zombies chase player using List storage
-// Month 2-3: Scaling to multiple entities
+// Multiple Zombies using HashMap storage
+// 10 zombies chase player
+// HashMap stores zombie positions: id -> (x*1000 + y)
 
 @extern("SDL_Init")
 func SDL_Init(flags: Int) -> Int
@@ -69,12 +69,17 @@ func create_rect(x: Int, y: Int, w: Int, h: Int) -> Ptr<Unit>
   let _ = write_i32_at(rect, 12, h) in
   rect
 
-func create_zombie(x: Int, y: Int) -> Ptr<Unit>
+func encode_pos(x: Int, y: Int) -> Int
 :
-  let zombie = c_malloc(8) in
-  let _ = write_i32_at(zombie, 0, x) in
-  let _ = write_i32_at(zombie, 4, y) in
-  zombie
+  x * 1000 + y
+
+func decode_x(encoded: Int) -> Int
+:
+  encoded / 1000
+
+func decode_y(encoded: Int) -> Int
+:
+  encoded - encoded / 1000 * 1000
 
 func get_tile_procedural(x: Int, y: Int) -> Int
 :
@@ -125,10 +130,8 @@ func draw_player(renderer: Ptr<Unit>, px: Int, py: Int, cam_x: Int, cam_y: Int) 
   let _ = c_free(rect) in
   ()
 
-func draw_zombie_at(renderer: Ptr<Unit>, zombie: Ptr<Unit>, cam_x: Int, cam_y: Int) -> Unit
+func draw_zombie_at(renderer: Ptr<Unit>, zx: Int, zy: Int, cam_x: Int, cam_y: Int) -> Unit
 :
-  let zx = read_i32_at(zombie, 0) in
-  let zy = read_i32_at(zombie, 4) in
   let base_x = (zx - zy) * 32 + 400 in
   let base_y = (zx + zy) * 16 + 100 in
   let sx = base_x + cam_x in
@@ -139,52 +142,60 @@ func draw_zombie_at(renderer: Ptr<Unit>, zombie: Ptr<Unit>, cam_x: Int, cam_y: I
   let _ = c_free(rect) in
   ()
 
-func draw_zombies(renderer: Ptr<Unit>, zombies: List<Ptr<Unit>>, index: Int, cam_x: Int, cam_y: Int) -> Unit
+func draw_zombie_by_id(renderer: Ptr<Unit>, zombies: Ptr<Unit>, zombie_id: Int, cam_x: Int, cam_y: Int) -> Unit
 :
-  let len = List_length(zombies) in
-  if index >= len then ()
-  else
-    let zombie = List_get(zombies, index) in
-    let _ = draw_zombie_at(renderer, zombie, cam_x, cam_y) in
-    draw_zombies(renderer, zombies, index + 1, cam_x, cam_y)
+  let encoded = HashMap_get(zombies, zombie_id) in
+  let zx = decode_x(encoded) in
+  let zy = decode_y(encoded) in
+  draw_zombie_at(renderer, zx, zy, cam_x, cam_y)
 
-func update_zombie_pos(zombie: Ptr<Unit>, px: Int, py: Int, frame: Int) -> Ptr<Unit>
+func draw_all_zombies(renderer: Ptr<Unit>, zombies: Ptr<Unit>, zombie_id: Int, max_id: Int, cam_x: Int, cam_y: Int) -> Unit
+:
+  if zombie_id > max_id then ()
+  else
+    let _ = draw_zombie_by_id(renderer, zombies, zombie_id, cam_x, cam_y) in
+    draw_all_zombies(renderer, zombies, zombie_id + 1, max_id, cam_x, cam_y)
+
+func update_zombie(zombies: Ptr<Unit>, zombie_id: Int, px: Int, py: Int, frame: Int) -> Unit
 :
   let move_frame = frame - frame / 20 * 20 in
   if move_frame == 0 then
-    let zx = read_i32_at(zombie, 0) in
-    let zy = read_i32_at(zombie, 4) in
+    let encoded = HashMap_get(zombies, zombie_id) in
+    let zx = decode_x(encoded) in
+    let zy = decode_y(encoded) in
     let dx = px - zx in
     let dy = py - zy in
     if dx > 0 then
       let new_zx = zx + 1 in
-      let _ = write_i32_at(zombie, 0, new_zx) in
-      zombie
+      let new_encoded = encode_pos(new_zx, zy) in
+      let _ = HashMap_put(zombies, zombie_id, new_encoded) in
+      ()
     else if dx < 0 then
       let new_zx = zx - 1 in
-      let _ = write_i32_at(zombie, 0, new_zx) in
-      zombie
+      let new_encoded = encode_pos(new_zx, zy) in
+      let _ = HashMap_put(zombies, zombie_id, new_encoded) in
+      ()
     else if dy > 0 then
       let new_zy = zy + 1 in
-      let _ = write_i32_at(zombie, 4, new_zy) in
-      zombie
+      let new_encoded = encode_pos(zx, new_zy) in
+      let _ = HashMap_put(zombies, zombie_id, new_encoded) in
+      ()
     else if dy < 0 then
       let new_zy = zy - 1 in
-      let _ = write_i32_at(zombie, 4, new_zy) in
-      zombie
+      let new_encoded = encode_pos(zx, new_zy) in
+      let _ = HashMap_put(zombies, zombie_id, new_encoded) in
+      ()
     else
-      zombie
+      ()
   else
-    zombie
+    ()
 
-func update_zombies(zombies: List<Ptr<Unit>>, px: Int, py: Int, frame: Int, index: Int) -> List<Ptr<Unit>>
+func update_all_zombies(zombies: Ptr<Unit>, zombie_id: Int, max_id: Int, px: Int, py: Int, frame: Int) -> Unit
 :
-  let len = List_length(zombies) in
-  if index >= len then zombies
+  if zombie_id > max_id then ()
   else
-    let zombie = List_get(zombies, index) in
-    let _ = update_zombie_pos(zombie, px, py, frame) in
-    update_zombies(zombies, px, py, frame, index + 1)
+    let _ = update_zombie(zombies, zombie_id, px, py, frame) in
+    update_all_zombies(zombies, zombie_id + 1, max_id, px, py, frame)
 
 func process_input(event: Ptr<Unit>, px: Int, py: Int, running: Int) -> Ptr<Unit>
 :
@@ -244,7 +255,7 @@ func process_input(event: Ptr<Unit>, px: Int, py: Int, running: Int) -> Ptr<Unit
       let _ = write_i32_at(result, 8, running) in
       result
 
-func game_loop(renderer: Ptr<Unit>, event: Ptr<Unit>, px: Int, py: Int, zombies: List<Ptr<Unit>>, running: Int, frame: Int) -> Unit
+func game_loop(renderer: Ptr<Unit>, event: Ptr<Unit>, px: Int, py: Int, zombies: Ptr<Unit>, running: Int, frame: Int) -> Unit
 :
   if running == 0 then ()
   else if frame >= 600 then ()
@@ -254,38 +265,38 @@ func game_loop(renderer: Ptr<Unit>, event: Ptr<Unit>, px: Int, py: Int, zombies:
     let new_py = read_i32_at(input, 4) in
     let new_running = read_i32_at(input, 8) in
     let _ = c_free(input) in
-    let new_zombies = update_zombies(zombies, new_px, new_py, frame, 0) in
+    let _ = update_all_zombies(zombies, 1, 10, new_px, new_py, frame) in
     let cam_x = 0 - new_px * 32 + 200 in
     let cam_y = 0 - new_py * 16 + 150 in
     let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
     let _ = SDL_RenderClear(renderer) in
     let _ = render_grid(renderer, 0, 30, 30, cam_x, cam_y) in
-    let _ = draw_zombies(renderer, new_zombies, 0, cam_x, cam_y) in
+    let _ = draw_all_zombies(renderer, zombies, 1, 10, cam_x, cam_y) in
     let _ = draw_player(renderer, new_px, new_py, cam_x, cam_y) in
     let _ = SDL_RenderPresent(renderer) in
     let _ = SDL_Delay(16) in
-    game_loop(renderer, event, new_px, new_py, new_zombies, new_running, frame + 1)
+    game_loop(renderer, event, new_px, new_py, zombies, new_running, frame + 1)
 
 func main() -> Int
 :
-  let _ = printf("=== Multiple Zombies Demo ===\n") in
+  let _ = printf("=== Multiple Zombies Demo (HashMap) ===\n") in
   let _ = printf("10 zombies will chase you!\n") in
   let _ = printf("WASD to move, ESC to quit\n") in
   let _ = SDL_Init(32) in
   let window = SDL_CreateWindow("Multiple Zombies", 805240832, 805240832, 800, 600, 4) in
   let renderer = SDL_CreateRenderer(window, -1, 2) in
   let event = c_malloc(56) in
-  let z1 = create_zombie(10, 10) in
-  let z2 = create_zombie(20, 10) in
-  let z3 = create_zombie(10, 20) in
-  let z4 = create_zombie(20, 20) in
-  let z5 = create_zombie(5, 15) in
-  let z6 = create_zombie(25, 15) in
-  let z7 = create_zombie(15, 5) in
-  let z8 = create_zombie(15, 25) in
-  let z9 = create_zombie(8, 8) in
-  let z10 = create_zombie(22, 22) in
-  let zombies = [z1, z2, z3, z4, z5, z6, z7, z8, z9, z10] in
+  let zombies = HashMap_new(32) in
+  let _ = HashMap_put(zombies, 1, encode_pos(10, 10)) in
+  let _ = HashMap_put(zombies, 2, encode_pos(20, 10)) in
+  let _ = HashMap_put(zombies, 3, encode_pos(10, 20)) in
+  let _ = HashMap_put(zombies, 4, encode_pos(20, 20)) in
+  let _ = HashMap_put(zombies, 5, encode_pos(5, 15)) in
+  let _ = HashMap_put(zombies, 6, encode_pos(25, 15)) in
+  let _ = HashMap_put(zombies, 7, encode_pos(15, 5)) in
+  let _ = HashMap_put(zombies, 8, encode_pos(15, 25)) in
+  let _ = HashMap_put(zombies, 9, encode_pos(8, 8)) in
+  let _ = HashMap_put(zombies, 10, encode_pos(22, 22)) in
   let _ = game_loop(renderer, event, 15, 15, zombies, 1, 0) in
   let _ = c_free(event) in
   let _ = SDL_DestroyRenderer(renderer) in
