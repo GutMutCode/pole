@@ -7,12 +7,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from pole.parser.spec_parser import SpecParser
 from pole.runtime.interpreter import interpret
-from pole.runtime.ir_parser import parse_ir
+from pole.runtime.ir_parser_rust import parse_ir
 from pole.transformer.llm_client import MockLLMClient, OpenRouterClient
 from pole.transformer.llm_transformer import transform_specification
 from pole.validator.spec_validator import SpecificationValidator
 from pole.verifier.example_tester import test_program
-from pole.verifier.type_checker import check_types
+from pole.verifier.type_checker_rust import check_types_with_source
 
 
 def cmd_check(file_path: str):
@@ -92,8 +92,7 @@ def cmd_build(file_path: str, output: str | None = None, use_mock: bool = False)
 
     print(f"✓ IR generated: {output_path}")
 
-    program = parse_ir(ir_code)
-    type_result = check_types(program)
+    type_result = check_types_with_source(ir_code)
 
     if not type_result.success:
         print()
@@ -152,14 +151,14 @@ def cmd_test(file_path: str):
     with open(file_path) as f:
         ir_code = f.read()
 
-    program = parse_ir(ir_code)
-
-    type_result = check_types(program)
+    type_result = check_types_with_source(ir_code)
     if not type_result.success:
         print()
         print("Type check failed:")
         print(type_result)
         sys.exit(1)
+
+    program = parse_ir(ir_code)
 
     print()
     report = test_program(program, verbose=True)

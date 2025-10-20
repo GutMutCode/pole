@@ -298,7 +298,7 @@ CRITICAL: For else-if chains:
             from pathlib import Path
 
             sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-            from pole.runtime.ir_parser import parse_ir  # type: ignore
+            from pole.runtime.ir_parser_rust import parse_ir  # type: ignore
 
             parse_ir(ir_code)
             return True

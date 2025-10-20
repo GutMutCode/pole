@@ -84,8 +84,8 @@ class ExampleTester:
         if "input" not in args or "expected" not in args:
             return None
 
-        input_value = args["input"]
-        expected_output = args["expected"]
+        input_value = self._parse_value(args["input"])
+        expected_output = self._parse_value(args["expected"])
 
         return TestCase(
             function_name=func_def.name,
@@ -93,6 +93,32 @@ class ExampleTester:
             expected_output=expected_output,
             source_annotation=args,
         )
+
+    def _parse_value(self, value: Any) -> Any:
+        """Parse string values to appropriate types (for Rust parser compatibility)"""
+        if not isinstance(value, str):
+            return value
+
+        # Try int
+        try:
+            return int(value)
+        except ValueError:
+            pass
+
+        # Try float
+        try:
+            return float(value)
+        except ValueError:
+            pass
+
+        # Try bool
+        if value.lower() == "true":
+            return True
+        elif value.lower() == "false":
+            return False
+
+        # Return as string
+        return value
 
     def run_test(self, test_case: TestCase) -> TestResult:
         try:

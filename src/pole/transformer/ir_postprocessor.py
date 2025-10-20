@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from pole.runtime.ir_parser import parse_ir
+from pole.runtime.ir_parser_rust import parse_ir
 
 
 @dataclass
