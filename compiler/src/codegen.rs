@@ -254,6 +254,28 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                             
                             return Ok(result_val.into());
                         }
+                        "int_to_float" => {
+                            // int_to_float: Int -> Float64
+                            // Convert i64 to f64
+                            let int_val = self.compile_expr(&app.arg, function)?.into_int_value();
+                            let float_val = self.builder.build_signed_int_to_float(
+                                int_val,
+                                self.context.f64_type(),
+                                "int_to_float"
+                            ).unwrap();
+                            return Ok(float_val.into());
+                        }
+                        "float_to_int" => {
+                            // float_to_int: Float64 -> Int
+                            // Convert f64 to i64
+                            let float_val = self.compile_expr(&app.arg, function)?.into_float_value();
+                            let int_val = self.builder.build_float_to_signed_int(
+                                float_val,
+                                self.context.i64_type(),
+                                "float_to_int"
+                            ).unwrap();
+                            return Ok(int_val.into());
+                        }
                         _ => {
                             // Check if it's a builtin before falling through
                         }
@@ -308,6 +330,25 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                         return Err(format!("List.set expects 3 arguments, got {}", args.len()));
                     }
                     return self.compile_list_set(&args[0], &args[1], &args[2], function);
+                }
+                
+                if func_name == "list_new" {
+                    // list_new: () -> List<T>
+                    // Returns empty list { null, 0 }
+                    // Note: f() is parsed as f(Unit), so args.len() == 1
+                    if args.len() > 1 {
+                        return Err(format!("list_new expects 0 or 1 arguments, got {}", args.len()));
+                    }
+                    let i64_type = self.context.i64_type();
+                    let i64_ptr_type = i64_type.ptr_type(inkwell::AddressSpace::default());
+                    let list_type = self.context.struct_type(
+                        &[i64_ptr_type.into(), i64_type.into()],
+                        false
+                    );
+                    let null_ptr = i64_ptr_type.const_null();
+                    let zero_len = i64_type.const_int(0, false);
+                    let list_val = list_type.const_named_struct(&[null_ptr.into(), zero_len.into()]);
+                    return Ok(list_val.into());
                 }
                 
                 if func_name == "List_push" || func_name == "List.push" {
