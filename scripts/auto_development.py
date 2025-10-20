@@ -29,13 +29,18 @@ class DevelopmentStep:
         self.output = ""
 
 
-def create_checklist(spec_file: str) -> List[DevelopmentStep]:
-    """Create development checklist for a spec file"""
+def create_checklist(spec_file: str, integration_test: str = "") -> List[DevelopmentStep]:
+    """Create development checklist for a spec file
+
+    Args:
+        spec_file: Path to .pole specification file
+        integration_test: Optional path to integration test file (e.g., examples/67-test-player.pole-ir)
+    """
 
     base_name = Path(spec_file).stem
     ir_file = spec_file.replace(".pole", ".pole-ir")
 
-    return [
+    steps = [
         DevelopmentStep("Check dependencies", f"ls {spec_file}", "File must exist"),
         DevelopmentStep(
             "Read .pole syntax examples",
@@ -59,6 +64,25 @@ def create_checklist(spec_file: str) -> List[DevelopmentStep]:
         ),
         DevelopmentStep("Run test cases", f"pole test {ir_file}", "All tests must pass"),
     ]
+
+    # Add integration test steps if specified
+    if integration_test:
+        steps.extend(
+            [
+                DevelopmentStep(
+                    "Write integration test",
+                    f"echo 'Manual step: Write {integration_test}'",
+                    "Integration test file must be created",
+                ),
+                DevelopmentStep(
+                    "Run integration test",
+                    f"pole test {integration_test}",
+                    "Integration tests must pass",
+                ),
+            ]
+        )
+
+    return steps
 
 
 def execute_step(step: DevelopmentStep, auto_fix: bool = False) -> Tuple[bool, str]:
@@ -138,13 +162,13 @@ def attempt_auto_fix(step: DevelopmentStep) -> bool:
     return False
 
 
-def run_workflow(spec_file: str, auto_fix: bool = False) -> bool:
+def run_workflow(spec_file: str, auto_fix: bool = False, integration_test: str = "") -> bool:
     """Run the complete development workflow"""
 
     print(f"🚀 Starting development workflow for: {spec_file}")
     print("=" * 60)
 
-    checklist = create_checklist(spec_file)
+    checklist = create_checklist(spec_file, integration_test)
 
     for i, step in enumerate(checklist, 1):
         print(f"\nStep {i}/{len(checklist)}:")
@@ -191,6 +215,11 @@ def main():
     parser.add_argument(
         "--auto-fix", action="store_true", help="Attempt automatic fixes (experimental)"
     )
+    parser.add_argument(
+        "--integration-test",
+        default="",
+        help="Path to integration test file (e.g., examples/67-test-player.pole-ir)",
+    )
 
     args = parser.parse_args()
 
@@ -198,7 +227,7 @@ def main():
         print(f"❌ File not found: {args.spec_file}")
         return 1
 
-    success = run_workflow(args.spec_file, args.auto_fix)
+    success = run_workflow(args.spec_file, args.auto_fix, args.integration_test)
 
     return 0 if success else 1
 

@@ -1006,7 +1006,7 @@ fn parse_record_expr(input: &str) -> ParseResult<Expr> {
         ws(char(',')),
         separated_pair(
             ws(identifier),
-            ws(char('=')),
+            ws(char(':')),
             ws(parse_expr),
         ),
     )(input)?;
@@ -1034,4 +1034,40 @@ fn parse_list_literal(input: &str) -> ParseResult<Expr> {
         name: "List".to_string(),
         args: elements,
     })))
+}
+
+#[test]
+fn test_parse_record_return() {
+    let input = r#"
+type Player = { health: Int }
+
+func make_player() -> Player:
+  { health: 100 }
+
+func test_it() -> Int:
+  42
+"#;
+    let result = parse_ir(input);
+    assert!(result.is_ok(), "Parse failed: {:?}", result.err());
+    let program = result.unwrap();
+    assert_eq!(program.type_defs.len(), 1);
+    assert_eq!(program.func_defs.len(), 2, "Expected 2 functions, got {}", program.func_defs.len());
+}
+
+#[test]
+fn test_parse_just_record_expr() {
+    let input = "{ health: 100 }";
+    let result = parse_record_expr(input);
+    assert!(result.is_ok(), "Parse failed: {:?}", result.err());
+    let (remaining, _expr) = result.unwrap();
+    assert_eq!(remaining, "", "Remaining input: '{}'", remaining);
+}
+
+#[test]
+fn test_parse_record_expr_with_trailing() {
+    let input = "{ health: 100 }\n\nfunc next() -> Int:\n  42";
+    let result = parse_record_expr(input);
+    assert!(result.is_ok(), "Parse failed: {:?}", result.err());
+    let (remaining, _expr) = result.unwrap();
+    assert!(remaining.trim().starts_with("func"), "Remaining: '{}'", remaining);
 }

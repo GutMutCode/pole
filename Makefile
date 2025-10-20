@@ -77,7 +77,11 @@ pre-commit: format verify-all
 
 auto-dev:
 	@if [ -z "$(FILE)" ]; then \
-		echo "Usage: make auto-dev FILE=path/to/spec.pole"; \
+		echo "Usage: make auto-dev FILE=path/to/spec.pole [INTEGRATION_TEST=path/to/test.pole-ir]"; \
 		exit 1; \
 	fi
-	@python3 scripts/auto_development.py $(FILE)
+	@if [ -n "$(INTEGRATION_TEST)" ]; then \
+		python3 scripts/auto_development.py $(FILE) --integration-test $(INTEGRATION_TEST); \
+	else \
+		python3 scripts/auto_development.py $(FILE); \
+	fi

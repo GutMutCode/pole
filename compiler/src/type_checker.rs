@@ -71,6 +71,81 @@ impl TypeChecker {
     }
     
     fn initialize_builtins(&mut self) {
+        // Helper to create a polymorphic type variable (we'll use "Unknown" to mean "any type")
+        // In a real implementation, we'd need proper type variable support
+        
+        // List operations - curried form
+        // list_get: List<T> -> Int -> T -> T
+        // First application: List<T> -> (Int -> (T -> T))
+        let list_get_type = FunctionType {
+            param_type: Box::new(Type::List(ListType {
+                element_type: Box::new(Type::Basic(BasicType { name: "Unknown".to_string() })),
+            })),
+            return_type: Box::new(Type::Function(FunctionType {
+                param_type: Box::new(Type::Basic(BasicType { name: "Int".to_string() })),
+                return_type: Box::new(Type::Function(FunctionType {
+                    param_type: Box::new(Type::Basic(BasicType { name: "Unknown".to_string() })),
+                    return_type: Box::new(Type::Basic(BasicType { name: "Unknown".to_string() })),
+                    effect: None,
+                })),
+                effect: None,
+            })),
+            effect: None,
+        };
+        self.function_types.insert("list_get".to_string(), list_get_type);
+
+        // list_set: List<T> -> Int -> T -> List<T>
+        let list_set_type = FunctionType {
+            param_type: Box::new(Type::List(ListType {
+                element_type: Box::new(Type::Basic(BasicType { name: "Unknown".to_string() })),
+            })),
+            return_type: Box::new(Type::Function(FunctionType {
+                param_type: Box::new(Type::Basic(BasicType { name: "Int".to_string() })),
+                return_type: Box::new(Type::Function(FunctionType {
+                    param_type: Box::new(Type::Basic(BasicType { name: "Unknown".to_string() })),
+                    return_type: Box::new(Type::List(ListType {
+                        element_type: Box::new(Type::Basic(BasicType { name: "Unknown".to_string() })),
+                    })),
+                    effect: None,
+                })),
+                effect: None,
+            })),
+            effect: None,
+        };
+        self.function_types.insert("list_set".to_string(), list_set_type);
+
+        // list_push: List<T> -> T -> List<T>
+        let list_push_type = FunctionType {
+            param_type: Box::new(Type::List(ListType {
+                element_type: Box::new(Type::Basic(BasicType { name: "Unknown".to_string() })),
+            })),
+            return_type: Box::new(Type::Function(FunctionType {
+                param_type: Box::new(Type::Basic(BasicType { name: "Unknown".to_string() })),
+                return_type: Box::new(Type::List(ListType {
+                    element_type: Box::new(Type::Basic(BasicType { name: "Unknown".to_string() })),
+                })),
+                effect: None,
+            })),
+            effect: None,
+        };
+        self.function_types.insert("list_push".to_string(), list_push_type);
+
+        // Type conversions
+        // int_to_float: Int -> Float64
+        let int_to_float_type = FunctionType {
+            param_type: Box::new(Type::Basic(BasicType { name: "Int".to_string() })),
+            return_type: Box::new(Type::Basic(BasicType { name: "Float64".to_string() })),
+            effect: None,
+        };
+        self.function_types.insert("int_to_float".to_string(), int_to_float_type);
+
+        // float_to_int: Float64 -> Int
+        let float_to_int_type = FunctionType {
+            param_type: Box::new(Type::Basic(BasicType { name: "Float64".to_string() })),
+            return_type: Box::new(Type::Basic(BasicType { name: "Int".to_string() })),
+            effect: None,
+        };
+        self.function_types.insert("float_to_int".to_string(), float_to_int_type);
     }
     
     fn collect_type_definitions(&mut self) {
@@ -90,20 +165,32 @@ impl TypeChecker {
                     effect: None,
                 }
             } else if func_def.params.len() == 1 {
+                // Single parameter - simple function type
                 FunctionType {
                     param_type: Box::new(func_def.params[0].1.clone()),
                     return_type: Box::new(func_def.return_type.clone()),
                     effect: None,
                 }
             } else {
-                let param_types: Vec<Type> = func_def.params.iter()
-                    .map(|(_, t)| t.clone())
-                    .collect();
+                // Multiple parameters - build curried function type
+                // params = [(x, Int), (y, String), (z, Bool)]
+                // result type = Int -> (String -> (Bool -> ReturnType))
+                let mut result_type = func_def.return_type.clone();
+                
+                // Iterate params in reverse to build nested function types
+                // Skip the first parameter - it will be the outermost param_type
+                for (_, param_type) in func_def.params.iter().skip(1).rev() {
+                    result_type = Type::Function(FunctionType {
+                        param_type: Box::new(param_type.clone()),
+                        return_type: Box::new(result_type),
+                        effect: None,
+                    });
+                }
+                
+                // Now wrap with the first parameter
                 FunctionType {
-                    param_type: Box::new(Type::Tuple(TupleType {
-                        element_types: param_types,
-                    })),
-                    return_type: Box::new(func_def.return_type.clone()),
+                    param_type: Box::new(func_def.params[0].1.clone()),
+                    return_type: Box::new(result_type),
                     effect: None,
                 }
             };
@@ -325,8 +412,9 @@ impl TypeChecker {
             
             Expr::FieldAccess(field_access) => {
                 let record_type = self.infer_type(&field_access.record);
+                let resolved_type = self.resolve_type(&record_type);
                 
-                if let Type::Record(rec_type) = record_type {
+                if let Type::Record(rec_type) = resolved_type {
                     for (field_name, field_type) in &rec_type.fields {
                         if field_name == &field_access.field {
                             return field_type.clone();
@@ -364,6 +452,33 @@ impl TypeChecker {
         };
         
         Type::Basic(BasicType { name: type_name.to_string() })
+    }
+    
+    fn resolve_type(&self, t: &Type) -> Type {
+        match t {
+            Type::Basic(basic) => {
+                // Try to resolve custom type names to their definitions
+                if let Some(type_def) = self.custom_types.get(&basic.name) {
+                    match &type_def.definition {
+                        TypeDefKind::Record(rec_type) => {
+                            Type::Record(rec_type.clone())
+                        }
+                        TypeDefKind::Variant(_variants) => {
+                            // Variants are kept as Basic types with the variant name
+                            // The actual variant checking happens during pattern matching
+                            t.clone()
+                        }
+                        TypeDefKind::Alias(aliased_type) => {
+                            // Recursively resolve aliases
+                            self.resolve_type(aliased_type)
+                        }
+                    }
+                } else {
+                    t.clone()
+                }
+            }
+            _ => t.clone(),
+        }
     }
     
     fn is_numeric_type(&self, t: &Type) -> bool {
@@ -519,5 +634,21 @@ func bad () -> Int :
         let result = check_types(program);
         assert!(!result.success, "Should fail type check");
         assert!(!result.errors.is_empty());
+    }
+    
+    #[test]
+    fn test_record_return_type() {
+        let ir = r#"
+type Player = { health: Int }
+
+func make_player() -> Player:
+  { health: 100 }
+
+func test_it() -> Int:
+  make_player().health
+"#;
+        let program = parse_ir(ir).unwrap();
+        let result = check_types(program);
+        assert!(result.success, "Type check failed: {:?}", result.errors);
     }
 }

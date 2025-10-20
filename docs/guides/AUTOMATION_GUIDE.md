@@ -30,9 +30,13 @@
 | **6** | IR 생성 | `bash pole build` | ⚠️ 80% (LLM 실패 가능) |
 | **7** | Rust 검증 | `bash cargo run` | ✅ 100% |
 | **8** | 테스트 | `bash pole test` | ✅ 100% |
-| **9** | 커밋 판단 | 조건 체크 | ✅ 100% |
+| **9** | 통합 테스트 작성 | `write` | ✅ 100% (조건부) |
+| **10** | 통합 테스트 실행 | `bash pole test` | ✅ 100% (조건부) |
+| **11** | 커밋 판단 | 조건 체크 | ✅ 100% |
 
 **총 자동화율: 95%** (IR 생성 실패 시 수동 개입 필요)
+
+> **Note:** Steps 9-10 (integration tests) are conditional - only executed if required by the task (e.g., Week 1 Day 1-2)
 
 ### ❌ 현재 한계 (5%)
 
@@ -96,8 +100,11 @@ LLM Step 4: Mark completed
 
 **scripts/auto_development.py:**
 ```bash
-# 한 명령으로 전체 워크플로우 실행
+# 기본 워크플로우
 make auto-dev FILE=games/zomboid/specs/zombie.pole
+
+# 통합 테스트 포함 워크플로우
+make auto-dev FILE=games/zomboid/specs/zombie.pole INTEGRATION_TEST=examples/68-player-zombie.pole-ir
 
 # 자동으로 실행:
 # 1. 의존성 체크
@@ -106,7 +113,8 @@ make auto-dev FILE=games/zomboid/specs/zombie.pole
 # 4. IR 생성
 # 5. Rust 검증
 # 6. 테스트
-# 7. 결과 보고
+# 7. 통합 테스트 (if INTEGRATION_TEST specified)
+# 8. 결과 보고
 ```
 
 **장점:**
