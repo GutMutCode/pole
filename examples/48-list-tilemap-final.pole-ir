@@ -1,0 +1,28 @@
+@extern("puts")
+func c_puts(s: String) -> Int
+
+func main() -> Int :
+  let tilemap = [0, 1, 0, 1, 2, 1, 0, 1, 0] in
+  let width = 3 in
+  let get_index = 1 * width + 1 in
+  let center = List_get(tilemap, get_index) in
+  let set_index = 1 * width + 1 in
+  let updated = List_set(tilemap, set_index, 9) in
+  let new_center = List_get(updated, get_index) in
+  let old_center = List_get(tilemap, get_index) in
+  if center == 2 then
+    if new_center == 9 then
+      if old_center == 2 then
+        let _ = c_puts("SUCCESS: List tilemap test passed") in
+        0
+      else
+        let _ = c_puts("FAIL: Original map modified") in
+        1
+    else
+      let _ = c_puts("FAIL: Set failed") in
+      1
+  else
+    let _ = c_puts("FAIL: Get failed") in
+    1
+
+@test_case(expected=0)

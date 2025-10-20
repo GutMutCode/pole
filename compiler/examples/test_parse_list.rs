@@ -2,7 +2,7 @@ use pole_compiler::parse_ir;
 use std::fs;
 
 fn main() {
-    let ir = fs::read_to_string("../examples/40-list-get-test.pole-ir").unwrap();
+    let ir = fs::read_to_string("../examples/44-list-minimal.pole-ir").unwrap();
     match parse_ir(&ir) {
         Ok(prog) => {
             println!("Parsed {} functions:", prog.func_defs.len());
