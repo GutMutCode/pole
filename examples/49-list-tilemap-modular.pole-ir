@@ -1,0 +1,40 @@
+@extern("puts")
+func c_puts(s: String) -> Int
+
+func create_tilemap(dummy: Unit) -> List<Int>:
+  [0, 1, 0, 1, 2, 1, 0, 1, 0]
+
+func get_tile(tilemap: List<Int>, x: Int, y: Int) -> Int:
+  let width = 3 in
+  let index = y * width + x in
+  List_get(tilemap, index)
+
+func set_tile(tilemap: List<Int>, x: Int, y: Int, tile_type: Int) -> List<Int>:
+  let width = 3 in
+  let index = y * width + x in
+  List_set(tilemap, index, tile_type)
+
+func main() -> Int :
+  let _ = c_puts("=== List-based Tilemap (Modular) ===") in
+  let tilemap = create_tilemap() in
+  let center = get_tile(tilemap, 1, 1) in
+  let _ = c_puts("Center tile should be 2") in
+  let updated = set_tile(tilemap, 1, 1, 9) in
+  let new_center = get_tile(updated, 1, 1) in
+  let old_center = get_tile(tilemap, 1, 1) in
+  if center == 2 then
+    if new_center == 9 then
+      if old_center == 2 then
+        let _ = c_puts("SUCCESS: All tests passed") in
+        0
+      else
+        let _ = c_puts("FAIL: Original map modified") in
+        1
+    else
+      let _ = c_puts("FAIL: Set failed") in
+      1
+  else
+    let _ = c_puts("FAIL: Get failed") in
+    1
+
+@test_case(expected=0)

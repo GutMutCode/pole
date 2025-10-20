@@ -518,9 +518,19 @@ fn parse_application(input: &str) -> ParseResult<Expr> {
     
     let (input, _) = ws(char(')'))(input)?;
     
-    // If no arguments, this is invalid
+    // If no arguments, return a simple function call application
+    // This handles both zero-argument functions like create_list()
+    // and allows for partial application
     if args.is_empty() {
-        return Err(nom::Err::Error(nom::error::Error::new(input, nom::error::ErrorKind::Tag)));
+        // Zero-argument function call: f() becomes Application(f, Unit)
+        // We represent this as applying the function to a Unit literal
+        return Ok((input, Expr::Application(Application {
+            func: Box::new(Expr::Variable(Variable { name: func_name })),
+            arg: Box::new(Expr::Literal(Literal {
+                value: LiteralValue::Unit,
+                type_name: "Unit".to_string(),
+            })),
+        })));
     }
     
     // Build nested Application for curried form
