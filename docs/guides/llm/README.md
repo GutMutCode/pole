@@ -24,10 +24,10 @@
 - 웹 검색 워크플로우
 - 버전 관리 전략
 
-### [우회 전략](WORKAROUNDS.md)
-- 명세 품질 향상
-- 반복적 개선
-- 검증 자동화
+### [현대적 LLM 도구](MODERN_TOOLS.md) 🔥 신규
+- Aider, OpenCode 등 터미널 AI 도구
+- Tool Use (웹 검색, 자동 재시도)
+- Pole 통합 전략 (단기/중기/장기)
 
 ---
 
