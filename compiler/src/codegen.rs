@@ -1960,13 +1960,8 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
     ) -> Result<BasicValueEnum<'ctx>, String> {
         let record_value = self.compile_expr(&field_access.record, function)?;
         
-        let record_type = if let Expr::Variable(var) = &*field_access.record {
-            self.var_types.get(&var.name).ok_or_else(|| {
-                format!("Cannot find type for variable '{}'", var.name)
-            })?
-        } else {
-            return Err("Field access only supported on variables for now".to_string());
-        };
+        // Use infer_expr_type to get the type of the record expression
+        let record_type = self.infer_expr_type(&field_access.record)?;
         
         let type_name = if let Type::Basic(AstBasicType { name }) = record_type {
             name
@@ -1974,7 +1969,7 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
             return Err(format!("Expected basic type for record, got {:?}", record_type));
         };
         
-        let record_def = self.type_defs.get(type_name).ok_or_else(|| {
+        let record_def = self.type_defs.get(&type_name).ok_or_else(|| {
             format!("Record type '{}' not found", type_name)
         })?;
         

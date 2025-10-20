@@ -1,0 +1,113 @@
+@source("games/zomboid/main.pole")
+
+@extern("SDL_Init")
+func SDL_Init(flags: Int) -> Int
+
+@extern("SDL_CreateWindow")
+func SDL_CreateWindow(title: String, x: Int, y: Int, w: Int, h: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_CreateRenderer")
+func SDL_CreateRenderer(window: Ptr<Unit>, index: Int, flags: Int) -> Ptr<Unit>
+
+@extern("SDL_RenderClear")
+func SDL_RenderClear(renderer: Ptr<Unit>) -> Int
+
+@extern("SDL_RenderPresent")
+func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_SetRenderDrawColor")
+func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
+
+@extern("SDL_Delay")
+func SDL_Delay(ms: Int) -> Unit
+
+@extern("SDL_DestroyRenderer")
+func SDL_DestroyRenderer(renderer: Ptr<Unit>) -> Unit
+
+@extern("SDL_DestroyWindow")
+func SDL_DestroyWindow(window: Ptr<Unit>) -> Unit
+
+@extern("SDL_Quit")
+func SDL_Quit(dummy: Unit) -> Unit
+
+@extern("printf")
+@variadic
+func printf(format: String) -> Int
+
+type Position = { x: Int, y: Int }
+
+type Direction = North | South | East | West
+
+type Player = {
+  position: Position,
+  health: Int,
+  hunger: Int,
+  facing: Direction
+}
+
+type ZombieState = Idle | Chase | Attack
+
+type Zombie = {
+  position: Position,
+  health: Int,
+  state: ZombieState,
+  target_player: Int
+}
+
+type Tilemap = {
+  width: Int,
+  height: Int,
+  tile_size: Int,
+  tiles: List<Int>
+}
+
+type GameState = {
+  player: Player,
+  zombie: Zombie,
+  tilemap: Tilemap,
+  running: Bool,
+  frame_count: Int
+}
+
+func create_player(x: Int, y: Int) -> Player:
+  {
+    position: { x: x, y: y },
+    health: 100,
+    hunger: 100,
+    facing: South
+  }
+
+func create_zombie(x: Int, y: Int) -> Zombie:
+  {
+    position: { x: x, y: y },
+    health: 50,
+    state: Idle,
+    target_player: -1
+  }
+
+func create_simple_tilemap(width: Int, height: Int, tile_size: Int) -> Tilemap:
+  {
+    width: width,
+    height: height,
+    tile_size: tile_size,
+    tiles: []
+  }
+
+func create_game_state() -> GameState:
+  let player = create_player(10, 10) in
+  let zombie = create_zombie(5, 5) in
+  let tilemap = create_simple_tilemap(20, 20, 32) in
+  {
+    player: player,
+    zombie: zombie,
+    tilemap: tilemap,
+    running: true,
+    frame_count: 0
+  }
+
+func abs(n: Int) -> Int:
+  if n < 0 then 0 - n else n
+
+func distance(pos1: Position, pos2: Position) -> Int:
+  abs(pos1.x - pos2.x) + abs(pos1.y - pos2.y)
+

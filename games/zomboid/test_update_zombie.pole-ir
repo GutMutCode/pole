@@ -1,0 +1,31 @@
+type Position = { x: Int, y: Int }
+
+type ZombieState = Idle | Chase | Attack
+
+type Zombie = {
+  position: Position,
+  health: Int,
+  state: ZombieState,
+  target_player: Int
+}
+
+type Player = {
+  position: Position,
+  health: Int
+}
+
+func abs(n: Int) -> Int:
+  if n < 0 then 0 - n else n
+
+func distance(pos1: Position, pos2: Position) -> Int:
+  abs(pos1.x - pos2.x) + abs(pos1.y - pos2.y)
+
+func update_zombie_simple(zombie: Zombie, player: Player) -> Zombie:
+  let dist = distance(zombie.position, player.position) in
+  let new_state = if dist > 10 then Idle else if dist > 1 then Chase else Attack in
+  {
+    position: zombie.position,
+    health: zombie.health,
+    state: new_state,
+    target_player: -1
+  }
