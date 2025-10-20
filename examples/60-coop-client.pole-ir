@@ -1,0 +1,58 @@
+// 2-Player Co-op Client
+// Connects to server, sends position, receives game state
+
+@extern("socket")
+func c_socket(domain: Int, type: Int, protocol: Int) -> Int
+
+@extern("connect")
+func c_connect(sockfd: Int, addr: Ptr<Unit>, addrlen: Int) -> Int
+
+@extern("send")
+func c_send(sockfd: Int, buf: Ptr<Unit>, len: Int, flags: Int) -> Int
+
+@extern("recv")
+func c_recv(sockfd: Int, buf: Ptr<Unit>, len: Int, flags: Int) -> Int
+
+@extern("close")
+func c_close(fd: Int) -> Int
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("printf")
+@variadic
+func c_printf(format: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_write_i16_at")
+func write_i16_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_write_i32_at")
+func write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_ptr_to_string")
+func ptr_to_string(ptr: Ptr<Unit>) -> String
+
+@extern("htons")
+func htons(hostshort: Int) -> Int
+
+@extern("strlen")
+func c_strlen(s: String) -> Int
+
+// Create localhost address
+func create_server_addr(port: Int) -> Ptr<Unit>:
+let addr = c_malloc(16) in let _ = write_i16_at(addr, 0, 2) in let port_network = htons(port) in let _ = write_i16_at(addr, 2, port_network) in let _ = write_i32_at(addr, 4, 16777343) in addr
+
+// Connect and play
+func run_coop_client(dummy: Unit) -> Int:
+let _ = c_puts("=== Co-op Client ===") in let _ = c_puts("Connecting to server...") in let sockfd = c_socket(2, 1, 0) in if sockfd < 0 then let _ = c_puts("ERROR: Socket creation failed") in 1 else let addr = create_server_addr(8080) in let conn_result = c_connect(sockfd, addr, 16) in if conn_result < 0 then let _ = c_puts("ERROR: Connection failed. Is server running?") in let _ = c_close(sockfd) in let _ = c_free(addr) in 1 else let _ = c_puts("Connected!") in let buffer = c_malloc(256) in let bytes = c_recv(sockfd, buffer, 256, 0) in if bytes > 0 then let welcome = ptr_to_string(buffer) in let _ = c_puts("Server says:") in let _ = c_puts(welcome) in let bytes2 = c_recv(sockfd, buffer, 256, 0) in if bytes2 > 0 then let state = ptr_to_string(buffer) in let _ = c_puts("Game state:") in let _ = c_puts(state) in let _ = c_puts("Sending position update...") in let _ = c_send(sockfd, "POS 10 20\n", 10, 0) in let _ = c_free(buffer) in let _ = c_free(addr) in let _ = c_close(sockfd) in let _ = c_puts("Client done.") in 0 else let _ = c_puts("No state received") in let _ = c_free(buffer) in let _ = c_free(addr) in let _ = c_close(sockfd) in 0 else let _ = c_puts("No welcome message") in let _ = c_free(buffer) in let _ = c_free(addr) in let _ = c_close(sockfd) in 0
+
+func main() -> Int:
+run_coop_client(())
+
+@test_case(expected=0)

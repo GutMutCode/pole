@@ -1,0 +1,78 @@
+// 2-Player Co-op Server
+// Accepts 2 clients, tracks positions, broadcasts to both
+
+@extern("socket")
+func c_socket(domain: Int, type: Int, protocol: Int) -> Int
+
+@extern("bind")
+func c_bind(sockfd: Int, addr: Ptr<Unit>, addrlen: Int) -> Int
+
+@extern("listen")
+func c_listen(sockfd: Int, backlog: Int) -> Int
+
+@extern("accept")
+func c_accept(sockfd: Int, addr: Ptr<Unit>, addrlen: Ptr<Unit>) -> Int
+
+@extern("recv")
+func c_recv(sockfd: Int, buf: Ptr<Unit>, len: Int, flags: Int) -> Int
+
+@extern("send")
+func c_send(sockfd: Int, buf: Ptr<Unit>, len: Int, flags: Int) -> Int
+
+@extern("close")
+func c_close(fd: Int) -> Int
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("printf")
+@variadic
+func c_printf(format: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_write_i16_at")
+func write_i16_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_write_i32_at")
+func write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_read_i32_at")
+func read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+@extern("pole_ptr_to_string")
+func ptr_to_string(ptr: Ptr<Unit>) -> String
+
+@extern("htons")
+func htons(hostshort: Int) -> Int
+
+@extern("memcpy")
+func c_memcpy(dest: Ptr<Unit>, src: Ptr<Unit>, n: Int) -> Ptr<Unit>
+
+@extern("sprintf")
+@variadic
+func c_sprintf(str: Ptr<Unit>, format: String) -> Int
+
+@extern("strlen")
+func c_strlen(s: String) -> Int
+
+// Create server address
+func create_server_addr(port: Int) -> Ptr<Unit>:
+let addr = c_malloc(16) in let _ = write_i16_at(addr, 0, 2) in let port_network = htons(port) in let _ = write_i16_at(addr, 2, port_network) in let _ = write_i32_at(addr, 4, 0) in addr
+
+// Send state to both clients: "P1:x,y P2:x,y\n"
+func broadcast_state(client1: Int, client2: Int, p1x: Int, p1y: Int, p2x: Int, p2y: Int) -> Int:
+let buffer = c_malloc(256) in let _ = c_sprintf(buffer, "P1:%d,%d P2:%d,%d\n") in let len = c_strlen(ptr_to_string(buffer)) in let _ = c_send(client1, buffer, len, 0) in let _ = c_send(client2, buffer, len, 0) in let _ = c_free(buffer) in 0
+
+// Main server loop
+func run_coop_server(dummy: Unit) -> Int:
+let _ = c_puts("=== 2-Player Co-op Server ===") in let _ = c_puts("Creating socket...") in let sockfd = c_socket(2, 1, 0) in if sockfd < 0 then let _ = c_puts("ERROR: Socket creation failed") in 1 else let addr = create_server_addr(8080) in let _ = c_bind(sockfd, addr, 16) in let _ = c_listen(sockfd, 2) in let _ = c_puts("Listening on port 8080...") in let _ = c_puts("Waiting for Player 1...") in let client_addr1 = c_malloc(16) in let addrlen1 = c_malloc(4) in let _ = write_i32_at(addrlen1, 0, 16) in let client1 = c_accept(sockfd, client_addr1, addrlen1) in let _ = c_puts("Player 1 connected!") in let _ = c_send(client1, "WELCOME P1\n", 11, 0) in let _ = c_puts("Waiting for Player 2...") in let client_addr2 = c_malloc(16) in let addrlen2 = c_malloc(4) in let _ = write_i32_at(addrlen2, 0, 16) in let client2 = c_accept(sockfd, client_addr2, addrlen2) in let _ = c_puts("Player 2 connected!") in let _ = c_send(client2, "WELCOME P2\n", 11, 0) in let _ = c_puts("Both players connected. Starting game...") in let _ = broadcast_state(client1, client2, 0, 0, 5, 5) in let _ = c_puts("Game state broadcast. Press Ctrl+C to stop.") in let buffer = c_malloc(256) in let bytes = c_recv(client1, buffer, 256, 0) in let _ = c_puts("Received from P1:") in let msg = ptr_to_string(buffer) in let _ = c_puts(msg) in let _ = c_free(buffer) in let _ = c_close(client1) in let _ = c_close(client2) in let _ = c_free(client_addr1) in let _ = c_free(addrlen1) in let _ = c_free(client_addr2) in let _ = c_free(addrlen2) in let _ = c_free(addr) in let _ = c_close(sockfd) in let _ = c_puts("Server shutdown.") in 0
+
+func main() -> Int:
+run_coop_server(())
+
+@test_case(expected=0)
