@@ -139,20 +139,60 @@ func abs(n: Int) -> Int:
 func distance(pos1: Position, pos2: Position) -> Int:
   abs(pos1.x - pos2.x) + abs(pos1.y - pos2.y)
 
+func move_zombie_toward_player(zombie: Zombie, player: Player) -> Zombie:
+  let dx = player.position.x - zombie.position.x in
+  let dy = player.position.y - zombie.position.y in
+  let new_x = if dx > 0 then zombie.position.x + 1 else if dx < 0 then zombie.position.x - 1 else zombie.position.x in
+  let new_y = if dy > 0 then zombie.position.y + 1 else if dy < 0 then zombie.position.y - 1 else zombie.position.y in
+  let moved_x = if dx != 0 then
+    { position: { x: new_x, y: zombie.position.y }, health: zombie.health, state: zombie.state, target_player: zombie.target_player }
+  else
+    zombie
+  in
+  if dy != 0 then
+    { position: { x: moved_x.position.x, y: new_y }, health: moved_x.health, state: moved_x.state, target_player: moved_x.target_player }
+  else
+    moved_x
+
 func update_zombie_simple(zombie: Zombie, player: Player) -> Zombie:
   let dist = distance(zombie.position, player.position) in
   let new_state = if dist > 10 then Idle else if dist > 1 then Chase else Attack in
+  let moved_zombie = if new_state == Chase then
+    move_zombie_toward_player(zombie, player)
+  else
+    zombie
+  in
   {
-    position: zombie.position,
-    health: zombie.health,
+    position: moved_zombie.position,
+    health: moved_zombie.health,
     state: new_state,
-    target_player: zombie.target_player
+    target_player: moved_zombie.target_player
   }
 
+func check_collision(player: Player, zombie: Zombie) -> Bool:
+  player.position.x == zombie.position.x && player.position.y == zombie.position.y
+
+func apply_collision_damage(player: Player, zombie: Zombie) -> Player:
+  if check_collision(player, zombie) then
+    let new_health = if player.health > 10 then player.health - 10 else 0 in
+    { position: player.position, health: new_health, hunger: player.hunger, facing: player.facing }
+  else
+    player
+
+func should_move_zombie(frame_count: Int) -> Bool:
+  let divided = frame_count / 10 in
+  let remainder = frame_count - (divided * 10) in
+  remainder == 0
+
 func update_game_state(state: GameState, delta_time: Float64) -> GameState:
-  let updated_zombie = update_zombie_simple(state.zombie, state.player) in
+  let updated_zombie = if should_move_zombie(state.frame_count) then
+    update_zombie_simple(state.zombie, state.player)
+  else
+    state.zombie
+  in
+  let damaged_player = apply_collision_damage(state.player, updated_zombie) in
   {
-    player: state.player,
+    player: damaged_player,
     zombie: updated_zombie,
     tilemap: state.tilemap,
     running: state.running,
