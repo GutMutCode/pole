@@ -180,8 +180,8 @@ func apply_collision_damage(player: Player, zombie: Zombie) -> Player:
     player
 
 func should_move_zombie(frame_count: Int) -> Bool:
-  let divided = frame_count / 10 in
-  let remainder = frame_count - (divided * 10) in
+  let divided = frame_count / 30 in
+  let remainder = frame_count - (divided * 30) in
   remainder == 0
 
 func update_game_state(state: GameState, delta_time: Float64) -> GameState:
@@ -256,13 +256,39 @@ func process_events(state: GameState) -> GameState:
 
 func should_quit(state: GameState) -> Bool:
   if state.player.health <= 0 then
+    let _ = printf("======================\n") in
+    let _ = printf("    GAME OVER!\n") in
+    let _ = printf("======================\n") in
+    let _ = printf("You died!\n") in
+    let _ = printf("Survival time: %d frames\n") in
+    let _ = printf("Final score: %d\n") in
     true
   else if state.running == false then
+    let _ = printf("Game quit by user\n") in
     true
   else if state.frame_count > 18000 then
+    let _ = printf("Time limit reached!\n") in
     true
   else
     false
+
+func render_health_bar(renderer: Ptr<Unit>, health: Int) -> Int:
+  let bar_x = 10 in
+  let bar_y = 10 in
+  let bar_width = 200 in
+  let bar_height = 20 in
+  let health_width = health * 2 in
+  let bg_rect = create_rect(bar_x, bar_y, bar_width, bar_height) in
+  let _ = SDL_SetRenderDrawColor(renderer, 60, 60, 60, 255) in
+  let _ = SDL_RenderFillRect(renderer, bg_rect) in
+  let health_rect = create_rect(bar_x, bar_y, health_width, bar_height) in
+  let health_color = if health > 50 then 0 else if health > 20 then 1 else 2 in
+  let r = if health_color == 0 then 0 else if health_color == 1 then 255 else 255 in
+  let g = if health_color == 0 then 200 else if health_color == 1 then 165 else 0 in
+  let b = if health_color == 0 then 0 else 0 in
+  let _ = SDL_SetRenderDrawColor(renderer, r, g, b, 255) in
+  let _ = SDL_RenderFillRect(renderer, health_rect) in
+  0
 
 func render_game_state(renderer: Ptr<Unit>, state: GameState, screen_width: Int, screen_height: Int) -> Int:
   let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
@@ -278,6 +304,7 @@ func render_game_state(renderer: Ptr<Unit>, state: GameState, screen_width: Int,
   let zombie_rect = create_rect(zombie_x, zombie_y, tile_size, tile_size) in
   let _ = SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255) in
   let _ = SDL_RenderFillRect(renderer, zombie_rect) in
+  let _ = render_health_bar(renderer, state.player.health) in
   let _ = SDL_RenderPresent(renderer) in
   0
 
