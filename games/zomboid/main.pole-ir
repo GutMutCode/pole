@@ -18,6 +18,9 @@ func SDL_RenderPresent(renderer: Ptr<Unit>) -> Unit
 @extern("SDL_SetRenderDrawColor")
 func SDL_SetRenderDrawColor(renderer: Ptr<Unit>, r: Int, g: Int, b: Int, a: Int) -> Int
 
+@extern("SDL_RenderFillRect")
+func SDL_RenderFillRect(renderer: Ptr<Unit>, rect: Ptr<Unit>) -> Int
+
 @extern("SDL_Delay")
 func SDL_Delay(ms: Int) -> Unit
 
@@ -34,7 +37,15 @@ func SDL_Quit(dummy: Unit) -> Unit
 @variadic
 func printf(format: String) -> Int
 
+@extern("malloc")
+func malloc(size: Int) -> Ptr<Unit>
+
+@extern("pole_write_i32_at")
+func pole_write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
 type Position = { x: Int, y: Int }
+
+type Rect = { x: Int, y: Int, w: Int, h: Int }
 
 type Direction = North | South | East | West
 
@@ -68,6 +79,14 @@ type GameState = {
   running: Bool,
   frame_count: Int
 }
+
+func create_rect(x: Int, y: Int, w: Int, h: Int) -> Ptr<Unit>:
+  let rect = malloc(16) in
+  let _ = pole_write_i32_at(rect, 0, x) in
+  let _ = pole_write_i32_at(rect, 4, y) in
+  let _ = pole_write_i32_at(rect, 8, w) in
+  let _ = pole_write_i32_at(rect, 12, h) in
+  rect
 
 func create_player(x: Int, y: Int) -> Player:
   {
@@ -144,9 +163,17 @@ func should_quit(state: GameState) -> Bool:
 func render_game_state(renderer: Ptr<Unit>, state: GameState, screen_width: Int, screen_height: Int) -> Int:
   let _ = SDL_SetRenderDrawColor(renderer, 40, 80, 40, 255) in
   let _ = SDL_RenderClear(renderer) in
-  let _ = SDL_SetRenderDrawColor(renderer, 100, 200, 100, 255) in
+  let tile_size = state.tilemap.tile_size in
+  let player_x = state.player.position.x * tile_size in
+  let player_y = state.player.position.y * tile_size in
+  let player_rect = create_rect(player_x, player_y, tile_size, tile_size) in
   let _ = SDL_SetRenderDrawColor(renderer, 255, 255, 0, 255) in
+  let _ = SDL_RenderFillRect(renderer, player_rect) in
+  let zombie_x = state.zombie.position.x * tile_size in
+  let zombie_y = state.zombie.position.y * tile_size in
+  let zombie_rect = create_rect(zombie_x, zombie_y, tile_size, tile_size) in
   let _ = SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255) in
+  let _ = SDL_RenderFillRect(renderer, zombie_rect) in
   let _ = SDL_RenderPresent(renderer) in
   0
 
