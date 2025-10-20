@@ -183,6 +183,30 @@ make typecheck # mypy
 
 ## 🔍 Development Checklist (MUST FOLLOW)
 
+**IMPORTANT:** When starting development work, you MUST create a TODO list with these steps.
+Use the TodoWrite tool to track progress through each step.
+
+### Mandatory TODO Template
+
+When user says "진행해줘" or "개발 진행해", you MUST:
+
+1. **Create TODO list** with TodoWrite tool:
+   ```
+   - Check dependencies (previous day's work)
+   - Read syntax examples (03-user-validation.pole, 08-simple-record.pole-ir)
+   - Test pole CLI tools
+   - Write .pole specification
+   - Validate with pole check
+   - Generate IR with pole build (or write manually if LLM fails)
+   - Verify with Rust parser
+   - Run test cases
+   - Commit only if all tests pass
+   ```
+
+2. **Mark each TODO as in_progress** before starting
+3. **Mark as completed** immediately after finishing
+4. **Never skip steps** - complete in order
+
 ### Before Writing Code
 
 **1. Check Dependencies:**
@@ -240,6 +264,22 @@ pole test file.pole-ir
 - ✅ Rust parser validates successfully
 - ✅ All test cases pass
 - ✅ No TODO/FIXME comments without issue tracking
+
+### Example Workflow
+
+```
+User: "진행해줘"
+
+LLM: 
+1. Creates TODO list with TodoWrite
+2. Marks "Check dependencies" as in_progress
+3. Runs: ls games/zomboid/specs/player.pole
+4. Marks completed, moves to next TODO
+5. Marks "Read syntax examples" as in_progress
+6. Runs: cat examples/03-user-validation.pole
+7. ... continues through all steps
+8. Only commits when ALL TODOs are completed
+```
 
 ## Important Conventions
 

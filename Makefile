@@ -1,4 +1,4 @@
-.PHONY: help install dev-install test lint format typecheck clean update-priority verify-ir verify-specs verify-all pre-commit
+.PHONY: help install dev-install test lint format typecheck clean update-priority verify-ir verify-specs verify-all pre-commit auto-dev
 
 help:
 	@echo "Pole Development Commands:"
@@ -16,6 +16,9 @@ help:
 	@echo "  make verify-specs    - Verify all .pole spec files"
 	@echo "  make verify-all      - Run all verification checks"
 	@echo "  make pre-commit      - Run before committing (format + verify)"
+	@echo ""
+	@echo "Automated Development:"
+	@echo "  make auto-dev FILE=<spec.pole> - Run complete dev workflow with validation"
 
 install:
 	pip install -e .
@@ -71,3 +74,10 @@ verify-all: verify-specs verify-ir
 pre-commit: format verify-all
 	@echo ""
 	@echo "✓ Pre-commit checks passed. Safe to commit!"
+
+auto-dev:
+	@if [ -z "$(FILE)" ]; then \
+		echo "Usage: make auto-dev FILE=path/to/spec.pole"; \
+		exit 1; \
+	fi
+	@python3 scripts/auto_development.py $(FILE)
