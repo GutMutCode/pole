@@ -1,0 +1,180 @@
+// Survival Loop - PZ Style
+// Hunger, Thirst, Fatigue system
+// Time-based degradation
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_write_i32_at")
+func write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_read_i32_at")
+func read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+// Player survival stats
+// Memory layout: [hunger: Int, thirst: Int, fatigue: Int, is_alive: Int] = 16 bytes
+// Range: 0-100 (100 = full, 0 = critical)
+func create_player_stats(dummy: Unit) -> Ptr<Unit>:
+let stats = c_malloc(16) in
+let _ = write_i32_at(stats, 0, 100) in
+let _ = write_i32_at(stats, 4, 100) in
+let _ = write_i32_at(stats, 8, 100) in
+let _ = write_i32_at(stats, 12, 1) in
+stats
+
+func get_hunger(stats: Ptr<Unit>) -> Int:
+read_i32_at(stats, 0)
+
+func get_thirst(stats: Ptr<Unit>) -> Int:
+read_i32_at(stats, 4)
+
+func get_fatigue(stats: Ptr<Unit>) -> Int:
+read_i32_at(stats, 8)
+
+func is_alive(stats: Ptr<Unit>) -> Int:
+read_i32_at(stats, 12)
+
+func set_hunger(stats: Ptr<Unit>, value: Int) -> Int:
+let _ = write_i32_at(stats, 0, value) in
+0
+
+func set_thirst(stats: Ptr<Unit>, value: Int) -> Int:
+let _ = write_i32_at(stats, 4, value) in
+0
+
+func set_fatigue(stats: Ptr<Unit>, value: Int) -> Int:
+let _ = write_i32_at(stats, 8, value) in
+0
+
+func set_alive(stats: Ptr<Unit>, alive: Int) -> Int:
+let _ = write_i32_at(stats, 12, alive) in
+0
+
+// Decrease stat (min 0)
+func decrease_stat(current: Int, amount: Int) -> Int:
+let new_val = current - amount in
+if new_val < 0 then 0 else new_val
+
+// Increase stat (max 100)
+func increase_stat(current: Int, amount: Int) -> Int:
+let new_val = current + amount in
+if new_val > 100 then 100 else new_val
+
+// Update survival stats over time
+// Delta = time passed (in game hours)
+func update_survival(stats: Ptr<Unit>, delta: Int) -> Int:
+let hunger = get_hunger(stats) in
+let thirst = get_thirst(stats) in
+let fatigue = get_fatigue(stats) in
+let new_hunger = decrease_stat(hunger, delta * 2) in
+let new_thirst = decrease_stat(thirst, delta * 3) in
+let new_fatigue = decrease_stat(fatigue, delta * 1) in
+let _ = set_hunger(stats, new_hunger) in
+let _ = set_thirst(stats, new_thirst) in
+let _ = set_fatigue(stats, new_fatigue) in
+if new_hunger == 0 then
+let _ = c_puts("  CRITICAL: Starving!") in
+let _ = set_alive(stats, 0) in
+0
+else
+if new_thirst == 0 then
+let _ = c_puts("  CRITICAL: Dehydrated!") in
+let _ = set_alive(stats, 0) in
+0
+else
+if new_fatigue == 0 then
+let _ = c_puts("  CRITICAL: Exhausted!") in
+let _ = set_alive(stats, 0) in
+0
+else
+1
+
+// Eat food (restore hunger)
+func eat_food(stats: Ptr<Unit>, amount: Int) -> Int:
+let current = get_hunger(stats) in
+let new_val = increase_stat(current, amount) in
+let _ = set_hunger(stats, new_val) in
+let _ = c_puts("Ate food") in
+new_val
+
+// Drink water (restore thirst)
+func drink_water(stats: Ptr<Unit>, amount: Int) -> Int:
+let current = get_thirst(stats) in
+let new_val = increase_stat(current, amount) in
+let _ = set_thirst(stats, new_val) in
+let _ = c_puts("Drank water") in
+new_val
+
+// Sleep (restore fatigue)
+func sleep(stats: Ptr<Unit>, amount: Int) -> Int:
+let current = get_fatigue(stats) in
+let new_val = increase_stat(current, amount) in
+let _ = set_fatigue(stats, new_val) in
+let _ = c_puts("Slept") in
+new_val
+
+// Print survival status
+func print_survival_status(stats: Ptr<Unit>) -> Int:
+let hunger = get_hunger(stats) in
+let thirst = get_thirst(stats) in
+let fatigue = get_fatigue(stats) in
+let alive = is_alive(stats) in
+let _ = c_puts("Survival Status:") in
+if hunger < 30 then
+let _ = c_puts("  Hunger: LOW") in 0
+else
+let _ = c_puts("  Hunger: OK") in 0
+in
+if thirst < 30 then
+let _ = c_puts("  Thirst: LOW") in 0
+else
+let _ = c_puts("  Thirst: OK") in 0
+in
+if fatigue < 30 then
+let _ = c_puts("  Fatigue: LOW") in 0
+else
+let _ = c_puts("  Fatigue: OK") in 0
+in
+if alive == 1 then
+let _ = c_puts("  Status: Alive") in 0
+else
+let _ = c_puts("  Status: Dead") in 0
+
+// Test survival loop
+func test_survival(dummy: Unit) -> Int:
+let _ = c_puts("=== Survival Loop Test ===") in
+let _ = c_puts("") in
+let stats = create_player_stats(()) in
+let _ = print_survival_status(stats) in
+let _ = c_puts("") in
+let _ = c_puts("--- 10 hours pass ---") in
+let _ = update_survival(stats, 10) in
+let _ = print_survival_status(stats) in
+let _ = c_puts("") in
+let _ = c_puts("--- Player eats food (+30) ---") in
+let _ = eat_food(stats, 30) in
+let _ = print_survival_status(stats) in
+let _ = c_puts("") in
+let _ = c_puts("--- 20 hours pass ---") in
+let _ = update_survival(stats, 20) in
+let _ = print_survival_status(stats) in
+let _ = c_puts("") in
+let _ = c_puts("--- Player drinks water (+40) ---") in
+let _ = drink_water(stats, 40) in
+let _ = print_survival_status(stats) in
+let _ = c_puts("") in
+let _ = c_puts("--- 30 hours pass (danger!) ---") in
+let _ = update_survival(stats, 30) in
+let _ = print_survival_status(stats) in
+let _ = c_puts("") in
+let _ = c_free(stats) in
+0
+
+func main() -> Int:
+test_survival(())

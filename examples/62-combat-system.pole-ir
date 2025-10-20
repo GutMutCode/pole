@@ -1,0 +1,136 @@
+// Combat System - PZ Style
+// HP tracking, damage calculation, death
+// Player vs Zombie combat mechanics
+
+@extern("puts")
+func c_puts(s: String) -> Int
+
+@extern("malloc")
+func c_malloc(size: Int) -> Ptr<Unit>
+
+@extern("free")
+func c_free(ptr: Ptr<Unit>) -> Unit
+
+@extern("pole_write_i32_at")
+func write_i32_at(ptr: Ptr<Unit>, offset: Int, value: Int) -> Unit
+
+@extern("pole_read_i32_at")
+func read_i32_at(ptr: Ptr<Unit>, offset: Int) -> Int
+
+// Entity: HP + Max HP + is_alive
+// Memory layout: [hp: Int, max_hp: Int, is_alive: Int] = 12 bytes
+func create_entity(max_hp: Int) -> Ptr<Unit>:
+let entity = c_malloc(12) in
+let _ = write_i32_at(entity, 0, max_hp) in
+let _ = write_i32_at(entity, 4, max_hp) in
+let _ = write_i32_at(entity, 8, 1) in
+entity
+
+func get_hp(entity: Ptr<Unit>) -> Int:
+read_i32_at(entity, 0)
+
+func get_max_hp(entity: Ptr<Unit>) -> Int:
+read_i32_at(entity, 4)
+
+func is_alive(entity: Ptr<Unit>) -> Int:
+read_i32_at(entity, 8)
+
+func set_hp(entity: Ptr<Unit>, hp: Int) -> Int:
+let _ = write_i32_at(entity, 0, hp) in
+0
+
+func set_alive(entity: Ptr<Unit>, alive: Int) -> Int:
+let _ = write_i32_at(entity, 8, alive) in
+0
+
+// Take damage and check if dead
+func take_damage(entity: Ptr<Unit>, damage: Int) -> Int:
+let current_hp = get_hp(entity) in
+let new_hp = current_hp - damage in
+if new_hp <= 0 then
+let _ = set_hp(entity, 0) in
+let _ = set_alive(entity, 0) in
+let _ = c_puts("  Entity died!") in
+0
+else
+let _ = set_hp(entity, new_hp) in
+1
+
+// Heal entity (cannot exceed max_hp)
+func heal(entity: Ptr<Unit>, amount: Int) -> Int:
+let current_hp = get_hp(entity) in
+let max = get_max_hp(entity) in
+let new_hp = current_hp + amount in
+if new_hp > max then
+let _ = set_hp(entity, max) in
+max
+else
+let _ = set_hp(entity, new_hp) in
+new_hp
+
+// Attack: attacker deals damage to target
+func attack(attacker: Ptr<Unit>, target: Ptr<Unit>, damage: Int) -> Int:
+let attacker_alive = is_alive(attacker) in
+let target_alive = is_alive(target) in
+if attacker_alive == 0 then
+let _ = c_puts("Attacker is dead!") in
+0
+else
+if target_alive == 0 then
+let _ = c_puts("Target already dead!") in
+0
+else
+let _ = c_puts("Attack!") in
+take_damage(target, damage)
+
+// Print entity status
+func print_status(entity: Ptr<Unit>, name: String) -> Int:
+let hp = get_hp(entity) in
+let max = get_max_hp(entity) in
+let alive = is_alive(entity) in
+let _ = c_puts(name) in
+if alive == 1 then
+let _ = c_puts("  Status: Alive") in
+0
+else
+let _ = c_puts("  Status: Dead") in
+0
+
+// Test combat system
+func test_combat(dummy: Unit) -> Int:
+let _ = c_puts("=== Combat System Test ===") in
+let _ = c_puts("") in
+let _ = c_puts("Creating player (HP: 100)...") in
+let player = create_entity(100) in
+let _ = c_puts("Creating zombie (HP: 50)...") in
+let zombie = create_entity(50) in
+let _ = c_puts("") in
+let _ = c_puts("Initial status:") in
+let _ = print_status(player, "Player") in
+let _ = print_status(zombie, "Zombie") in
+let _ = c_puts("") in
+let _ = c_puts("Player attacks zombie (damage: 25)") in
+let _ = attack(player, zombie, 25) in
+let _ = print_status(zombie, "Zombie") in
+let _ = c_puts("") in
+let _ = c_puts("Zombie attacks player (damage: 15)") in
+let _ = attack(zombie, player, 15) in
+let _ = print_status(player, "Player") in
+let _ = c_puts("") in
+let _ = c_puts("Player attacks zombie (damage: 30)") in
+let _ = attack(player, zombie, 30) in
+let _ = print_status(zombie, "Zombie") in
+let _ = c_puts("") in
+let _ = c_puts("Zombie tries to attack (should fail)") in
+let _ = attack(zombie, player, 15) in
+let _ = c_puts("") in
+let _ = c_puts("Player heals (amount: 10)") in
+let _ = heal(player, 10) in
+let _ = print_status(player, "Player") in
+let _ = c_puts("") in
+let _ = c_free(player) in
+let _ = c_free(zombie) in
+0
+
+func main() -> Int:
+test_combat(())
