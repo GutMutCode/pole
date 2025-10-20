@@ -249,3 +249,106 @@ MIT License - See LICENSE file
 **Last Updated:** 2025-10-21  
 **Current Phase:** Week 1 Day 2 - Zombie specification  
 **File Length:** 270 lines (under 500-line limit ✅)
+
+## 🤖 Auto Priority System (NEW)
+
+### When You Discover a New Problem
+
+**IMPORTANT:** Before asking the user "언제 처리해야 할까?", run auto-analysis:
+
+```bash
+python scripts/auto_priority.py analyze "Problem description with context"
+```
+
+**Example:**
+```bash
+# Good description (includes impact)
+python scripts/auto_priority.py analyze \
+  "Variant constructors not in scope - blocks player.pole-ir type checking - cannot run demo"
+
+# Output:
+# Priority: P1
+# ROI: 66.7
+# Recommendation: SCHEDULE_NEXT
+```
+
+### Decision Protocol
+
+1. **Run auto-analysis** first
+2. **If P0 (Critical):**
+   - Alert user immediately
+   - Create `.claude/DECISION.md` with analysis
+   - Update TODO list
+   - Execute after 5s (or wait for approval)
+
+3. **If P1 (Important):**
+   - Show analysis to user
+   - Recommend: "오늘 오후 처리하는 것이 좋을 것 같습니다 (ROI: XX)"
+   - Create `.claude/DECISION.md`
+   - Wait for approval
+
+4. **If P2 (Optional):**
+   - Document in `.claude/PENDING_ISSUES.md`
+   - Recommend: "Week 2로 미루는 것이 좋겠습니다"
+   - Continue current work
+
+### Auto-Analysis Formula
+
+```
+ROI = (Impact × Urgency) / Complexity
+
+Impact (0-200):
+  - Blocks demo: +100
+  - Blocks current task: +50
+  - Breaks automation: +200
+  - Affects multiple files: +20
+
+Urgency (0-100):
+  - Days to deadline: 1일 = +100, 5일 = +20
+  - Blocks other tasks: +20 per task
+  - Can worsen: +30
+
+Complexity (0-200, lower is better):
+  - Estimated hours × 10
+  - High risk: +50
+  - Advanced knowledge: +20
+
+Priority:
+  - ROI ≥ 200 → P0 (Critical)
+  - ROI ≥ 50 → P1 (Important)
+  - ROI < 50 → P2 (Optional)
+```
+
+### Integration with TodoWrite
+
+**After analysis, update TODO automatically:**
+
+```python
+# Example usage in LLM workflow
+analysis = analyze_issue(problem_description)
+
+if analysis.priority == "P1":
+    # Insert at high priority position
+    todowrite([
+        Todo(id="urgent-1", content=problem_description, 
+             status="pending", priority="high"),
+        *existing_todos  # Push down existing todos
+    ])
+```
+
+### Documentation
+
+- **Strategy:** `.claude/AUTO_PRIORITY.md` - Detailed system design
+- **Script:** `scripts/auto_priority.py` - Analysis engine
+- **Usage:** This section - Quick reference
+
+### Success Metrics
+
+**Before:**
+- Problem → Ask user → Wait → Decide (30min+)
+
+**After:**
+- Problem → Auto-analyze (10s) → Recommend → User approves → Execute
+- 90% of decisions automated
+- 100% documented
+
