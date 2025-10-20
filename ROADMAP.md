@@ -1735,8 +1735,20 @@ func game_loop(window: *Window, ctx: *GLContext) -> Unit :
 ### 📅 PZ 중기 우선순위 (3-6개월)
 
 #### Q1 (Month 1-3): PZ 핵심 시스템
-- [ ] **좀비 AI 시뮬레이션** (100+ 엔티티)
-- [ ] **네트워킹 FFI** (TCP/UDP 소켓)
+- [x] **좀비 AI 시뮬레이션** (100+ 엔티티) ✅ 완료
+  - `52-hundred-zombies.pole-ir` - 100 zombies @ 60 FPS
+- [ ] **네트워킹 FFI** (TCP/UDP 소켓) ⏳ 다음
+  - **접근 방법**:
+    1. TCP client 예제 먼저 (connect + send/recv)
+    2. 외부 server(nc, python)로 테스트
+    3. 성공 후 full TCP server 구현
+    4. UDP echo server/client
+  - **산출물**:
+    - Socket API FFI (`socket`, `bind`, `listen`, `accept`, `connect`)
+    - TCP client 예제
+    - TCP server 예제
+    - UDP echo 예제
+  - **도전 과제**: sockaddr 구조체, endianness, 상수 정의
 - [ ] **2인 Co-op 프로토타입**
 - [ ] **메모리 최적화** (Arena allocator)
 
