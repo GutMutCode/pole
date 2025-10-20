@@ -289,12 +289,17 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     return self.compile_list_concat(&args[0], function);
                 }
                 
-                if func_name == "List_get" || func_name == "List.get" {
+                if func_name == "List_get" || func_name == "List.get" || func_name == "list_get" {
                     // List.get: List<T> -> Nat -> T
-                    if args.len() != 2 {
-                        return Err(format!("List.get expects 2 arguments, got {}", args.len()));
+                    // list_get: List<T> -> Nat -> T -> T (with default)
+                    if args.len() == 2 {
+                        return self.compile_list_get(&args[0], &args[1], function);
+                    } else if args.len() == 3 {
+                        // Third argument is default value
+                        return self.compile_list_get_with_default(&args[0], &args[1], &args[2], function);
+                    } else {
+                        return Err(format!("list_get expects 2 or 3 arguments, got {}", args.len()));
                     }
-                    return self.compile_list_get(&args[0], &args[1], function);
                 }
                 
                 if func_name == "List_set" || func_name == "List.set" {
@@ -848,6 +853,85 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         Ok(phi.as_basic_value())
     }
 
+    fn compile_list_get_with_default(
+        &mut self,
+        list_expr: &Expr,
+        index_expr: &Expr,
+        default_expr: &Expr,
+        function: FunctionValue<'ctx>,
+    ) -> Result<BasicValueEnum<'ctx>, String> {
+        // list_get: List<T> -> Nat -> T -> T (with default value)
+        // Extract element at given index, or return default if out of bounds
+        
+        let list_val = self.compile_expr(list_expr, function)?;
+        let list_struct = list_val.into_struct_value();
+        
+        let ptr = self.builder
+            .build_extract_value(list_struct, 0, "ptr")
+            .unwrap()
+            .into_pointer_value();
+        let len = self.builder
+            .build_extract_value(list_struct, 1, "len")
+            .unwrap()
+            .into_int_value();
+        
+        let index = self.compile_expr(index_expr, function)?.into_int_value();
+        let default_val = self.compile_expr(default_expr, function)?;
+        
+        // Infer element type from the list expression
+        let list_type = self.infer_expr_type(list_expr)?;
+        let element_type = match list_type {
+            Type::List(list_type) => self.compile_type(&list_type.element_type),
+            _ => return Err(format!("list_get expects a list, got {:?}", list_type)),
+        };
+        
+        // Bounds check: index < len
+        let in_bounds = self.builder.build_int_compare(
+            inkwell::IntPredicate::ULT,
+            index,
+            len,
+            "in_bounds"
+        ).unwrap();
+        
+        let valid_bb = self.context.append_basic_block(function, "valid_index");
+        let invalid_bb = self.context.append_basic_block(function, "invalid_index");
+        
+        self.builder.build_conditional_branch(in_bounds, valid_bb, invalid_bb).unwrap();
+        
+        // Invalid path: return default value
+        self.builder.position_at_end(invalid_bb);
+        let invalid_bb_end = self.builder.get_insert_block().unwrap();
+        
+        // Valid path: load element
+        self.builder.position_at_end(valid_bb);
+        let element_ptr = unsafe {
+            self.builder.build_gep(
+                element_type,
+                ptr,
+                &[index],
+                "element_ptr"
+            ).unwrap()
+        };
+        let element = self.builder.build_load(element_type, element_ptr, "element").unwrap();
+        let valid_bb_end = self.builder.get_insert_block().unwrap();
+        
+        // Merge blocks
+        let merge_bb = self.context.append_basic_block(function, "merge");
+        self.builder.position_at_end(valid_bb_end);
+        self.builder.build_unconditional_branch(merge_bb).unwrap();
+        self.builder.position_at_end(invalid_bb_end);
+        self.builder.build_unconditional_branch(merge_bb).unwrap();
+        
+        self.builder.position_at_end(merge_bb);
+        let phi = self.builder.build_phi(element_type, "result").unwrap();
+        phi.add_incoming(&[
+            (&element, valid_bb_end),
+            (&default_val, invalid_bb_end),
+        ]);
+        
+        Ok(phi.as_basic_value())
+    }
+
     fn compile_list_set(
         &mut self,
         list_expr: &Expr,
@@ -1364,6 +1448,57 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
         binop: &BinaryOp,
         function: FunctionValue<'ctx>,
     ) -> Result<BasicValueEnum<'ctx>, String> {
+        // For boolean operators, compile operands as-is
+        // For arithmetic/comparison, convert to int
+        if binop.op == "&&" || binop.op == "||" {
+            let lhs = self.compile_expr(&binop.left, function)?;
+            let rhs = self.compile_expr(&binop.right, function)?;
+            
+            // Operands might be i64 (from comparisons) or i1 (from booleans)
+            // Convert to i1 if needed
+            let lhs_bool = if lhs.is_int_value() {
+                let lhs_int = lhs.into_int_value();
+                if lhs_int.get_type().get_bit_width() == 1 {
+                    lhs_int
+                } else {
+                    // Convert i64 to i1: x != 0
+                    self.builder.build_int_compare(
+                        IntPredicate::NE,
+                        lhs_int,
+                        lhs_int.get_type().const_zero(),
+                        "to_bool"
+                    ).unwrap()
+                }
+            } else {
+                return Err(format!("Expected int value for boolean operator, got {:?}", lhs));
+            };
+            
+            let rhs_bool = if rhs.is_int_value() {
+                let rhs_int = rhs.into_int_value();
+                if rhs_int.get_type().get_bit_width() == 1 {
+                    rhs_int
+                } else {
+                    self.builder.build_int_compare(
+                        IntPredicate::NE,
+                        rhs_int,
+                        rhs_int.get_type().const_zero(),
+                        "to_bool"
+                    ).unwrap()
+                }
+            } else {
+                return Err(format!("Expected int value for boolean operator, got {:?}", rhs));
+            };
+            
+            let result = match binop.op.as_str() {
+                "&&" => self.builder.build_and(lhs_bool, rhs_bool, "and").unwrap(),
+                "||" => self.builder.build_or(lhs_bool, rhs_bool, "or").unwrap(),
+                _ => unreachable!(),
+            };
+            
+            return Ok(result.into());
+        }
+        
+        // For other operators, convert to int
         let lhs = self.compile_expr(&binop.left, function)?.into_int_value();
         let rhs = self.compile_expr(&binop.right, function)?.into_int_value();
 
@@ -1813,14 +1948,15 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                 
                 // Check for List_get and List_set which have curried application
                 let (func_name, args) = self.flatten_application(app)?;
-                if (func_name == "List_get" || func_name == "List.get") && args.len() == 2 {
+                if (func_name == "List_get" || func_name == "List.get" || func_name == "list_get") && (args.len() == 2 || args.len() == 3) {
                     // List_get: List<T> -> Nat -> T
+                    // list_get: List<T> -> Nat -> T -> T (with default)
                     // Infer element type from the list argument
                     let list_type = self.infer_expr_type(&args[0])?;
                     if let Type::List(list_type) = list_type {
                         return Ok(*list_type.element_type);
                     } else {
-                        return Err(format!("List.get expects a list, got {:?}", list_type));
+                        return Err(format!("list_get expects a list, got {:?}", list_type));
                     }
                 }
                 if (func_name == "List_set" || func_name == "List.set") && args.len() == 3 {
