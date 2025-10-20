@@ -399,11 +399,6 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     return self.compile_hashmap_size(&args[0], function);
                 }
                 
-                let arg_values: Vec<BasicValueEnum> = args
-                    .iter()
-                    .map(|arg_expr| self.compile_expr(arg_expr, function))
-                    .collect::<Result<Vec<_>, _>>()?;
-                
                 // Check if this is an extern function (Pole name -> C name)
                 let is_extern = self.extern_func_mapping.contains_key(&func_name);
                 let actual_func_name = self.extern_func_mapping
@@ -415,6 +410,30 @@ impl<'ctx, 'arena> CodeGen<'ctx, 'arena> {
                     .module
                     .get_function(&actual_func_name)
                     .ok_or_else(|| format!("Function '{}' not found", func_name))?;
+                
+                // Check if function takes 0 parameters
+                // If so, and we have 1 arg that's Unit, skip it
+                let expected_params = callee.count_params();
+                let args_to_compile = if expected_params == 0 && args.len() == 1 {
+                    // Check if the arg is Unit literal
+                    if let Expr::Literal(lit) = &args[0] {
+                        if matches!(lit.value, LiteralValue::Unit) {
+                            // Skip Unit argument for 0-parameter functions
+                            vec![]
+                        } else {
+                            args.clone()
+                        }
+                    } else {
+                        args.clone()
+                    }
+                } else {
+                    args.clone()
+                };
+                
+                let arg_values: Vec<BasicValueEnum> = args_to_compile
+                    .iter()
+                    .map(|arg_expr| self.compile_expr(arg_expr, function))
+                    .collect::<Result<Vec<_>, _>>()?;
 
                 // For extern functions, convert String arguments from {i8*, i64} to i8*
                 let arg_metadata: Vec<_> = if is_extern {
